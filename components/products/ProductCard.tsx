@@ -457,7 +457,7 @@
 
 // // Get API base URL with fallback
 // const getApiBase = () => {
-//   return "http://localhost:3000";  // backend
+//   return "https://horeca-user-end.vercel.app/";  // backend
 // };
 
 
@@ -836,7 +836,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Get API base URL with fallback
 const getApiBase = () => {
-  return process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";  // backend
+  return process.env.NEXT_PUBLIC_API_BASE_URL || "https://horeca-user-end.vercel.app/";  // backend
 };
 
 function mapRawToProduct(raw: any): Product | null {

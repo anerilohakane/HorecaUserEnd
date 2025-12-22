@@ -140,7 +140,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 // ----------------------------------
 
 function buildApiUrl(path: string) {
-  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";
+  const base = process.env.NEXT_PUBLIC_API_BASE_URL || "https://horeca-user-end.vercel.app/";
   return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`.replace(/([^:]\/)\/+/g, "$1");
 }
 

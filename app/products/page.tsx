@@ -29,7 +29,7 @@ async function getInitialProducts() {
   // Build safe URL (supports both /api/products and https://yourapi.com/api/products)
   const url = API_BASE
     ? `${API_BASE.replace(/\/+$/, '')}/api/products`
-    : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/api/products`;
+    : `${process.env.NEXT_PUBLIC_SITE_URL || 'https://horeca-user-end.vercel.app/'}/api/products`;
 
   try {
     const res = await fetch(url, {
