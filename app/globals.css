@@ -1,0 +1,70 @@
+/* ===========================
+   Tailwind Import (v4)
+=========================== */
+@import "tailwindcss";
+
+/* ===========================
+   Root Variables
+=========================== */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Custom Variables */
+  --primary: 39 121 6;
+  --secondary: 37 99 235;
+  --background-light: 250 250 247;
+  --foreground-light: 17 24 39;
+}
+
+/* ===========================
+   Dark Mode Support
+=========================== */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+/* ===========================
+   Tailwind Theme Injection
+=========================== */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+/* ===========================
+   Base Layer Styling
+=========================== */
+@layer base {
+  body {
+    background: rgb(var(--background-light));
+    color: rgb(var(--foreground-light));
+    font-family: 'Inter', 'Poppins', sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Poppins', sans-serif;
+  }
+}
+
+/* ===========================
+   Custom Utilities
+=========================== */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .elegant-shadow {
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06);
+  }
+
+  .soft-shadow {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  }
+}
