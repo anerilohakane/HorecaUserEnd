@@ -255,6 +255,8 @@ import { MapPin, CreditCard, Package, Edit2 } from "lucide-react";
 import Image from "next/image";
 import { useCart } from "@/lib/context/CartContext";
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 interface OrderReviewProps {
   shippingAddress: ShippingAddress;
   paymentMethod: PaymentMethodType;
@@ -340,7 +342,7 @@ export default function OrderReview({
 
       console.log("📤 Sending order to backend:", body);
 
-      const response = await fetch("http://localhost:3000/api/order", {
+      const response = await fetch(`${API_BASE}/api/order`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -598,7 +600,7 @@ export default function OrderReview({
 
 //       console.log("📤 Sending order to backend:", body);
 
-//       const response = await fetch("http://localhost:3000/api/order", {
+//       const response = await fetch(`${API_BASE}/api/order`, {
 //         method: "POST",
 //         headers: { "Content-Type": "application/json" },
 //         body: JSON.stringify(body),

@@ -295,6 +295,8 @@ import { MapPin, Plus, User, Mail, Phone } from "lucide-react";
 //   onSubmit: (address: ShippingAddress) => void;
 // }
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 interface Props {
   onSubmit: (address: ShippingAddress) => void;
   initialData?: ShippingAddress;
@@ -357,7 +359,7 @@ export default function ShippingAddressSelector({ onSubmit, initialData }: Props
       }
 
       try {
-        const res = await fetch(`http://localhost:3000/api/customers/${userId}`);
+        const res = await fetch(`${API_BASE}/api/customers/${userId}`);
         const data = await res.json();
 
         if (data?.success && data.data) {

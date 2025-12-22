@@ -7,6 +7,10 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Header from '@/components/Header';
 
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
+
+
 export default function WishlistPage() {
     const { user, isAuthenticated } = useAuth();
     const userId = user?.id;
@@ -61,7 +65,7 @@ const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
                 return;
             }
 
-            const url = `http://localhost:3000/api/wishlist?userId=${user.id}`;
+            const url = `${API_BASE}/api/wishlist?userId=${user.id}`;
             console.log("🌐 Fetch URL:", url);
 
             const res = await fetch(url, {
@@ -101,7 +105,7 @@ const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
             if (!userId) return;
 
             const res = await fetch(
-                `http://localhost:3000/api/wishlist?userId=${userId}&productId=${productId}`,
+                `${API_BASE}/api/wishlist?userId=${userId}&productId=${productId}`,
                 { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
             );
 
@@ -126,7 +130,7 @@ const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
             const token = localStorage.getItem("unifoods_token");
             if (!token) return alert("Please login");
 
-            const res = await fetch("http://localhost:3000/api/cart", {
+            const res = await fetch(`${API_BASE}/api/cart`, {
                 method: "POST",
                 headers: {
                     Authorization: `Bearer ${token}`,

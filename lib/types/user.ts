@@ -111,7 +111,8 @@ export interface BusinessRegistrationForm {
 
 // User Session
 export interface UserSession {
-  id: string;
+  _id: string;
+  id?: string;  
   businessName: string;
   email: string;
   verificationStatus: VerificationStatus;

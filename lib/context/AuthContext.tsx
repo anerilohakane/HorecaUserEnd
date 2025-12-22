@@ -4,6 +4,8 @@
     import { log } from "console";
     import React, { createContext, useContext, useState, useEffect } from "react";
 
+    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
     interface User {
     id: string;
     phone: string;
@@ -40,7 +42,7 @@
 
     // STEP 1 — SEND OTP
     const login = async (phone: string) => {
-        const res = await fetch("http://localhost:3000/api/auth/send-otp", {
+        const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ phone }),
@@ -61,7 +63,7 @@ const verifyOtp = async (otp: string) => {
   if (!phone) throw new Error("Phone missing");
 
   // 1️⃣ VERIFY OTP (this already creates/fetches customer)
-  const res = await fetch("http://localhost:3000/api/auth/verify-otp", {
+  const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ phone, otp }),

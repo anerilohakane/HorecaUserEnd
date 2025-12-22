@@ -5,6 +5,8 @@ import { Product } from '@/lib/types/product';
 import { CartItem } from '@/lib/types/cart';
 import { useAuth } from '@/lib/context/AuthContext';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 interface CartContextType {
   items: CartItem[];
   itemCount: number;
@@ -23,7 +25,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [subtotal, setSubtotal] = useState(0);
 
-  const API_URL = "http://localhost:3000/api/cart";
+  const API_URL = `${API_BASE}/api/cart`;
 
   // ------------------------------------------
   // Get userId from localStorage

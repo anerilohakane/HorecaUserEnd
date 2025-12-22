@@ -295,6 +295,8 @@ import Image from 'next/image';
 
 type PaymentMethodKey = 'cod' | 'upi' | 'card' | 'netbanking';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 
 export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<Order | null>(null);
@@ -390,7 +392,7 @@ export default function OrderConfirmationPage() {
 
     if (image.startsWith("http")) return image;
 
-    return `http://localhost:3000/${image.replace(/^\/+/, "")}`;
+    return `${API_BASE}/${image.replace(/^\/+/, "")}`;
   };
 
 
@@ -416,7 +418,7 @@ export default function OrderConfirmationPage() {
           setLoading(false);
           return;
         }
-        const apiUrl = `http://localhost:3000/api/order?id=${storedOrderId}&userId=${storedUserId}`;
+        const apiUrl = `${API_BASE}/api/order?id=${storedOrderId}&userId=${storedUserId}`;
         console.log("🌐 API URL:", apiUrl);
         const response = await fetch(apiUrl);
         console.log("📥 API Raw Response:", response);

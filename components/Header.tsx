@@ -367,6 +367,8 @@ import CartButton from '@/components/cart/CartButton';
 import LoginModal from '@/components/auth/LoginModal';
 import { useAuth } from '@/lib/context/AuthContext';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 export default function Header() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
@@ -405,7 +407,7 @@ export default function Header() {
       const token = localStorage.getItem("unifoods_token");
       if (!token) return;
 
-      const url = `http://localhost:3000/api/wishlist?userId=${user.id}`;
+      const url = `${API_BASE}/api/wishlist?userId=${user.id}`;
       console.log("🌐 Header FetchWishlistCount URL:", url);
 
       const response = await fetch(url, {

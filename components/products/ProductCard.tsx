@@ -616,7 +616,7 @@
 // console.log("Payload:", payload);
 
 
-//     const response = await fetch("http://localhost:3000/api/cart", {
+//     const response = await fetch(`${API_BASE}/api/cart`, {
 //       method: "POST",
 //       headers: {
 //         "Content-Type": "application/json",
@@ -831,9 +831,12 @@ interface ProductCardProps {
   product?: Partial<Product> | null;
 }
 
+
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 // Get API base URL with fallback
 const getApiBase = () => {
-  return "http://localhost:3000";  // backend
+  return process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:3000";  // backend
 };
 
 function mapRawToProduct(raw: any): Product | null {
@@ -1017,12 +1020,12 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
       const payload = {
         productId: effectiveProduct.id,
         quantity: effectiveProduct.minOrder,
-        userId: user?.id || '',
+        userId: user?.id|| '',
       };
       console.log("Effective Product:", effectiveProduct);
       console.log("Payload:", payload);
 
-      const response = await fetch("http://localhost:3000/api/cart", {
+      const response = await fetch(`${API_BASE}/api/cart`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

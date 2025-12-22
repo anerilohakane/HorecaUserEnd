@@ -353,7 +353,7 @@ export default function CheckoutPage() {
 
 //       console.log("📦 Sending order payload:", payload);
 
-//       const res = await fetch("http://localhost:3000/api/order", {
+//       const res = await fetch(`${API_BASE}/api/order`, {
 //         method: "POST",
 //         headers: {
 //           "Content-Type": "application/json",

@@ -29,6 +29,8 @@ import {
 import Header from '@/components/Header';
 import { useAuth } from '@/lib/context/AuthContext';
 
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+
 const ProfilePage = () => {
     const { user: authUser, isAuthenticated, token } = useAuth();
 
@@ -65,7 +67,7 @@ const ProfilePage = () => {
         console.log("🖼 Fetching image for product:", productId);
 
         try {
-            const API_URL = `http://localhost:3000/api/products/${productId}`;
+            const API_URL = `${API_BASE}/api/products/${productId}`;
             const res = await fetch(API_URL);
 
             console.log("🖼 RAW PRODUCT RESPONSE:", res);
@@ -102,7 +104,7 @@ const ProfilePage = () => {
 
         try {
             const res = await fetch(
-                `http://localhost:3000/api/wishlist?userId=${authUser.id}`,
+                `${API_BASE}/api/wishlist?userId=${authUser.id}`,
                 {
                     method: "GET",
                     headers: {
@@ -143,7 +145,7 @@ const ProfilePage = () => {
             }
 
             const userId = authUser.id;
-            const API_URL = `http://localhost:3000/api/customers/${userId}`;
+            const API_URL = `${API_BASE}/api/customers/${userId}`;
 
             console.log("🌍 Fetching customer:", API_URL);
             setLoading(true);
@@ -203,7 +205,7 @@ const ProfilePage = () => {
             return;
         }
 
-        const API_URL = `http://localhost:3000/api/order?userId=${authUser.id}`;
+        const API_URL = `/api/order?userId=${authUser.id}`;
         console.log("🌍 Fetching Orders:", API_URL);
 
         setOrdersLoading(true);
@@ -244,7 +246,7 @@ const ProfilePage = () => {
                         let fullOrder = ord;
                         try {
                             const orderRes = await fetch(
-                                `http://localhost:3000/api/order?id=${ord.id}`,
+                                `${API_BASE}/api/order?id=${ord.id}`,
                                 {
                                     headers: {
                                         Authorization: `Bearer ${token}`,

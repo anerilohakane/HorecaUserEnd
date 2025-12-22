@@ -133,7 +133,7 @@ import Link from 'next/link';
 type Raw = any;
 
 // API Base URL
-const API_URL = "http://localhost:3000/api/cart";
+const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // ----------------------------------
 // 🔧 Utility Functions
@@ -272,7 +272,7 @@ export default function FeaturedProducts() {
     console.log("📤 ADD TO CART PAYLOAD:", payload);
 
     try {
-      const response = await fetch(API_URL, {
+      const response = await fetch(`${API_URL}/api/cart`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

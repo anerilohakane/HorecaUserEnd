@@ -258,6 +258,8 @@
 
 
 // app/products/[id]/page.tsx
+export const dynamic = "force-dynamic";
+
 import React from "react";
 import { notFound } from "next/navigation";
 import Header from "@/components/Header";
@@ -270,9 +272,13 @@ const API_BASE_RAW = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim();
 
 /** ---------- UTIL: Build API URL ---------- **/
 function buildApiUrl(path: string) {
-  const base = API_BASE_RAW || `http://localhost:${process.env.PORT ?? 3000}`;
-  return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+  if (!API_BASE_RAW) {
+    throw new Error("NEXT_PUBLIC_API_BASE_URL is not defined");
+  }
+
+  return `${API_BASE_RAW.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
+
 
 /** ---------- UTIL: Extract Product ---------- **/
 function extractProductPayload(json: any) {
@@ -353,31 +359,31 @@ function looksLikeId(value: string) {
 }
 
 /** ---------- STATIC PARAMS ---------- **/
-export async function generateStaticParams() {
-  try {
-    const res = await fetch(buildApiUrl("api/products"), { cache: "no-store" });
-    if (!res.ok) throw new Error("Fetch error");
+// export async function generateStaticParams() {
+//   try {
+//     const res = await fetch(buildApiUrl("api/products"), { cache: "no-store" });
+//     if (!res.ok) throw new Error("Fetch error");
 
-    const json = await res.json();
-    const list = Array.isArray(json?.data)
-      ? json.data
-      : Array.isArray(json?.products)
-      ? json.products
-      : Array.isArray(json)
-      ? json
-      : [];
+//     const json = await res.json();
+//     const list = Array.isArray(json?.data)
+//       ? json.data
+//       : Array.isArray(json?.products)
+//       ? json.products
+//       : Array.isArray(json)
+//       ? json
+//       : [];
 
-    return list
-      .map((p: any) => ({
-        id: String(p._id ?? p.id ?? p.productId ?? p.slug ?? p.sku ?? ""),
-      }))
-      // .filter((x) => x.id);
-      .filter((x: { id: string }) => Boolean(x.id));
-  } catch {
-    // fallback to static product list
-    return allProducts.map((p) => ({ id: String(p.id) }));
-  }
-}
+//     return list
+//       .map((p: any) => ({
+//         id: String(p._id ?? p.id ?? p.productId ?? p.slug ?? p.sku ?? ""),
+//       }))
+//       // .filter((x) => x.id);
+//       .filter((x: { id: string }) => Boolean(x.id));
+//   } catch {
+//     // fallback to static product list
+//     return allProducts.map((p) => ({ id: String(p.id) }));
+//   }
+// }
 
 /** ---------- PAGE COMPONENT ---------- **/
 export default async function ProductPage({ params }: any) {
@@ -385,7 +391,7 @@ export default async function ProductPage({ params }: any) {
   if (!id) return notFound();
 
   try {
-    const res = await fetch(buildApiUrl(`api/products/${id}`), {
+    const res = await fetch(buildApiUrl(`${API_BASE_RAW}/api/products/${id}`), {
       cache: "no-store",
     });
 
