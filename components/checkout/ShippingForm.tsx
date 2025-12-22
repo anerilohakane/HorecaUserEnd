@@ -291,11 +291,16 @@ import { useEffect, useState } from "react";
 import { ShippingAddress } from "@/lib/types/checkout";
 import { MapPin, Plus, User, Mail, Phone } from "lucide-react";
 
+// interface Props {
+//   onSubmit: (address: ShippingAddress) => void;
+// }
+
 interface Props {
   onSubmit: (address: ShippingAddress) => void;
+  initialData?: ShippingAddress;
 }
 
-export default function ShippingAddressSelector({ onSubmit }: Props) {
+export default function ShippingAddressSelector({ onSubmit, initialData }: Props) {
   const [savedAddress, setSavedAddress] = useState<ShippingAddress | null>(null);
   // const [selectedType, setSelectedType] = useState<"saved" | "new">("saved");
   const [selectedType, setSelectedType] = useState<"saved" | "new" | null>(null);
@@ -304,17 +309,33 @@ export default function ShippingAddressSelector({ onSubmit }: Props) {
 
   const primary = "#D97706";
 
-  const [formData, setFormData] = useState<ShippingAddress>({
-    fullName: "",
-    email: "",
-    phone: "",
-    addressLine1: "",
-    addressLine2: "",
-    city: "",
-    state: "",
-    pincode: "",
-    country: "India",
-  });
+  // const [formData, setFormData] = useState<ShippingAddress>({
+  //   fullName: "",
+  //   email: "",
+  //   phone: "",
+  //   addressLine1: "",
+  //   addressLine2: "",
+  //   city: "",
+  //   state: "",
+  //   pincode: "",
+  //   country: "India",
+  // });
+
+ const [formData, setFormData] = useState<ShippingAddress>(
+  initialData ?? {
+    fullName: '',
+    email: '',
+    phone: '',
+    addressLine1: '',
+    addressLine2: '',
+    city: '',
+    state: '',
+    pincode: '',
+    country: 'India',
+  }
+);
+
+
 
   const [errors, setErrors] = useState<Partial<ShippingAddress>>({});
 

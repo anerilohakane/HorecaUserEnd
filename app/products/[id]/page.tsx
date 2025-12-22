@@ -309,39 +309,47 @@ function mapApiToProduct(raw: any, fallbackId?: string): Product {
     fallbackId ??
     "unknown";
 
-  return {
-    id: String(id),
-    name: raw.name ?? raw.title ?? raw.productName ?? "Unnamed product",
-    description: raw.description ?? raw.desc ?? "",
-    price: Number(raw.price ?? 0),
-    discount: Number(raw.discount ?? raw.offerPercentage ?? 0),
-    image:
-      typeof raw.image === "string"
-        ? raw.image
-        : raw.images?.[0]?.url ??
-          raw.images?.[0] ??
-          raw.imageUrl ??
-          "",
-    unit: raw.unit ?? raw.uom ?? "pcs",
-    minOrder: Number(raw.minOrder ?? raw.min_order ?? 1),
-    rating: Number(raw.rating ?? raw.averageRating ?? 0),
-    reviews: Number(raw.reviews ?? raw.totalReviews ?? 0),
-    category: normalizeCategory(
-      raw.category ?? raw.categoryName ?? raw.categoryId
-    ),
-    badge: raw.badge ?? (raw.isFeatured ? "Featured" : undefined),
-    inStock:
-      typeof raw.inStock === "boolean"
-        ? raw.inStock
-        : Number(raw.stockQuantity ?? 1) > 0,
-  };
+ return {
+  id: String(id),
+  name: raw.name ?? raw.title ?? raw.productName ?? "Unnamed product",
+  description: raw.description ?? raw.desc ?? "",
+  price: Number(raw.price ?? 0),
+  discount: Number(raw.discount ?? raw.offerPercentage ?? 0),
+  image:
+    typeof raw.image === "string"
+      ? raw.image
+      : raw.images?.[0]?.url ??
+        raw.images?.[0] ??
+        raw.imageUrl ??
+        "",
+  unit: raw.unit ?? raw.uom ?? "pcs",
+  minOrder: Number(raw.minOrder ?? raw.min_order ?? 1),
+  rating: Number(raw.rating ?? raw.averageRating ?? 0),
+  reviews: Number(raw.reviews ?? raw.totalReviews ?? 0),
+  category: normalizeCategory(
+    raw.category ?? raw.categoryName ?? raw.categoryId
+  ),
+  badge: raw.badge ?? (raw.isFeatured ? "Featured" : undefined),
+  inStock:
+    typeof raw.inStock === "boolean"
+      ? raw.inStock
+      : Number(raw.stockQuantity ?? 1) > 0,
+
+  // ✅ ADD THIS
+  tags: Array.isArray(raw.tags)
+    ? raw.tags
+    : typeof raw.tags === "string"
+    ? raw.tags.split(",").map((t: string) => t.trim())
+    : [],
+};
 }
+
 
 /** ---------- ID Checker ---------- **/
 function looksLikeId(value: string) {
   if (!value) return false;
   const s = value.trim();
-  return /^[0-9a-fA-F]{24}$/.test(s) || /^[0-9a-fA-F-]{36}$/.test(s);
+  return /^[0-9a-fA-F]{24}$/.test(s ) || /^[0-9a-fA-F-]{36}$/.test(s);
 }
 
 /** ---------- STATIC PARAMS ---------- **/
@@ -363,7 +371,8 @@ export async function generateStaticParams() {
       .map((p: any) => ({
         id: String(p._id ?? p.id ?? p.productId ?? p.slug ?? p.sku ?? ""),
       }))
-      .filter((x) => x.id);
+      // .filter((x) => x.id);
+      .filter((x: { id: string }) => Boolean(x.id));
   } catch {
     // fallback to static product list
     return allProducts.map((p) => ({ id: String(p.id) }));

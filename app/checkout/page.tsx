@@ -16,19 +16,19 @@ import { useEffect } from 'react';
 export default function CheckoutPage() {
   const router = useRouter();
   const { items, subtotal, clearCart } = useCart();
-  
+
   const [currentStep, setCurrentStep] = useState<CheckoutStep>('shipping');
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('cod');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
 
- // Redirect if cart is empty
-useEffect(() => {
-  if (items.length === 0) {
-    router.push('/cart');
-  }
-}, [items, router]);
+  // Redirect if cart is empty
+  useEffect(() => {
+    if (items.length === 0) {
+      router.push('/cart');
+    }
+  }, [items, router]);
 
 
   // Calculate order totals (same as cart)
@@ -67,7 +67,7 @@ useEffect(() => {
     // Generate order
     const orderId = `ORD-${Date.now()}`;
     const orderNumber = `#${Math.floor(100000 + Math.random() * 900000)}`;
-    
+
     const order = {
       id: orderId,
       orderNumber,
@@ -146,13 +146,12 @@ useEffect(() => {
                       {/* Step Circle */}
                       <div className="flex flex-col items-center">
                         <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold transition-all ${
-                            isCompleted
+                          className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold transition-all ${isCompleted
                               ? 'bg-[#D97706] text-white'
                               : isCurrent
-                              ? 'bg-[#D97706] text-white ring-4 ring-[#D97706]/20'
-                              : 'bg-gray-200 text-gray-500'
-                          }`}
+                                ? 'bg-[#D97706] text-white ring-4 ring-[#D97706]/20'
+                                : 'bg-gray-200 text-gray-500'
+                            }`}
                         >
                           {isCompleted ? (
                             <Check size={24} strokeWidth={3} />
@@ -161,9 +160,8 @@ useEffect(() => {
                           )}
                         </div>
                         <span
-                          className={`mt-2 text-sm font-medium ${
-                            isCurrent ? 'text-[#D97706]' : 'text-gray-600'
-                          }`}
+                          className={`mt-2 text-sm font-medium ${isCurrent ? 'text-[#D97706]' : 'text-gray-600'
+                            }`}
                         >
                           {step.label}
                         </span>
@@ -172,9 +170,8 @@ useEffect(() => {
                       {/* Connector Line */}
                       {index < steps.length - 1 && (
                         <div
-                          className={`flex-1 h-1 mx-4 rounded transition-all ${
-                            index < currentStepIndex ? 'bg-[#D97706]' : 'bg-gray-200'
-                          }`}
+                          className={`flex-1 h-1 mx-4 rounded transition-all ${index < currentStepIndex ? 'bg-[#D97706]' : 'bg-gray-200'
+                            }`}
                         />
                       )}
                     </div>
@@ -216,7 +213,7 @@ useEffect(() => {
                 >
                   ← Back to Payment
                 </button>
-                <OrderReview
+                {/* <OrderReview
                   shippingAddress={shippingAddress}
                   paymentMethod={paymentMethod}
                   items={items}
@@ -229,7 +226,21 @@ useEffect(() => {
                   onEditPayment={() => setCurrentStep('payment')}
                   onPlaceOrder={handlePlaceOrder}
                   isPlacingOrder={isPlacingOrder}
+                /> */}
+
+                <OrderReview
+                  shippingAddress={shippingAddress}
+                  paymentMethod={paymentMethod}
+                  items={items}
+                  subtotal={subtotal}
+                  discount={discount}
+                  tax={tax}
+                  shipping={shipping}
+                  total={total}
+                  onEditShipping={() => setCurrentStep('shipping')}
+                  onEditPayment={() => setCurrentStep('payment')}
                 />
+
               </div>
             )}
           </div>

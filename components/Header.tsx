@@ -390,22 +390,22 @@ export default function Header() {
 
   // Fetch wishlist count when user is authenticated
   useEffect(() => {
-    if (mounted && isAuthenticated && user?._id) {
+    if (mounted && isAuthenticated && user?.id) {
       fetchWishlistCount();
     } else {
       setWishlistCount(0);
     }
-  }, [mounted, isAuthenticated, user?._id]);
+  }, [mounted, isAuthenticated, user?.id]);
 
   const fetchWishlistCount = async () => {
-    if (!user?._id) return;
+    if (!user?.id) return;
 
     setWishlistLoading(true);
     try {
       const token = localStorage.getItem("unifoods_token");
       if (!token) return;
 
-      const url = `http://localhost:3000/api/wishlist?userId=${user._id}`;
+      const url = `http://localhost:3000/api/wishlist?userId=${user.id}`;
       console.log("🌐 Header FetchWishlistCount URL:", url);
 
       const response = await fetch(url, {

@@ -9,69 +9,83 @@ import Header from '@/components/Header';
 
 export default function WishlistPage() {
     const { user, isAuthenticated } = useAuth();
+    const userId = user?.id;
+    
+const [wishlistItems, setWishlistItems] = useState<WishlistItem[]>([]);
 
-    const [wishlistItems, setWishlistItems] = useState([]);
     const [loading, setLoading] = useState(true);
     const [removing, setRemoving] = useState<string | null>(null);
     const [addingToCart, setAddingToCart] = useState<string | null>(null);
     const [mounted, setMounted] = useState(false);
 
+    interface WishlistItem {
+  productId: string;
+  name: string;
+  price: number;
+  thumbnail?: string;
+}
+
+
     useEffect(() => setMounted(true), []);
 
     useEffect(() => {
-        if (mounted && isAuthenticated && user?._id) fetchWishlist();
-        else if (mounted) setLoading(false);
-    }, [mounted, isAuthenticated, user?._id]);
+        if (mounted && isAuthenticated && userId) {
+            fetchWishlist();
+        } else if (mounted) {
+            setLoading(false);
+        }
+    }, [mounted, isAuthenticated, userId]);
+
 
     // ---------------------------------------
     // FETCH WISHLIST
     // ---------------------------------------
     const fetchWishlist = async () => {
-    console.log("🔄 fetchWishlist triggered...");
-    console.log("👤 User ID:", user?._id);
+        console.log("🔄 fetchWishlist triggered...");
+        console.log("👤 User ID:", user?.id);
 
-    if (!user?._id) {
-        console.log("⛔ No user found, skipping wishlist fetch");
-        return;
-    }
-
-    setLoading(true);
-
-    try {
-        const token = localStorage.getItem("unifoods_token");
-        console.log("🔑 Token:", token);
-
-        if (!token) {
-            console.log("⛔ No token found");
-            setLoading(false);
+        if (!user?.id) {
+            console.log("⛔ No user found, skipping wishlist fetch");
             return;
         }
 
-        const url = `http://localhost:3000/api/wishlist?userId=${user._id}`;
-        console.log("🌐 Fetch URL:", url);
+        setLoading(true);
 
-        const res = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
+        try {
+            const token = localStorage.getItem("unifoods_token");
+            console.log("🔑 Token:", token);
 
-        console.log("📥 Raw Response:", res);
+            if (!token) {
+                console.log("⛔ No token found");
+                setLoading(false);
+                return;
+            }
 
-        const json = await res.json();
-        console.log("📦 Wishlist JSON:", json);
+            const url = `http://localhost:3000/api/wishlist?userId=${user.id}`;
+            console.log("🌐 Fetch URL:", url);
 
-        const newItems = json?.data?.items || [];
-        console.log("🟩 Extracted Items:", newItems);
+            const res = await fetch(url, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
 
-        setWishlistItems(newItems);
-        console.log("🟢 Final wishlistItems state:", newItems);
+            console.log("📥 Raw Response:", res);
 
-    } catch (err) {
-        console.error("🔥 Wishlist fetch failed:", err);
-    } finally {
-        setLoading(false);
-        console.log("⏹ fetchWishlist finished");
-    }
-};
+            const json = await res.json();
+            console.log("📦 Wishlist JSON:", json);
+
+            const newItems = json?.data?.items || [];
+            console.log("🟩 Extracted Items:", newItems);
+
+            setWishlistItems(newItems);
+            console.log("🟢 Final wishlistItems state:", newItems);
+
+        } catch (err) {
+            console.error("🔥 Wishlist fetch failed:", err);
+        } finally {
+            setLoading(false);
+            console.log("⏹ fetchWishlist finished");
+        }
+    };
 
 
     // ---------------------------------------
@@ -84,10 +98,13 @@ export default function WishlistPage() {
             const token = localStorage.getItem("unifoods_token");
             if (!token) return;
 
+            if (!userId) return;
+
             const res = await fetch(
-                `http://localhost:3000/api/wishlist?userId=${user._id}&productId=${productId}`,
+                `http://localhost:3000/api/wishlist?userId=${userId}&productId=${productId}`,
                 { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }
             );
+
 
             if (res.ok) {
                 setWishlistItems((prev) => prev.filter((it) => it.productId !== productId));
@@ -118,7 +135,7 @@ export default function WishlistPage() {
                 body: JSON.stringify({
                     productId,
                     quantity,
-                    userId: user._id,
+                    userId: userId,
                 }),
             });
 
@@ -187,51 +204,51 @@ export default function WishlistPage() {
                     {!loading && wishlistItems.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
 
-                         {wishlistItems.map((item) => (
-    <div 
-        key={item.productId} 
-        className="bg-white rounded-xl shadow group overflow-hidden"
-    >
+                            {wishlistItems.map((item) => (
+                                <div
+                                    key={item.productId}
+                                    className="bg-white rounded-xl shadow group overflow-hidden"
+                                >
 
-        {/* IMAGE */}
-        <div className="relative aspect-square bg-gray-100 p-4">
-            <Link href={`/products/${item.productId}`}>
-                <Image
-                    src={item.thumbnail || "/images/placeholder.png"}
-                    alt={item.name}
-                    fill
-                    className="object-co transition-transform group-hover:scale-105"
-                    unoptimized
-                />
-            </Link>
+                                    {/* IMAGE */}
+                                    <div className="relative aspect-square bg-gray-100 p-4">
+                                        <Link href={`/products/${item.productId}`}>
+                                            <Image
+                                                src={item.thumbnail || "/images/placeholder.png"}
+                                                alt={item.name}
+                                                fill
+                                                className="object-co transition-transform group-hover:scale-105"
+                                                unoptimized
+                                            />
+                                        </Link>
 
-            <button
-                onClick={() => handleRemoveItem(item.productId)}
-                disabled={removing === item.productId}
-                className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow text-gray-600 hover:bg-red-50"
-            >
-                {removing === item.productId ? "…" : <Trash2 size={16} />}
-            </button>
-        </div>
+                                        <button
+                                            onClick={() => handleRemoveItem(item.productId)}
+                                            disabled={removing === item.productId}
+                                            className="absolute top-2 right-2 bg-white p-1.5 rounded-full shadow text-gray-600 hover:bg-red-50"
+                                        >
+                                            {removing === item.productId ? "…" : <Trash2 size={16} />}
+                                        </button>
+                                    </div>
 
-        {/* INFO */}
-        <div className="p-3">
-            <h3 className="text-sm font-medium line-clamp-2">{item.name}</h3>
+                                    {/* INFO */}
+                                    <div className="p-3">
+                                        <h3 className="text-sm font-medium line-clamp-2">{item.name}</h3>
 
-            <p className="text-lg font-semibold text-[#D97706] mt-1">
-                ₹{item.price}
-            </p>
+                                        <p className="text-lg font-semibold text-[#D97706] mt-1">
+                                            ₹{item.price}
+                                        </p>
 
-            <button
-                onClick={() => handleAddToCart(item.productId)}
-                disabled={addingToCart === item.productId}
-                className="w-full mt-2 bg-[#D97706] text-white py-1.5 text-sm rounded-full"
-            >
-                {addingToCart === item.productId ? "Adding..." : "Add"}
-            </button>
-        </div>
-    </div>
-))}
+                                        <button
+                                            onClick={() => handleAddToCart(item.productId)}
+                                            disabled={addingToCart === item.productId}
+                                            className="w-full mt-2 bg-[#D97706] text-white py-1.5 text-sm rounded-full"
+                                        >
+                                            {addingToCart === item.productId ? "Adding..." : "Add"}
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
 
                         </div>
                     )}

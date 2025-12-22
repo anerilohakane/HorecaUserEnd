@@ -30,7 +30,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   // ------------------------------------------
 
 
-  const userId = user?._id;
+  const userId = user?.id;
 
   console.log("🔹 CartContext Loaded");
   console.log("🟦 Logged-in User:", user);

@@ -356,8 +356,10 @@ export default function OrderReview({
       }
 
       localStorage.setItem("lastOrder", JSON.stringify(data.order));
-      localStorage.setItem("lastOrderId", data.order._id);
-      
+      // localStorage.setItem("lastOrderId", data.order._id);
+      localStorage.setItem("lastOrderId", data.order.id || data.order._id);
+
+
       await clearCart();
 
       window.dispatchEvent(new Event("cart-updated"));

@@ -553,10 +553,17 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
+// interface CartItemProps {
+//   item: CartItemType;
+//   onUpdateQuantity: (productId: number, quantity: number) => void;
+//   onRemove: (productId: number) => void;
+//   useUnoptimizedImages?: boolean;
+// }
+
 interface CartItemProps {
   item: CartItemType;
-  onUpdateQuantity: (productId: number, quantity: number) => void;
-  onRemove: (productId: number) => void;
+  onUpdateQuantity: (productId: string, quantity: number) => Promise<void>;
+  onRemove: (productId: string) => Promise<void>;
   useUnoptimizedImages?: boolean;
 }
 
@@ -595,30 +602,38 @@ export default function CartItem({
   };
 
   // Get product ID
-  const getProductId = (): number => {
-    if (!rawProduct) return 0;
+  // const getProductId = (): number => {
+  //   if (!rawProduct) return 0;
 
-    if (typeof rawProduct === 'number') return rawProduct;
-    if (typeof rawProduct === 'string') return Number(rawProduct) || 0;
+  //   if (typeof rawProduct === 'number') return rawProduct;
+  //   if (typeof rawProduct === 'string') return Number(rawProduct) || 0;
 
-    if (typeof rawProduct === 'object') {
-      const id = (rawProduct as any).id ||
-        (rawProduct as any)._id ||
-        (rawProduct as any).productId;
+  //   if (typeof rawProduct === 'object') {
+  //     const id = (rawProduct as any).id ||
+  //       (rawProduct as any)._id ||
+  //       (rawProduct as any).productId;
 
-        console.log(id);
-        console.log(typeof(id));
+  //       console.log(id);
+  //       console.log(typeof(id));
         
         
-      // if (typeof id === 'string') return Number(id) || 0;
-      // if (typeof id === 'number') return id;
-      return id;
-    }
+  //     // if (typeof id === 'string') return Number(id) || 0;
+  //     // if (typeof id === 'number') return id;
+  //     return id;
+  //   }
 
-    return 0;
-  };
+  //   return 0;
+  // };
 
-  const productId = getProductId();
+  // const productId = getProductId();
+
+  // const rawProduct = item.product;
+
+  const productId: string =
+  typeof rawProduct === 'object' && rawProduct !== null
+    ? String((rawProduct as any).id)
+    : '';
+
 
   // Normalize product data
   const product = {
@@ -689,6 +704,8 @@ export default function CartItem({
   const handleIncrement = (productId:any) => {
     console.log('Incrementing quantity for product ID:', productId);
     
+    // onUpdateQuantity(productId, quantity + 1);
+
     onUpdateQuantity(productId, quantity + 1);
   };
 

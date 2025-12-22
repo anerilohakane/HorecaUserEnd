@@ -293,6 +293,9 @@ import { Order } from '@/lib/types/checkout';
 import { CheckCircle, Package, MapPin, CreditCard, Download, ArrowRight, Calendar, Hash, IndianRupee } from 'lucide-react';
 import Image from 'next/image';
 
+type PaymentMethodKey = 'cod' | 'upi' | 'card' | 'netbanking';
+
+
 export default function OrderConfirmationPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
@@ -307,15 +310,24 @@ export default function OrderConfirmationPage() {
     }
 
     console.log("📦 Order object:", order);
-    console.log("🆔 order._id:", order._id);
+    console.log("🆔 order._id:", order.id);
 
-    if (!order._id) {
-      console.error("❌ order._id missing");
+    // if (!order._id) {
+    //   console.error("❌ order._id missing");
+    //   alert("Order ID missing");
+    //   return;
+    // }
+
+    // const apiUrl = `/api/order/invoice?orderId=${order._id}`;
+
+    console.log("🆔 order.id:", order.id);
+
+    if (!order.id) {
       alert("Order ID missing");
-      return;
     }
 
-    const apiUrl = `/api/order/invoice?orderId=${order._id}`;
+    const apiUrl = `/api/order/invoice?orderId=${order.id}`;
+
     console.log("🌐 Fetching Invoice API:", apiUrl);
 
     try {
@@ -464,12 +476,20 @@ export default function OrderConfirmationPage() {
     );
   }
 
-  const paymentMethodNames = {
+  // const paymentMethodNames = {
+  //   cod: 'Cash on Delivery',
+  //   upi: 'UPI Payment',
+  //   card: 'Credit/Debit Card',
+  //   netbanking: 'Net Banking',
+  // };
+
+  const paymentMethodNames: Record<PaymentMethodKey, string> = {
     cod: 'Cash on Delivery',
     upi: 'UPI Payment',
     card: 'Credit/Debit Card',
     netbanking: 'Net Banking',
   };
+
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('en-IN', {
@@ -542,7 +562,11 @@ export default function OrderConfirmationPage() {
                   <h3 className="text-xl font-semibold text-gray-900">Payment Method</h3>
                 </div>
                 <div className="ml-13">
-                  <p className="font-semibold text-gray-900 text-lg">{paymentMethodNames[order.payment?.method]}</p>
+                  {/* <p className="font-semibold text-gray-900 text-lg">{paymentMethodNames[order.payment?.method]}</p> */}
+
+                  <p className="font-semibold text-gray-900 text-lg">
+                    {paymentMethodNames[order.paymentMethod as PaymentMethodKey]}
+                  </p>
                   {/* <p className="text-green-600 font-medium mt-2 flex items-center gap-2">
                     <CheckCircle className="w-5 h-5" />
                     Payment Successful
@@ -559,28 +583,53 @@ export default function OrderConfirmationPage() {
                   <h3 className="text-xl font-semibold text-gray-900">Order Items</h3>
                 </div>
                 <div className="space-y-4">
-                  {order.items.map((item, index) => (
-                    <div key={index} className="flex items-center gap-5 p-5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all border border-gray-200">
-                      <div className="relative w-20 h-20 bg-white rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-gray-300">
-                        <Image
-                          src={resolveImage(item.image)}
-                          alt={item.productName || "Ordered product image"}
-                          fill
-                          className="object-cover"
-                          unoptimized={resolveImage(item.image).startsWith("http")}
-                        />
+                {order.items.map((item, index) => {
+  const unitPrice =
+    typeof item.price === "number"
+      ? item.price
+      : typeof (item as any).unitPrice === "number"
+      ? (item as any).unitPrice
+      : 0;
 
-                      </div>
-                      <div className="flex-1">
-                        <h4 className="font-semibold text-gray-900 text-lg">{item.productName}</h4>
-                        <p className="text-gray-600 mt-1">Quantity: <span className="font-medium">{item.quantity}</span></p>
-                      </div>
-                      <div className="text-right">
-                        <p className="font-bold text-amber-600 text-xl">₹{(item.quantity * item.unitPrice).toFixed(2)}</p>
-                        <p className="text-sm text-gray-500">₹{item.unitPrice.toFixed(2)} each</p>
-                      </div>
-                    </div>
-                  ))}
+  return (
+    <div
+      key={index}
+      className="flex items-center gap-5 p-5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all border border-gray-200"
+    >
+      {/* PRODUCT IMAGE */}
+      <div className="relative w-20 h-20 bg-white rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-gray-300">
+        <Image
+          src={resolveImage(item.image)}
+          alt={item.productName || "Ordered product image"}
+          fill
+          className="object-cover"
+          unoptimized={resolveImage(item.image).startsWith("http")}
+        />
+      </div>
+
+      {/* PRODUCT INFO */}
+      <div className="flex-1">
+        <h4 className="font-semibold text-gray-900 text-lg">
+          {item.productName}
+        </h4>
+        <p className="text-gray-600 mt-1">
+          Quantity: <span className="font-medium">{item.quantity}</span>
+        </p>
+      </div>
+
+      {/* PRICE */}
+      <div className="text-right">
+        <p className="font-bold text-amber-600 text-xl">
+          ₹{(item.quantity * unitPrice).toFixed(2)}
+        </p>
+        <p className="text-sm text-gray-500">
+          ₹{unitPrice.toFixed(2)} each
+        </p>
+      </div>
+    </div>
+  );
+})}
+
                 </div>
               </div>
 
@@ -602,7 +651,7 @@ export default function OrderConfirmationPage() {
                   <div className="flex justify-between text-gray-700">
                     <span>Shipping</span>
                     <span className="font-medium text-amber-600">
-                      {order.shipping === 0 ? 'FREE' : `₹${order.shippingCharges || order.shipping}`}
+                      {order.shipping === 0 ? 'FREE' : `₹${order.shipping}`}
                     </span>
                   </div>
                   <div className="border-t-2 border-amber-300 pt-4">

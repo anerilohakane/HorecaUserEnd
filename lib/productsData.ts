@@ -3,7 +3,7 @@ import { Product, SortConfig } from './types/product';
 export const allProducts: Product[] = [
   // Ingredients Category
   {
-    id: 1,
+    id: "1",
     name: "Dark Compound Chocolate",
     description: "Premium quality dark compound chocolate, perfect for coating, molding, and decorating. Contains 55% cocoa content.",
     price: 280,
@@ -19,7 +19,7 @@ export const allProducts: Product[] = [
     tags: ["chocolate", "baking", "coating", "premium"]
   },
   {
-    id: 2,
+    id: "2",
     name: "Premium Whipping Cream",
     description: "High-fat whipping cream (35% fat) for perfect peaks every time. Ideal for cakes, pastries, and desserts.",
     price: 320,
@@ -35,7 +35,7 @@ export const allProducts: Product[] = [
     tags: ["cream", "dairy", "whipping", "premium"]
   },
   {
-    id: 3,
+    id: "3",
     name: "Cake Base Boards (10-inch)",
     description: "Food-grade silver cake boards, sturdy and grease-resistant. Perfect for professional cake presentation.",
     price: 15,
@@ -51,7 +51,7 @@ export const allProducts: Product[] = [
     tags: ["packaging", "cake", "boards", "silver"]
   },
   {
-    id: 4,
+    id: "4",
     name: "Premium Bread Flour",
     description: "High-protein bread flour (13% protein) for perfect bread texture. Imported wheat, stone-ground.",
     price: 45,
@@ -67,7 +67,7 @@ export const allProducts: Product[] = [
     tags: ["flour", "bread", "protein", "baking"]
   },
   {
-    id: 5,
+    id: "5",
     name: "Vanilla Extract Essence",
     description: "Pure Madagascar vanilla extract. Natural, alcohol-based, intense flavor for all baking needs.",
     price: 180,
@@ -84,7 +84,7 @@ export const allProducts: Product[] = [
     tags: ["vanilla", "extract", "flavor", "premium", "natural"]
   },
   {
-    id: 6,
+    id: "6",
     name: "Butter Cookies Mix",
     description: "Ready-to-use butter cookies mix. Just add water and bake. Makes 50+ cookies per pack.",
     price: 95,
@@ -100,7 +100,7 @@ export const allProducts: Product[] = [
     tags: ["cookies", "mix", "ready-made", "easy"]
   },
   {
-    id: 7,
+    id: "7",
     name: "Professional Piping Bags (100pcs)",
     description: "Disposable piping bags, 12-inch, food-grade plastic. Strong and tear-resistant.",
     price: 120,
@@ -116,7 +116,7 @@ export const allProducts: Product[] = [
     tags: ["piping", "decorating", "disposable", "tools"]
   },
   {
-    id: 8,
+    id: "8",
     name: "Edible Gold Dust",
     description: "Luxury edible gold dust for cake decoration. Non-toxic, food-safe shimmer powder.",
     price: 450,
@@ -132,7 +132,7 @@ export const allProducts: Product[] = [
     tags: ["gold", "decoration", "shimmer", "luxury", "premium"]
   },
   {
-    id: 9,
+    id: "9",
     name: "White Compound Chocolate",
     description: "Creamy white compound chocolate for coating and molding. Smooth texture and easy to work with.",
     price: 290,
@@ -148,7 +148,7 @@ export const allProducts: Product[] = [
     tags: ["chocolate", "white", "coating", "baking"]
   },
   {
-    id: 10,
+    id: "10",
     name: "Almond Flour (Blanched)",
     description: "Finely ground blanched almond flour. Perfect for gluten-free and keto baking.",
     price: 380,
@@ -165,7 +165,7 @@ export const allProducts: Product[] = [
     tags: ["almond", "flour", "gluten-free", "keto", "premium"]
   },
   {
-    id: 11,
+    id: "11",
     name: "Buttercream Frosting Mix",
     description: "Instant buttercream frosting mix. Just add butter and whip. Available in multiple flavors.",
     price: 125,
@@ -181,7 +181,7 @@ export const allProducts: Product[] = [
     tags: ["frosting", "buttercream", "mix", "ready-made"]
   },
   {
-    id: 12,
+    id: "12",
     name: "Cake Boxes (8x8 inch)",
     description: "White cake boxes with window. Eco-friendly cardboard, grease-resistant coating.",
     price: 25,
@@ -197,7 +197,7 @@ export const allProducts: Product[] = [
     tags: ["packaging", "boxes", "cake", "window", "eco-friendly"]
   },
   {
-    id: 13,
+    id: "13",
     name: "Strawberry Emulsion",
     description: "Natural strawberry emulsion for baking. Water-based, heat-stable flavor.",
     price: 145,
@@ -213,7 +213,7 @@ export const allProducts: Product[] = [
     tags: ["strawberry", "emulsion", "flavor", "natural"]
   },
   {
-    id: 14,
+    id: "14",
     name: "Sprinkles Mix (Rainbow)",
     description: "Colorful rainbow sprinkles mix. Food-safe colors, perfect for cakes and cupcakes.",
     price: 85,
@@ -229,7 +229,7 @@ export const allProducts: Product[] = [
     tags: ["sprinkles", "rainbow", "decoration", "colorful"]
   },
   {
-    id: 15,
+    id: "15",
     name: "Stainless Steel Spatula Set",
     description: "Professional 3-piece spatula set. Heat-resistant, dishwasher safe.",
     price: 195,
@@ -245,7 +245,7 @@ export const allProducts: Product[] = [
     tags: ["spatula", "tools", "stainless", "professional"]
   },
   {
-    id: 16,
+    id: "16",
     name: "Unsalted Butter (Restaurant Quality)",
     description: "Premium unsalted butter, 82% fat content. Perfect for baking and pastry work.",
     price: 420,
@@ -261,7 +261,7 @@ export const allProducts: Product[] = [
     tags: ["butter", "dairy", "unsalted", "premium", "baking"]
   },
   {
-    id: 17,
+    id: "17",
     name: "Cocoa Powder (Dutch Process)",
     description: "Alkalized Dutch cocoa powder. Rich, dark color and smooth flavor.",
     price: 185,
@@ -277,7 +277,7 @@ export const allProducts: Product[] = [
     tags: ["cocoa", "powder", "dutch", "chocolate", "baking"]
   },
   {
-    id: 18,
+    id: "18",
     name: "Fondant (Ready to Roll)",
     description: "Pre-made fondant in various colors. Smooth, pliable, and easy to work with.",
     price: 165,
@@ -293,7 +293,7 @@ export const allProducts: Product[] = [
     tags: ["fondant", "decoration", "ready-made", "cake"]
   },
   {
-    id: 19,
+    id: "19",
     name: "Cupcake Liners (Premium)",
     description: "Grease-proof cupcake liners. Available in multiple colors and patterns.",
     price: 45,
@@ -309,7 +309,7 @@ export const allProducts: Product[] = [
     tags: ["cupcake", "liners", "packaging", "grease-proof"]
   },
   {
-    id: 20,
+    id: "20",
     name: "Cream Cheese (Bakery Grade)",
     description: "Professional cream cheese for frosting and cheesecakes. High fat content.",
     price: 340,

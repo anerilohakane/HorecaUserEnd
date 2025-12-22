@@ -32,8 +32,11 @@ import { useAuth } from '@/lib/context/AuthContext';
 const ProfilePage = () => {
     const { user: authUser, isAuthenticated, token } = useAuth();
 
-    const [user, setUser] = useState(null);
-    const [orders, setOrders] = useState([]);
+    // const [user, setUser] = useState(null);
+    const [user, setUser] = useState<any | null>(null);
+
+    // const [orders, setOrders] = useState([]);
+    const [orders, setOrders] = useState<any[]>([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('personal');
     const [loading, setLoading] = useState(true);
@@ -58,7 +61,7 @@ const ProfilePage = () => {
     /* ------------------------------------------------------------
        🔥 FETCH PRODUCT IMAGE
     ------------------------------------------------------------- */
-    const fetchProductImage = async (productId) => {
+    const fetchProductImage = async (productId:string) => {
         console.log("🖼 Fetching image for product:", productId);
 
         try {
@@ -95,11 +98,11 @@ const ProfilePage = () => {
    🔥 FETCH SAVED ITEMS COUNT (WISHLIST)
 ------------------------------------------------------------- */
     const fetchSavedItemsCount = async () => {
-        if (!authUser?._id || !token) return;
+        if (!authUser?.id || !token) return;
 
         try {
             const res = await fetch(
-                `http://localhost:3000/api/wishlist?userId=${authUser._id}`,
+                `http://localhost:3000/api/wishlist?userId=${authUser.id}`,
                 {
                     method: "GET",
                     headers: {
@@ -133,13 +136,13 @@ const ProfilePage = () => {
         const loadProfile = async () => {
             console.log("🔵 ProfilePage MOUNTED");
 
-            if (!isAuthenticated || !authUser?._id) {
+            if (!isAuthenticated || !authUser?.id) {
                 console.log("❌ Not authenticated or missing userId");
                 setLoading(false);
                 return;
             }
 
-            const userId = authUser._id;
+            const userId = authUser.id;
             const API_URL = `http://localhost:3000/api/customers/${userId}`;
 
             console.log("🌍 Fetching customer:", API_URL);
@@ -187,7 +190,7 @@ const ProfilePage = () => {
 
         loadProfile();
 
-    }, [isAuthenticated, authUser?._id, token]);
+    }, [isAuthenticated, authUser?.id, token]);
 
     /* ------------------------------------------------------------
        🔥 FETCH ORDERS + PRODUCT IMAGES
@@ -195,12 +198,12 @@ const ProfilePage = () => {
     const fetchOrders = async () => {
         console.log("📦 fetchOrders() CALLED");
 
-        if (!authUser?._id) {
+        if (!authUser?.id) {
             console.log("❌ Missing userId for fetching orders");
             return;
         }
 
-        const API_URL = `http://localhost:3000/api/order?userId=${authUser._id}`;
+        const API_URL = `http://localhost:3000/api/order?userId=${authUser.id}`;
         console.log("🌍 Fetching Orders:", API_URL);
 
         setOrdersLoading(true);
@@ -235,13 +238,13 @@ const ProfilePage = () => {
                 console.log("🟢 Orders received:", json.orders.length);
 
                 const ordersWithImages = await Promise.all(
-                    json.orders.map(async (ord) => {
+                    json.orders.map(async (ord:any) => {
 
                         // 🔥 FETCH FULL ORDER (to get shippingAddress)
                         let fullOrder = ord;
                         try {
                             const orderRes = await fetch(
-                                `http://localhost:3000/api/order?id=${ord._id}`,
+                                `http://localhost:3000/api/order?id=${ord.id}`,
                                 {
                                     headers: {
                                         Authorization: `Bearer ${token}`,
@@ -255,13 +258,13 @@ const ProfilePage = () => {
                                 fullOrder = orderJson.order;
                             }
                         } catch (err) {
-                            console.error("❌ Failed to fetch full order:", ord._id, err);
+                            console.error("❌ Failed to fetch full order:", ord.id, err);
                         }
 
                         // ⭐ ATTACH PRODUCT IMAGES (same as before)
                         const updatedItems = await Promise.all(
-                            fullOrder.items.map(async (it) => {
-                                const productId = it.product?._id || it.productId;
+                            fullOrder.items.map(async (it:any) => {
+                                const productId = it.product?.id || it.productId;
                                 const image = await fetchProductImage(productId);
 
                                 return {
@@ -672,7 +675,7 @@ const ProfilePage = () => {
                                             <div className="space-y-6">
                                                 {orders.map((ord, index) => (
                                                     <div
-                                                        key={ord._id || index}
+                                                        key={ord.id || index}
                                                         className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
                                                     >
                                                         {/* Order Header */}
@@ -682,7 +685,7 @@ const ProfilePage = () => {
                                                                     <div className="flex items-center gap-3">
                                                                         <div className="w-2 h-2 rounded-full bg-amber-500" />
                                                                         <h3 className="text-lg font-semibold text-gray-900">
-                                                                            Order #{ord._id?.slice(-8).toUpperCase()}
+                                                                            Order #{ord?.id.slice(-8).toUpperCase()}
                                                                         </h3>
                                                                     </div>
                                                                     <p className="text-sm text-gray-500 mt-1">
@@ -756,7 +759,7 @@ const ProfilePage = () => {
                                                         <div className="px-6 py-4">
                                                             <p className="text-sm font-semibold text-gray-700 mb-4">Order Items ({ord.items?.length || 0})</p>
                                                             <div className="space-y-4">
-                                                                {ord.items?.map((item, i) => (
+                                                                {ord.items?.map((item:any, i:number) => (
                                                                     <div key={i} className="flex items-center gap-4 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
                                                                         <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                                                                             <Image

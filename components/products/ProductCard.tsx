@@ -886,6 +886,7 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
     setApiBase(getApiBase());
   }, []);
 
+
   // Fetch product data
   useEffect(() => {
     if (incoming && !looksPartial(incoming)) {
@@ -972,7 +973,7 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
 
   // Check wishlist status - NOW it can use effectiveProduct safely
   useEffect(() => {
-    if (!effectiveProduct?.id || !user?._id || !API_BASE) return;
+    if (!effectiveProduct?.id || !user?.id || !API_BASE) return;
 
     const checkWishlistStatus = async () => {
       try {
@@ -997,7 +998,7 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
     };
 
     checkWishlistStatus();
-  }, [effectiveProduct?.id, user?._id, API_BASE]);
+  }, [effectiveProduct?.id, user?.id, API_BASE]);
 
   // Cart handler
   const handleAddToCart = async () => {
@@ -1016,7 +1017,7 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
       const payload = {
         productId: effectiveProduct.id,
         quantity: effectiveProduct.minOrder,
-        userId: user?._id || '',
+        userId: user?.id || '',
       };
       console.log("Effective Product:", effectiveProduct);
       console.log("Payload:", payload);
@@ -1069,7 +1070,7 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
 
       const payload = {
         productId: effectiveProduct.id,
-        userId: user?._id || '',
+        userId: user?.id || '',
       };
 
       console.log("Wishlist Payload:", payload);
