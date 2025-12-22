@@ -18,11 +18,11 @@
 //   //   console.log('🛒 Cart Items Updated:', items);
 //   // }, [items]);
 //   console.log(items);
-  
+
 //   return (
 //     <div className="min-h-screen flex flex-col">
 //       <Header />
-      
+
 //       <main className="flex-grow bg-[#FAFAF7] py-8">
 //         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -165,14 +165,24 @@ export default function CartPage() {
             <div className="grid lg:grid-cols-3 gap-8">
               {/* Items */}
               <div className="lg:col-span-2 space-y-4">
-                {items.map((item) => (
+                {/* {items.map((item) => (
                   <CartItem
                     key={item.productId}
                     item={item}
                     onUpdateQuantity={updateQuantity}
                     onRemove={removeItem}
                   />
+                ))} */}
+
+                {items.map((item) => (
+                  <CartItem
+                    key={item.product._id || item.product.id}
+                    item={item}
+                    onUpdateQuantity={updateQuantity}
+                    onRemove={removeItem}
+                  />
                 ))}
+
 
                 {/* Mobile Summary */}
                 <div className="lg:hidden mt-6">
