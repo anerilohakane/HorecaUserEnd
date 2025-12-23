@@ -75,13 +75,22 @@ const verifyOtp = async (otp: string) => {
   const token = json.data.accessToken;
   const user = json.data.user; // ✅ THIS is your customer
 
+
+const normalizedUser = {
+  id: user._id,      // 🔥 normalize here
+  phone: user.phone,
+  name: user.name ?? null,
+  email: user.email ?? null,
+};
+
+localStorage.setItem("unifoods_user", JSON.stringify(normalizedUser));
   // 🔥🔥🔥 STORE AUTH DATA (CRITICAL FIX)
-  localStorage.setItem("userId", user._id);
-  localStorage.setItem("unifoods_user", JSON.stringify(user));
+//   localStorage.setItem("userId", user.id);
+//   localStorage.setItem("unifoods_user", JSON.stringify(user));
   localStorage.setItem("unifoods_token", token);
 
   // 2️⃣ SET AUTH STATE
-  setUser(user);
+  setUser(normalizedUser);
   setToken(token);
 
   sessionStorage.removeItem("pending_phone");

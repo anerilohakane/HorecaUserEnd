@@ -18,11 +18,11 @@
 //   //   console.log('🛒 Cart Items Updated:', items);
 //   // }, [items]);
 //   console.log(items);
-  
+
 //   return (
 //     <div className="min-h-screen flex flex-col">
 //       <Header />
-      
+
 //       <main className="flex-grow bg-[#FAFAF7] py-8">
 //         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
@@ -175,14 +175,14 @@ export default function CartPage() {
                 ))} */}
 
                 {items.map((item) => (
-  <CartItem
-    // key={item.product._id || item.product.id}
-    key={item.product.id}
-    item={item}
-    onUpdateQuantity={updateQuantity}
-    onRemove={removeItem}
-  />
-))}
+                  <CartItem
+                    // key={item.product._id || item.product.id}
+                    key={item.product.id}
+                    item={item}
+                    onUpdateQuantity={updateQuantity}
+                    onRemove={removeItem}
+                  />
+                ))}
 
 
                 {/* Mobile Summary */}

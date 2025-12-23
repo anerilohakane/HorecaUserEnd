@@ -386,7 +386,7 @@ export default function Header() {
 
   // Ensure component is mounted to avoid hydration issues
   useEffect(() => {
-    console.log('🔷 Header useEffect - setting mounted to true');
+    // console.log('🔷 Header useEffect - setting mounted to true');
     setMounted(true);
   }, []);
 
@@ -408,7 +408,7 @@ export default function Header() {
       if (!token) return;
 
       const url = `${API_BASE}/api/wishlist?userId=${user.id}`;
-      console.log("🌐 Header FetchWishlistCount URL:", url);
+      // console.log("🌐 Header FetchWishlistCount URL:", url);
 
       const response = await fetch(url, {
         method: "GET",
@@ -419,22 +419,22 @@ export default function Header() {
       });
 
       const data = await response.json();
-      console.log("📦 Header Wishlist Response JSON:", data);
+      // console.log("📦 Header Wishlist Response JSON:", data);
 
       let count = 0;
 
       if (data?.data?.items) {
         count = data.data.items.length;
-        console.log("❤️ Count from data.data.items:", count);
+        // console.log("❤️ Count from data.data.items:", count);
       } else if (data?.items) {
         count = data.items.length;
-        console.log("❤️ Count from data.items:", count);
+        // console.log("❤️ Count from data.items:", count);
       } else {
         console.log("⚠️ Could not find wishlist items in response.");
       }
 
       setWishlistCount(count);
-      console.log("🔷 Wishlist count updated:", count);
+      // console.log("🔷 Wishlist count updated:", count);
     } catch (err) {
       console.error("🔥 Failed to fetch wishlist count:", err);
     } finally {
@@ -445,41 +445,41 @@ export default function Header() {
 
   // Format phone number for display
   const formatPhoneNumber = (phone: string | undefined) => {
-    console.log('📞 formatPhoneNumber called with:', phone);
+    // console.log('📞 formatPhoneNumber called with:', phone);
 
     if (!phone || typeof phone !== 'string' || phone.length < 10) {
-      console.log('❌ Invalid phone for formatting');
+      // console.log('❌ Invalid phone for formatting');
       return '';
     }
 
     const formatted = `+91 ${phone.slice(0, 3)}***${phone.slice(6)}`;
-    console.log('✅ Formatted phone:', formatted);
+    // console.log('✅ Formatted phone:', formatted);
     return formatted;
   };
 
   const handleLogout = () => {
-    console.log('🔷 Logout button clicked');
+    // console.log('🔷 Logout button clicked');
     logout();
     setWishlistCount(0); // Reset wishlist count on logout
   };
 
   const handleLoginClick = () => {
-    console.log('🔷 Login button clicked, opening modal');
+    // console.log('🔷 Login button clicked, opening modal');
     setIsLoginModalOpen(true);
   };
 
   const handleWishlistClick = (e: React.MouseEvent) => {
     e.preventDefault();
-    console.log('🔷 Wishlist button clicked');
+    // console.log('🔷 Wishlist button clicked');
 
     if (!isAuthenticated) {
-      console.log('🔷 User not authenticated, opening login modal');
+      // console.log('🔷 User not authenticated, opening login modal');
       handleLoginClick();
       return;
     }
 
     // Navigate to wishlist page
-    console.log('🔷 Navigating to wishlist page');
+    // console.log('🔷 Navigating to wishlist page');
     window.location.href = '/wishlist';
   };
 
@@ -517,11 +517,11 @@ export default function Header() {
     );
   }
 
-  console.log('🔷 Header client-side rendering...', {
-    wishlistCount,
-    wishlistLoading,
-    isAuthenticated,
-  });
+  // console.log('🔷 Header client-side rendering...', {
+  //   wishlistCount,
+  //   wishlistLoading,
+  //   isAuthenticated,
+  // });
 
   return (
     <>

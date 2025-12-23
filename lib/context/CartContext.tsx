@@ -34,10 +34,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
   const userId = user?.id;
 
-  console.log("🔹 CartContext Loaded");
-  console.log("🟦 Logged-in User:", user);
-  console.log("🟦 Token:", token);
-  console.log("🟦 userId:", userId);
+  // console.log("🔹 CartContext Loaded");
+  // console.log("🟦 Logged-in User:", user);
+  // console.log("🟦 Token:", token);
+  // console.log("🟦 userId:", userId);
 
   // ------------------------------------------
   // FETCH CART
@@ -48,17 +48,17 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return;
     }
 
-    console.log("📥 FETCH CART =>", `${API_URL}?userId=${userId}`);
+    // console.log("📥 FETCH CART =>", `${API_URL}?userId=${userId}`);
 
     const res = await fetch(`${API_URL}?userId=${userId}`, {
       method: "GET",
     });
 
     const json = await res.json();
-    console.log("📥 FETCH CART RESPONSE:", json);
+    // console.log("📥 FETCH CART RESPONSE:", json);
 
     if (json.success) {
-      console.log("🟩 Setting cart items:", json.data.items);
+      // console.log("🟩 Setting cart items:", json.data.items);
       setItems(json.data.items);
       setSubtotal(json.data.subtotal);
     } else {
@@ -68,7 +68,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
 
 useEffect(() => {
   if (isAuthenticated && userId) {
-    console.log("🔄 User authenticated — Fetching cart...");
+    // console.log("🔄 User authenticated — Fetching cart...");
     fetchCart();
   }
 }, [isAuthenticated]);
@@ -77,7 +77,7 @@ useEffect(() => {
   if (!isAuthenticated || !userId) return;
 
   const handleCartUpdated = () => {
-    console.log("🟢 cart-updated event received — refetching cart");
+    // console.log("🟢 cart-updated event received — refetching cart");
     fetchCart();
   };
 
@@ -104,7 +104,7 @@ useEffect(() => {
       quantity,
     };
 
-    console.log("📤 ADD TO CART BODY:", body);
+    // console.log("📤 ADD TO CART BODY:", body);
 
     const res = await fetch(API_URL, {
       method: "POST",
@@ -116,10 +116,10 @@ useEffect(() => {
     });
 
     const json = await res.json();
-    console.log("📤 ADD TO CART RESPONSE:", json);
+    // console.log("📤 ADD TO CART RESPONSE:", json);
 
     if (json.success) {
-      console.log("🟩 Add success — fetching cart again");
+      // console.log("🟩 Add success — fetching cart again");
       fetchCart();
     } else {
       console.error("🟥 Add failed:", json.error);
@@ -140,7 +140,7 @@ useEffect(() => {
       quantity,
     };
 
-    console.log("📤 UPDATE CART BODY:", body);
+    // console.log("📤 UPDATE CART BODY:", body);
 
     const res = await fetch(API_URL, {
       method: "PATCH",
@@ -153,10 +153,10 @@ useEffect(() => {
 
     const json = await res.json();
 
-    console.log("📤 UPDATE CART RESPONSE:", json);
+    // console.log("📤 UPDATE CART RESPONSE:", json);
 
     if (json.success) {
-      console.log("🟩 Update success — refreshing cart");
+      // console.log("🟩 Update success — refreshing cart");
       fetchCart();
     } else {
       console.error("🟥 Update failed:", json.error);
@@ -174,7 +174,7 @@ useEffect(() => {
       productId,
     };
 
-    console.log("📤 REMOVE CART ITEM BODY:", body);
+    // console.log("📤 REMOVE CART ITEM BODY:", body);
 
     const res = await fetch(API_URL, {
       method: "DELETE",
@@ -186,10 +186,10 @@ useEffect(() => {
     });
 
     const json = await res.json();
-    console.log("📤 REMOVE ITEM RESPONSE:", json);
+    // console.log("📤 REMOVE ITEM RESPONSE:", json);
 
     if (json.success) {
-      console.log("🟩 Remove success — refreshing cart");
+      // console.log("🟩 Remove success — refreshing cart");
       fetchCart();
     } else {
       console.error("🟥 Remove failed:", json.error);
@@ -204,7 +204,7 @@ useEffect(() => {
 
     const body = { userId };
 
-    console.log("📤 CLEAR CART BODY:", body);
+    // console.log("📤 CLEAR CART BODY:", body);
 
     const res = await fetch(API_URL, {
       method: "DELETE",
@@ -216,9 +216,9 @@ useEffect(() => {
     });
 
     const json = await res.json();
-    console.log("📤 CLEAR CART RESPONSE:", json);
+    // console.log("📤 CLEAR CART RESPONSE:", json);
 
-    console.log("🟩 Cart cleared — refreshing cart");
+    // console.log("🟩 Cart cleared — refreshing cart");
     fetchCart();
   };
 

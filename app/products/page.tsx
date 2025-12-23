@@ -1,19 +1,3 @@
-// import Header from '@/components/Header';
-// import Footer from '@/components/Footer';
-// import ProductGrid from '@/components/products/ProductGrid';
-
-// export default function ProductsPage() {
-//   return (
-//     <div className="min-h-screen flex flex-col">
-//       <Header />
-//       <main className="flex-grow">
-//       <ProductGrid/>
-//       </main>
-//       <Footer />
-//     </div>
-//   );
-// }
-
 // app/products/page.tsx
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
@@ -24,12 +8,13 @@ export const dynamic = 'force-dynamic'; // removes automatic static optimization
 // Or use: export const revalidate = 60; // revalidate every 60 seconds
 
 async function getInitialProducts() {
+
   const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || '';
 
   // Build safe URL (supports both /api/products and https://yourapi.com/api/products)
   const url = API_BASE
     ? `${API_BASE.replace(/\/+$/, '')}/api/products`
-    : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://horeca-backend-six.vercel.app/'}/api/products`;
+    : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://horeca-backend-six.vercel.app'}/api/products`;
 
   try {
     const res = await fetch(url, {

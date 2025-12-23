@@ -497,7 +497,7 @@
 //   const { user,} = useAuth();
 
 //   console.log(user);
-  
+
 
 //   const [productState, setProductState] = useState<Product | null>(() => {
 //     if (incoming && incoming.id && incoming.price != null && incoming.image) {
@@ -690,13 +690,13 @@
 //           {error}
 //         </div>
 //       )}
-      
+
 //       {success && (
 //         <div className="absolute top-2 left-2 right-2 bg-green-100 text-green-700 text-xs p-2 rounded-md z-10 animate-fade-in">
 //           {effectiveProduct.name} added to cart!
 //         </div>
 //       )}
-      
+
 //       {/* Product Image */} 
 //       <div className="relative aspect-square bg-[#F5F5F5] overflow-hidden">
 //         <div className="relative aspect-square bg-[#F5F5F5] overflow-hidden">
@@ -831,17 +831,16 @@ interface ProductCardProps {
   product?: Partial<Product> | null;
 }
 
-
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 // Get API base URL with fallback
 const getApiBase = () => {
-  return process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app/";  // backend
+  return process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";  // backend
 };
 
 function mapRawToProduct(raw: any): Product | null {
   if (!raw) return null;
-  const id = raw._id ?? raw.id ?? raw.productId ?? (raw.sku ? String(raw.sku) : undefined);
+  const id = raw._id ?? raw.id ?? raw.productId;
   if (!id) return null;
 
   return {
@@ -880,6 +879,10 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
   const [productState, setProductState] = useState<Product | null>(null);
   const { user } = useAuth();
 
+  console.log(user);
+
+
+
   // Helper function defined early
   const looksPartial = (p: Partial<Product> | null | undefined) =>
     !p || !p.id || p.price == null || !p.image;
@@ -891,69 +894,15 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
 
 
   // Fetch product data
-  useEffect(() => {
-    if (incoming && !looksPartial(incoming)) {
-      setProductState(incoming as Product);
-      return;
-    }
+useEffect(() => {
+  if (!incoming) return;
 
-    const id = incoming?.id ?? (incoming as any)?._id ?? (incoming as any)?.productId;
-    if (!id) return;
+  const mapped = mapRawToProduct(incoming);
+  if (mapped) {
+    setProductState(mapped);
+  }
+}, [incoming]);
 
-    const buildUrl = (path: string) => {
-      const base = API_BASE.replace(/\/+$/, '');
-      const raw = base ? `${base}/${path.replace(/^\/+/, '')}` : `/${path.replace(/^\/+/, '')}`;
-      return raw.replace(/([^:]\/)\/+/g, '$1');
-    };
-
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
-    const fetchById = async (productId: string) => {
-      try {
-        if (!productId) return;
-        const url = buildUrl(`api/products/${encodeURIComponent(productId)}`);
-        const res = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
-
-        if (!res.ok) {
-          let msg = '';
-          try {
-            const b = await res.json();
-            msg = b?.message ? ` — ${b.message}` : '';
-          } catch { }
-          throw new Error(`Failed to fetch product (status ${res.status})${msg}`);
-        }
-
-        const ct = res.headers.get('content-type') ?? '';
-        if (!ct.includes('application/json')) {
-          throw new Error('Invalid response: expected JSON');
-        }
-
-        const json = await res.json();
-        const raw = json?.data ?? json?.product ?? json;
-        const mapped = mapRawToProduct(raw);
-        if (mapped) setProductState(mapped);
-        else console.warn('[ProductCard] fetched product has unexpected shape', raw);
-      } catch (err: any) {
-        if (err?.name === 'AbortError') {
-          console.debug('[ProductCard] fetch aborted');
-        } else {
-          console.error('[ProductCard] fetch error', err);
-        }
-      } finally {
-        clearTimeout(timeoutId);
-      }
-    };
-
-    if (API_BASE) {
-      fetchById(String(id));
-    }
-
-    return () => {
-      controller.abort();
-      clearTimeout(timeoutId);
-    };
-  }, [API_BASE, incoming]);
 
   // Define effectiveProduct using useMemo
   const effectiveProduct = useMemo(() => {
@@ -976,14 +925,14 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
 
   // Check wishlist status - NOW it can use effectiveProduct safely
   useEffect(() => {
-    if (!effectiveProduct?.id || !user?.id || !API_BASE) return;
+    if (!effectiveProduct?.id || !user?.id) return;
 
     const checkWishlistStatus = async () => {
       try {
         const token = localStorage.getItem("unifoods_token");
         if (!token) return;
 
-        const response = await fetch(`${API_BASE}/api/wishlist/check/${effectiveProduct.id}`, {
+        const response = await fetch(`https://horeca-backend-six.vercel.app/api/wishlist/check/${effectiveProduct.id}`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -1001,10 +950,15 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
     };
 
     checkWishlistStatus();
-  }, [effectiveProduct?.id, user?.id, API_BASE]);
+  }, [effectiveProduct?.id, user?.id, "https://horeca-backend-six.vercel.app"]);
+
 
   // Cart handler
   const handleAddToCart = async () => {
+    console.log("start");
+    console.log(effectiveProduct);
+    console.log(isAdding);
+    
     if (!effectiveProduct?.id || isAdding) return;
 
     setIsAdding(true);
@@ -1012,20 +966,22 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
     setSuccess(false);
 
     try {
+      
       const token = localStorage.getItem("unifoods_token");
+      console.log(token);
       if (!token) {
         throw new Error("Please log in to add items to your cart.");
       }
 
       const payload = {
-        productId: effectiveProduct.id,
-        quantity: effectiveProduct.minOrder,
-        userId: user?.id|| '',
+        userId: user?.id,                 // ✅ BACKEND EXPECTS THIS
+      productId: effectiveProduct.id,   // ✅ BACKEND EXPECTS THIS
+      quantity: effectiveProduct.minOrder,
       };
       console.log("Effective Product:", effectiveProduct);
       console.log("Payload:", payload);
 
-      const response = await fetch(`${API_BASE}/api/cart`, {
+      const response = await fetch(`https://horeca-backend-six.vercel.app/api/cart`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -1079,9 +1035,9 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
       console.log("Wishlist Payload:", payload);
 
       const method = isInWishlist ? "DELETE" : "POST";
-      const endpoint = isInWishlist 
-        ? `${API_BASE}/api/wishlist/${effectiveProduct.id}` 
-        : `${API_BASE}/api/wishlist`;
+      const endpoint = isInWishlist
+        ? `https://horeca-backend-six.vercel.app/api/wishlist/${effectiveProduct.id}`
+        : `https://horeca-backend-six.vercel.app/api/wishlist`;
 
       const response = await fetch(endpoint, {
         method: method,
@@ -1095,19 +1051,19 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
       if (!response.ok) {
         const err = await response.json().catch(() => null);
         console.error("🔴 WISHLIST BACKEND ERROR:", err);
-        throw new Error(err?.message || err?.error || 
+        throw new Error(err?.message || err?.error ||
           (isInWishlist ? "Failed to remove from wishlist" : "Failed to add to wishlist"));
       }
 
       const result = await response.json();
       console.log("Wishlist updated:", result);
-      
+
       // Toggle the wishlist status
       setIsInWishlist(!isInWishlist);
       setWishlistSuccess(true);
 
     } catch (err: any) {
-      setWishlistError(err?.message || 
+      setWishlistError(err?.message ||
         (isInWishlist ? "Failed to remove from wishlist" : "Failed to add to wishlist"));
       setTimeout(() => setWishlistError(null), 4000);
     } finally {
@@ -1161,25 +1117,25 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
           {error}
         </div>
       )}
-      
+
       {wishlistError && (
         <div className="absolute top-2 left-2 right-2 bg-red-100 text-red-700 text-xs p-2 rounded-md z-10 animate-fade-in whitespace-pre-line">
           {wishlistError}
         </div>
       )}
-      
+
       {success && (
-        <div className="absolute top-2 left-2 right-2 bg-green-100 text-green-700 text-xs p-2 rounded-md z-10 animate-fade-in">
+        <div className="pointer-events-none absolute top-2 left-2 right-2 bg-green-100 text-green-700 text-xs p-2 rounded-md z-10">
           {effectiveProduct.name} added to cart!
         </div>
       )}
-      
+
       {wishlistSuccess && (
         <div className="absolute top-2 left-2 right-2 bg-green-100 text-green-700 text-xs p-2 rounded-md z-10 animate-fade-in">
           {effectiveProduct.name} {isInWishlist ? 'added to' : 'added to'} wishlist!
         </div>
       )}
-      
+
       {/* Product Image */}
       <div className="relative aspect-square bg-[#F5F5F5] overflow-hidden">
         <Link href={`/products/${effectiveProduct.id}`}>
@@ -1238,9 +1194,9 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
             {isWishlisting ? (
               <span className="inline-block h-4 w-4 border-2 border-[#D97706] border-t-transparent rounded-full animate-spin"></span>
             ) : (
-              <Heart 
-                size={18} 
-                strokeWidth={2.5} 
+              <Heart
+                size={18}
+                strokeWidth={2.5}
                 className={isInWishlist ? "fill-red-500 text-red-500" : ""}
               />
             )}
@@ -1285,11 +1241,10 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
         <button
           onClick={handleAddToCart}
           disabled={isAdding || !API_BASE}
-          className={`w-full py-2.5 rounded-full transition-all font-medium text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed relative ${
-            success 
-              ? 'bg-green-600 text-white hover:bg-green-700' 
+          className={`w-full py-2.5 rounded-full transition-all font-medium text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed relative ${success
+              ? 'bg-green-600 text-white hover:bg-green-700'
               : 'bg-[#D97706] text-white hover:bg-[#7CB342]'
-          }`}
+            }`}
         >
           {isAdding ? (
             <>

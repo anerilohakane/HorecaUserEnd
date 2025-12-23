@@ -248,12 +248,14 @@
 
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { ShippingAddress, PaymentMethod as PaymentMethodType } from "@/lib/types/checkout";
 import { CartItem } from "@/lib/types/cart";
 import { MapPin, CreditCard, Package, Edit2 } from "lucide-react";
 import Image from "next/image";
 import { useCart } from "@/lib/context/CartContext";
+import { useAuth } from "@/lib/context/AuthContext";
+import { u } from "framer-motion/client";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -286,7 +288,7 @@ export default function OrderReview({
   
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const { clearCart } = useCart();
-
+  const{ user } = useAuth();
   const paymentMethodNames = {
     cod: "Cash on Delivery",
     upi: "UPI Payment",
@@ -302,9 +304,7 @@ export default function OrderReview({
     setIsPlacingOrder(true);
 
     try {
-      const userId = localStorage.getItem("userId");
-
-      if (!userId) {
+      if (!user?.id) {
         alert("You are not logged in.");
         setIsPlacingOrder(false);
         return;
@@ -319,7 +319,7 @@ export default function OrderReview({
       }));
 
       const body = {
-        userId,
+        user: user?.id,
         shippingAddress: {
           fullName: shippingAddress.fullName,
           email: shippingAddress.email,
