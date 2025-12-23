@@ -258,7 +258,7 @@ export default function FeaturedProducts() {
 
     const token = localStorage.getItem("unifoods_token");
     const user = JSON.parse(localStorage.getItem("unifoods_user") || "null");
-    const userId = user?._id;
+    const userId = user?.id;
 
     if (!token) return alert("Please log in first!");
     if (!userId) return alert("User ID missing! Re-login required.");
