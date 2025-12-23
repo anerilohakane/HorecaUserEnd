@@ -63,7 +63,7 @@ const ProfilePage = () => {
     /* ------------------------------------------------------------
        🔥 FETCH PRODUCT IMAGE
     ------------------------------------------------------------- */
-    const fetchProductImage = async (productId:string) => {
+    const fetchProductImage = async (productId: string) => {
         console.log("🖼 Fetching image for product:", productId);
 
         try {
@@ -205,7 +205,7 @@ const ProfilePage = () => {
             return;
         }
 
-        const API_URL = `/api/order?userId=${authUser.id}`;
+        const API_URL = `${API_BASE}/api/order?userId=${authUser.id}`;
         console.log("🌍 Fetching Orders:", API_URL);
 
         setOrdersLoading(true);
@@ -240,7 +240,7 @@ const ProfilePage = () => {
                 console.log("🟢 Orders received:", json.orders.length);
 
                 const ordersWithImages = await Promise.all(
-                    json.orders.map(async (ord:any) => {
+                    json.orders.map(async (ord: any) => {
 
                         // 🔥 FETCH FULL ORDER (to get shippingAddress)
                         let fullOrder = ord;
@@ -265,7 +265,7 @@ const ProfilePage = () => {
 
                         // ⭐ ATTACH PRODUCT IMAGES (same as before)
                         const updatedItems = await Promise.all(
-                            fullOrder.items.map(async (it:any) => {
+                            fullOrder.items.map(async (it: any) => {
                                 const productId = it.product?.id || it.productId;
                                 const image = await fetchProductImage(productId);
 
@@ -687,7 +687,10 @@ const ProfilePage = () => {
                                                                     <div className="flex items-center gap-3">
                                                                         <div className="w-2 h-2 rounded-full bg-amber-500" />
                                                                         <h3 className="text-lg font-semibold text-gray-900">
-                                                                            Order #{ord?.id.slice(-8).toUpperCase()}
+                                                                            {/* Order #{ord?.id.slice(-8).toUpperCase()} */}
+                                                                            Order #{String(ord?.id ?? ord?._id ?? ord?.orderId ?? "")
+                                                                                .slice(-8)
+                                                                                .toUpperCase()}
                                                                         </h3>
                                                                     </div>
                                                                     <p className="text-sm text-gray-500 mt-1">
@@ -761,7 +764,7 @@ const ProfilePage = () => {
                                                         <div className="px-6 py-4">
                                                             <p className="text-sm font-semibold text-gray-700 mb-4">Order Items ({ord.items?.length || 0})</p>
                                                             <div className="space-y-4">
-                                                                {ord.items?.map((item:any, i:number) => (
+                                                                {ord.items?.map((item: any, i: number) => (
                                                                     <div key={i} className="flex items-center gap-4 p-3 rounded-lg border border-gray-100 hover:bg-gray-50 transition-colors">
                                                                         <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                                                                             <Image
