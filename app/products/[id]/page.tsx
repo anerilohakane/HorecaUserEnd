@@ -391,7 +391,7 @@ export default async function ProductPage({ params }: any) {
   if (!id) return notFound();
 
   try {
-    const res = await fetch(buildApiUrl(`${API_BASE_RAW}/api/products/${id}`), {
+    const res = await fetch(buildApiUrl(`api/products/${id}`), {
       cache: "no-store",
     });
 
