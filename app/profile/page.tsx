@@ -29,11 +29,12 @@ import {
 import Header from '@/components/Header';
 import { useAuth } from '@/lib/context/AuthContext';
 import ShippingAddressSelector from '@/components/checkout/ShippingForm';
+import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const ProfilePage = () => {
-    const { user: authUser, isAuthenticated, token } = useAuth();
+    const { user: authUser, isAuthenticated, token, logout } = useAuth();
 
     // const [user, setUser] = useState(null);
     const [user, setUser] = useState<any | null>(null);
@@ -436,6 +437,18 @@ const ProfilePage = () => {
         }
     }, [activeTab]);
 
+    const router = useRouter();
+
+    const handleLogout = () => {
+        logout(); // 🔥 clears auth state
+
+        // optional cleanup
+        localStorage.removeItem("lastOrder");
+        localStorage.removeItem("lastOrderId");
+
+        router.push("/"); // or "/" if you prefer home
+    };
+
     /* ------------------------------------------------------------
        UI RENDER: KEEP EVERYTHING SAME
     ------------------------------------------------------------- */
@@ -612,10 +625,14 @@ const ProfilePage = () => {
                                     })}
                                 </nav>
                                 <div className="px-6 py-4 border-t border-gray-200">
-                                    <button className="w-full flex items-center justify-center gap-3 text-red-600 hover:bg-red-50 py-3 rounded-xl font-medium transition-colors">
+                                    <button
+                                        onClick={handleLogout}
+                                        className="w-full flex items-center justify-center gap-3 text-red-600 hover:bg-red-50 py-3 rounded-xl font-medium transition-colors"
+                                    >
                                         <LogOut className="w-5 h-5" />
                                         Log Out
                                     </button>
+
                                 </div>
                             </div>
                         </aside>
@@ -673,13 +690,13 @@ const ProfilePage = () => {
                                                 ))}
 
                                                 <div className="md:col-span-2 flex gap-3 mt-4">
-                                                   <button
-  onClick={updateCustomerProfile}
-  disabled={savingProfile}
-  className="bg-amber-600 text-white px-6 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-50"
->
-  {savingProfile ? "Saving..." : "Save Changes"}
-</button>
+                                                    <button
+                                                        onClick={updateCustomerProfile}
+                                                        disabled={savingProfile}
+                                                        className="bg-amber-600 text-white px-6 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-50"
+                                                    >
+                                                        {savingProfile ? "Saving..." : "Save Changes"}
+                                                    </button>
 
 
                                                     <button
