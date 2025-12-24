@@ -442,6 +442,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '@/lib/context/CartContext';
+import { useAuth } from '@/lib/context/AuthContext';
 
 interface ProductDetailClientProps {
   product?: Product; // made optional so the component can fetch when not provided
@@ -460,6 +461,101 @@ export default function ProductDetailClient({
   const [isAdding, setIsAdding] = useState(false);
   const [quantity, setQuantity] = useState<number>(initialProduct?.minOrder ?? 1);
   const [activeTab, setActiveTab] = useState<'description' | 'specifications' | 'reviews'>('description');
+  const [isWishlisting, setIsWishlisting] = useState(false);
+const [isInWishlist, setIsInWishlist] = useState(false);
+const [wishlistError, setWishlistError] = useState<string | null>(null);
+const { user } = useAuth();
+
+
+useEffect(() => {
+  if (!product?.id) return;
+
+  const checkWishlist = async () => {
+    try {
+      const token = localStorage.getItem("unifoods_token");
+      if (!token) return;
+
+      const base =
+        (process.env.NEXT_PUBLIC_API_BASE_URL ||
+          "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+
+      const res = await fetch(
+        `${base}/api/wishlist/check/${product.id}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: "application/json",
+          },
+        }
+      );
+
+      if (!res.ok) return;
+
+      const data = await res.json();
+      setIsInWishlist(Boolean(data?.isInWishlist));
+    } catch (err) {
+      console.error("Wishlist check failed:", err);
+    }
+  };
+
+  checkWishlist();
+}, [product?.id]);
+
+
+const handleWishlistToggle = async () => {
+  if (!product?.id || isWishlisting) return;
+
+  setIsWishlisting(true);
+  setWishlistError(null);
+
+  try {
+    const token = localStorage.getItem("unifoods_token");
+    if (!token) {
+      throw new Error("Please log in to manage your wishlist.");
+    }
+
+    // ✅ DEFINE BASE HERE
+    const base =
+      (process.env.NEXT_PUBLIC_API_BASE_URL ||
+        "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+
+    const endpoint = isInWishlist
+      ? `${base}/api/wishlist/${product.id}`
+      : `${base}/api/wishlist`;
+
+    const res = await fetch(endpoint, {
+      method: isInWishlist ? "DELETE" : "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: isInWishlist
+        ? undefined
+        : JSON.stringify({
+            productId: product.id,
+            userId: user?.id || user?.id,
+          }),
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => null);
+      console.error("WISHLIST ERROR:", err);
+      throw new Error(err?.message || "Wishlist update failed");
+    }
+
+    setIsInWishlist((prev) => !prev);
+  } catch (err: any) {
+    setWishlistError(err.message || "Wishlist error");
+    setTimeout(() => setWishlistError(null), 3000);
+  } finally {
+    setIsWishlisting(false);
+  }
+};
+
+
+
+
+
 
   // helper builder & mapper (same defensive approach)
   const buildUrl = (path: string) => {
@@ -572,8 +668,28 @@ export default function ProductDetailClient({
         const res = await fetch(urlObj.toString(), { signal: controller.signal, headers: { Accept: 'application/json' } });
         if (!res.ok) return;
         const json = await res.json();
-        const list = Array.isArray(json) ? json : (json?.data ?? json?.products ?? []);
-        const mapped = (list as any[]).map(mapProduct).filter(Boolean) as Product[];
+        let list: any[] = [];
+
+if (Array.isArray(json)) {
+  list = json;
+} else if (Array.isArray(json?.data)) {
+  list = json.data;
+} else if (Array.isArray(json?.products)) {
+  list = json.products;
+} else if (Array.isArray(json?.data?.products)) {
+  list = json.data.products;
+} else {
+  console.warn(
+    "[ProductDetailClient] Related products response is not an array:",
+    json
+  );
+  list = [];
+}
+
+const mapped = list
+  .map(mapProduct)
+  .filter(Boolean) as Product[];
+
 
         // remove the current product from related list if present
         const filtered = mapped.filter((p) => p.id !== product.id).slice(0, 6);
@@ -777,9 +893,26 @@ export default function ProductDetailClient({
                 <ShoppingCart size={20} />
                 {isAdding ? 'Added to Cart! ✓' : 'Add to Cart'}
               </button>
-              <button className="p-4 border-2 border-gray-300 rounded-full hover:border-[#D97706] hover:text-[#D97706] transition-all">
-                <Heart size={20} />
-              </button>
+              <button
+  onClick={handleWishlistToggle}
+  disabled={isWishlisting}
+  title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+  className={`p-4 border-2 rounded-full transition-all ${
+    isInWishlist
+      ? "border-red-500 text-red-500"
+      : "border-gray-300 hover:border-[#D97706] hover:text-[#D97706]"
+  } disabled:opacity-50`}
+>
+  {isWishlisting ? (
+    <span className="inline-block h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+  ) : (
+    <Heart
+      size={20}
+      className={isInWishlist ? "fill-red-500 text-red-500" : ""}
+    />
+  )}
+</button>
+
               <button className="p-4 border-2 border-gray-300 rounded-full hover:border-[#D97706] hover:text-[#D97706] transition-all">
                 <Share2 size={20} />
               </button>
