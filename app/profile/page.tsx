@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import Header from '@/components/Header';
 import { useAuth } from '@/lib/context/AuthContext';
+import ShippingAddressSelector from '@/components/checkout/ShippingForm';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -44,6 +45,11 @@ const ProfilePage = () => {
     const [loading, setLoading] = useState(true);
     const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
     const [savedItemsCount, setSavedItemsCount] = useState(0);
+    const [showAddressForm, setShowAddressForm] = useState(false);
+    const [addresses, setAddresses] = useState<any[]>([]);
+    const [addressesLoading, setAddressesLoading] = useState(false);
+
+
 
     const getInitials = (name?: string) => {
         if (!name) return "";
@@ -299,6 +305,59 @@ const ProfilePage = () => {
 
         setOrdersLoading(false);
     };
+
+    const fetchAddresses = async () => {
+        if (!authUser?.id) return;
+
+        setAddressesLoading(true);
+
+        try {
+            const res = await fetch(
+                `${API_BASE}/api/order?userId=${authUser.id}`,
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`,
+                        Accept: "application/json",
+                    },
+                }
+            );
+
+            const data = await res.json();
+
+            if (!data?.success || !Array.isArray(data.orders)) {
+                setAddresses([]);
+                return;
+            }
+
+            // 🔥 Extract shipping addresses
+            const rawAddresses = data.orders
+                .map((o: any) => o.shippingAddress)
+                .filter(Boolean);
+
+            // 🔥 Deduplicate by full address
+            const uniqueMap = new Map();
+            rawAddresses.forEach((addr: any) => {
+                const key = `${addr.fullName}-${addr.phone}-${addr.addressLine1}-${addr.pincode}`;
+                if (!uniqueMap.has(key)) {
+                    uniqueMap.set(key, addr);
+                }
+            });
+
+            setAddresses(Array.from(uniqueMap.values()));
+        } catch (err) {
+            console.error("❌ Failed to fetch addresses:", err);
+            setAddresses([]);
+        } finally {
+            setAddressesLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === "addresses") {
+            fetchAddresses();
+        }
+    }, [activeTab]);
+
 
     useEffect(() => {
         if (activeTab === "orders") {
@@ -577,28 +636,76 @@ const ProfilePage = () => {
                                     <div className="space-y-8">
                                         <div className="flex items-center justify-between">
                                             <h2 className="text-xl font-semibold text-gray-900">Saved Addresses</h2>
-                                            <button className="bg-amber-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-amber-700 transition">
+                                            {/* <button
+                                                onClick={() => setShowAddressForm(true)}
+                                                className="bg-amber-600 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-amber-700 transition"
+                                            >
                                                 + Add New Address
-                                            </button>
+                                            </button> */}
+
                                         </div>
 
                                         <div className="grid md:grid-cols-2 gap-5">
-                                            <div className="rounded-xl border-2 border-amber-500 bg-amber-50/50 p-6">
-                                                <div className="flex justify-between items-start mb-4">
-                                                    <div className="flex items-center gap-3">
-                                                        <MapPin className="w-5 h-5 text-amber-600" />
-                                                        <span className="font-semibold text-amber-900">Home</span>
-                                                    </div>
-                                                </div>
+                                            {/* ADDRESSES LIST */}
+                                            {addressesLoading && (
+                                                <p className="text-gray-500">Loading addresses…</p>
+                                            )}
 
-                                                <p className="text-gray-700 text-sm">
-                                                    {user.address}, {user.city}
-                                                </p>
-                                                <p className="text-gray-600 text-sm mt-1">
-                                                    {user.state} - {user.pincode}
-                                                </p>
+                                            {!addressesLoading && addresses.length === 0 && (
+                                                <p className="text-gray-500">No saved addresses yet.</p>
+                                            )}
+
+                                            <div className="grid md:grid-cols-2 gap-5">
+                                                {addresses.map((addr, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md transition"
+                                                    >
+                                                        <div className="flex items-start gap-3 mb-3">
+                                                            <MapPin className="w-5 h-5 text-amber-600 mt-1" />
+                                                            <div>
+                                                                <p className="font-semibold text-gray-900">{addr.fullName}</p>
+                                                                <p className="text-sm text-gray-700">{addr.addressLine1}</p>
+                                                                {addr.addressLine2 && (
+                                                                    <p className="text-sm text-gray-700">{addr.addressLine2}</p>
+                                                                )}
+                                                                <p className="text-sm text-gray-600">
+                                                                    {addr.city}, {addr.state} - {addr.pincode}
+                                                                </p>
+                                                                <p className="text-sm text-gray-600 mt-1">📞 {addr.phone}</p>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
+
                                         </div>
+                                        {/* ADD NEW ADDRESS FORM */}
+                                        {showAddressForm && (
+                                            <div className="mt-6">
+                                                <ShippingAddressSelector
+                                                    onSubmit={(address: any) => {
+                                                        console.log("✅ Address received:", address);
+
+                                                        setToast({
+                                                            show: true,
+                                                            message: "Address added successfully",
+                                                            type: "success",
+                                                        });
+
+                                                        setShowAddressForm(false);
+                                                    }}
+                                                />
+
+                                                <button
+                                                    onClick={() => setShowAddressForm(false)}
+                                                    className="mt-4 text-sm text-gray-600 hover:text-gray-900"
+                                                >
+                                                    Cancel
+                                                </button>
+                                            </div>
+                                        )}
+
                                     </div>
                                 )}
 
