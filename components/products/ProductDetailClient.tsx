@@ -35,7 +35,7 @@
 //   const handleAddToCart = () => {
 //     setIsAdding(true);
 //     addItem(product, quantity);
-    
+
 //     setTimeout(() => {
 //       setIsAdding(false);
 //       // Optionally redirect to cart or show success message
@@ -462,95 +462,127 @@ export default function ProductDetailClient({
   const [quantity, setQuantity] = useState<number>(initialProduct?.minOrder ?? 1);
   const [activeTab, setActiveTab] = useState<'description' | 'specifications' | 'reviews'>('description');
   const [isWishlisting, setIsWishlisting] = useState(false);
-const [isInWishlist, setIsInWishlist] = useState(false);
-const [wishlistError, setWishlistError] = useState<string | null>(null);
-const { user } = useAuth();
+  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [wishlistError, setWishlistError] = useState<string | null>(null);
+  const { user } = useAuth();
+  const [shareMessage, setShareMessage] = useState<string | null>(null);
 
 
-useEffect(() => {
-  if (!product?.id) return;
+  const handleShare = async () => {
+    if (!product) return;
 
-  const checkWishlist = async () => {
+    const shareUrl =
+      typeof window !== "undefined"
+        ? window.location.href
+        : "";
+
+    try {
+      // ✅ Use native share if available (mobile, modern browsers)
+      if (navigator.share) {
+        await navigator.share({
+          title: product.name,
+          text: `Check out this product: ${product.name}`,
+          url: shareUrl,
+        });
+        setShareMessage("Product shared successfully!");
+      } else {
+        // 🧠 Fallback: copy to clipboard
+        await navigator.clipboard.writeText(shareUrl);
+        setShareMessage("Product link copied to clipboard!");
+      }
+    } catch (err) {
+      console.error("Share failed:", err);
+      setShareMessage("Failed to share product.");
+    } finally {
+      setTimeout(() => setShareMessage(null), 3000);
+    }
+  };
+
+
+  useEffect(() => {
+    if (!product?.id) return;
+
+    const checkWishlist = async () => {
+      try {
+        const token = localStorage.getItem("unifoods_token");
+        if (!token) return;
+
+        const base =
+          (process.env.NEXT_PUBLIC_API_BASE_URL ||
+            "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+
+        const res = await fetch(
+          `${base}/api/wishlist/check/${product.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              Accept: "application/json",
+            },
+          }
+        );
+
+        if (!res.ok) return;
+
+        const data = await res.json();
+        setIsInWishlist(Boolean(data?.isInWishlist));
+      } catch (err) {
+        console.error("Wishlist check failed:", err);
+      }
+    };
+
+    checkWishlist();
+  }, [product?.id]);
+
+
+  const handleWishlistToggle = async () => {
+    if (!product?.id || isWishlisting) return;
+
+    setIsWishlisting(true);
+    setWishlistError(null);
+
     try {
       const token = localStorage.getItem("unifoods_token");
-      if (!token) return;
+      if (!token) {
+        throw new Error("Please log in to manage your wishlist.");
+      }
 
+      // ✅ DEFINE BASE HERE
       const base =
         (process.env.NEXT_PUBLIC_API_BASE_URL ||
           "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
 
-      const res = await fetch(
-        `${base}/api/wishlist/check/${product.id}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            Accept: "application/json",
-          },
-        }
-      );
+      const endpoint = isInWishlist
+        ? `${base}/api/wishlist/${product.id}`
+        : `${base}/api/wishlist`;
 
-      if (!res.ok) return;
-
-      const data = await res.json();
-      setIsInWishlist(Boolean(data?.isInWishlist));
-    } catch (err) {
-      console.error("Wishlist check failed:", err);
-    }
-  };
-
-  checkWishlist();
-}, [product?.id]);
-
-
-const handleWishlistToggle = async () => {
-  if (!product?.id || isWishlisting) return;
-
-  setIsWishlisting(true);
-  setWishlistError(null);
-
-  try {
-    const token = localStorage.getItem("unifoods_token");
-    if (!token) {
-      throw new Error("Please log in to manage your wishlist.");
-    }
-
-    // ✅ DEFINE BASE HERE
-    const base =
-      (process.env.NEXT_PUBLIC_API_BASE_URL ||
-        "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
-
-    const endpoint = isInWishlist
-      ? `${base}/api/wishlist/${product.id}`
-      : `${base}/api/wishlist`;
-
-    const res = await fetch(endpoint, {
-      method: isInWishlist ? "DELETE" : "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: isInWishlist
-        ? undefined
-        : JSON.stringify({
+      const res = await fetch(endpoint, {
+        method: isInWishlist ? "DELETE" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: isInWishlist
+          ? undefined
+          : JSON.stringify({
             productId: product.id,
             userId: user?.id || user?.id,
           }),
-    });
+      });
 
-    if (!res.ok) {
-      const err = await res.json().catch(() => null);
-      console.error("WISHLIST ERROR:", err);
-      throw new Error(err?.message || "Wishlist update failed");
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        console.error("WISHLIST ERROR:", err);
+        throw new Error(err?.message || "Wishlist update failed");
+      }
+
+      setIsInWishlist((prev) => !prev);
+    } catch (err: any) {
+      setWishlistError(err.message || "Wishlist error");
+      setTimeout(() => setWishlistError(null), 3000);
+    } finally {
+      setIsWishlisting(false);
     }
-
-    setIsInWishlist((prev) => !prev);
-  } catch (err: any) {
-    setWishlistError(err.message || "Wishlist error");
-    setTimeout(() => setWishlistError(null), 3000);
-  } finally {
-    setIsWishlisting(false);
-  }
-};
+  };
 
 
 
@@ -617,7 +649,7 @@ const handleWishlistToggle = async () => {
           try {
             const b = await res.json();
             msg = b?.message ? ` — ${b.message}` : '';
-          } catch {}
+          } catch { }
           throw new Error(`Failed to fetch product (status ${res.status})${msg}`);
         }
         const ct = res.headers.get('content-type') ?? '';
@@ -670,25 +702,25 @@ const handleWishlistToggle = async () => {
         const json = await res.json();
         let list: any[] = [];
 
-if (Array.isArray(json)) {
-  list = json;
-} else if (Array.isArray(json?.data)) {
-  list = json.data;
-} else if (Array.isArray(json?.products)) {
-  list = json.products;
-} else if (Array.isArray(json?.data?.products)) {
-  list = json.data.products;
-} else {
-  console.warn(
-    "[ProductDetailClient] Related products response is not an array:",
-    json
-  );
-  list = [];
-}
+        if (Array.isArray(json)) {
+          list = json;
+        } else if (Array.isArray(json?.data)) {
+          list = json.data;
+        } else if (Array.isArray(json?.products)) {
+          list = json.products;
+        } else if (Array.isArray(json?.data?.products)) {
+          list = json.data.products;
+        } else {
+          console.warn(
+            "[ProductDetailClient] Related products response is not an array:",
+            json
+          );
+          list = [];
+        }
 
-const mapped = list
-  .map(mapProduct)
-  .filter(Boolean) as Product[];
+        const mapped = list
+          .map(mapProduct)
+          .filter(Boolean) as Product[];
 
 
         // remove the current product from related list if present
@@ -784,12 +816,11 @@ const mapped = list
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-600">{product.category}</span>
               {product.badge && (
-                <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                  product.badge === 'Bestseller' ? 'bg-[#D97706] text-white' :
-                  product.badge === 'New' ? 'bg-[#D97706] text-white' :
-                  product.badge === 'Premium' ? 'bg-purple-500 text-white' :
-                  'bg-emerald-500 text-white'
-                }`}>
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${product.badge === 'Bestseller' ? 'bg-[#D97706] text-white' :
+                    product.badge === 'New' ? 'bg-[#D97706] text-white' :
+                      product.badge === 'Premium' ? 'bg-purple-500 text-white' :
+                        'bg-emerald-500 text-white'
+                  }`}>
                   {product.badge}
                 </span>
               )}
@@ -808,11 +839,10 @@ const mapped = list
                     <Star
                       key={i}
                       size={18}
-                      className={`${
-                        i < Math.floor(product.rating)
+                      className={`${i < Math.floor(product.rating)
                           ? 'fill-[#FFB800] text-[#FFB800]'
                           : 'text-gray-300'
-                      }`}
+                        }`}
                     />
                   ))}
                 </div>
@@ -894,28 +924,32 @@ const mapped = list
                 {isAdding ? 'Added to Cart! ✓' : 'Add to Cart'}
               </button>
               <button
-  onClick={handleWishlistToggle}
-  disabled={isWishlisting}
-  title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-  className={`p-4 border-2 rounded-full transition-all ${
-    isInWishlist
-      ? "border-red-500 text-red-500"
-      : "border-gray-300 hover:border-[#D97706] hover:text-[#D97706]"
-  } disabled:opacity-50`}
->
-  {isWishlisting ? (
-    <span className="inline-block h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-  ) : (
-    <Heart
-      size={20}
-      className={isInWishlist ? "fill-red-500 text-red-500" : ""}
-    />
-  )}
-</button>
+                onClick={handleWishlistToggle}
+                disabled={isWishlisting}
+                title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+                className={`p-4 border-2 rounded-full transition-all ${isInWishlist
+                    ? "border-red-500 text-red-500"
+                    : "border-gray-300 hover:border-[#D97706] hover:text-[#D97706]"
+                  } disabled:opacity-50`}
+              >
+                {isWishlisting ? (
+                  <span className="inline-block h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                ) : (
+                  <Heart
+                    size={20}
+                    className={isInWishlist ? "fill-red-500 text-red-500" : ""}
+                  />
+                )}
+              </button>
 
-              <button className="p-4 border-2 border-gray-300 rounded-full hover:border-[#D97706] hover:text-[#D97706] transition-all">
+              <button
+                onClick={handleShare}
+                title="Share product"
+                className="p-4 border-2 border-gray-300 rounded-full hover:border-[#D97706] hover:text-[#D97706] transition-all"
+              >
                 <Share2 size={20} />
               </button>
+
             </div>
 
             {/* Buy Now */}
@@ -972,27 +1006,24 @@ const mapped = list
             <div className="flex gap-8 px-8">
               <button
                 onClick={() => setActiveTab('description')}
-                className={`py-4 font-medium transition-colors relative ${
-                  activeTab === 'description' ? 'text-[#D97706]' : 'text-gray-600 hover:text-[#D97706]'
-                }`}
+                className={`py-4 font-medium transition-colors relative ${activeTab === 'description' ? 'text-[#D97706]' : 'text-gray-600 hover:text-[#D97706]'
+                  }`}
               >
                 Description
                 {activeTab === 'description' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
               </button>
               <button
                 onClick={() => setActiveTab('specifications')}
-                className={`py-4 font-medium transition-colors relative ${
-                  activeTab === 'specifications' ? 'text-[#D97706]' : 'text-gray-600 hover:text-[#D97706]'
-                }`}
+                className={`py-4 font-medium transition-colors relative ${activeTab === 'specifications' ? 'text-[#D97706]' : 'text-gray-600 hover:text-[#D97706]'
+                  }`}
               >
                 Specifications
                 {activeTab === 'specifications' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
               </button>
               <button
                 onClick={() => setActiveTab('reviews')}
-                className={`py-4 font-medium transition-colors relative ${
-                  activeTab === 'reviews' ? 'text-[#D97706]' : 'text-gray-600 hover:text-[#D97706]'
-                }`}
+                className={`py-4 font-medium transition-colors relative ${activeTab === 'reviews' ? 'text-[#D97706]' : 'text-gray-600 hover:text-[#D97706]'
+                  }`}
               >
                 Reviews ({product.reviews})
                 {activeTab === 'reviews' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
