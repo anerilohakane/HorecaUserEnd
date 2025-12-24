@@ -48,6 +48,17 @@ const ProfilePage = () => {
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [addresses, setAddresses] = useState<any[]>([]);
     const [addressesLoading, setAddressesLoading] = useState(false);
+    const [isEditingProfile, setIsEditingProfile] = useState(false);
+    const [profileForm, setProfileForm] = useState({
+        name: "",
+        email: "",
+        address: "",
+        city: "",
+        state: "",
+        pincode: "",
+    });
+    const [savingProfile, setSavingProfile] = useState(false);
+
 
 
 
@@ -184,11 +195,26 @@ const ProfilePage = () => {
 
                 if (json?.success && json.data) {
                     console.log("🟢 Setting user:", json.data);
+
+                    // 1️⃣ Set user
                     setUser(json.data);
-                    await fetchSavedItemsCount()
+
+                    // 2️⃣ Initialize edit form
+                    setProfileForm({
+                        name: json.data.name || "",
+                        email: json.data.email || "",
+                        address: json.data.address || "",
+                        city: json.data.city || "",
+                        state: json.data.state || "",
+                        pincode: json.data.pincode || "",
+                    });
+
+                    // 3️⃣ Load wishlist count
+                    await fetchSavedItemsCount();
                 } else {
                     console.error("❌ Unexpected format:", json);
                 }
+
             } catch (error) {
                 console.error("🔥 Error fetching customer:", error);
             }
@@ -199,6 +225,51 @@ const ProfilePage = () => {
         loadProfile();
 
     }, [isAuthenticated, authUser?.id, token]);
+
+    const updateCustomerProfile = async () => {
+        if (!authUser?.id) return;
+
+        setSavingProfile(true);
+
+        try {
+            const res = await fetch(`${API_BASE}/api/customers/update`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({
+                    id: authUser.id,
+                    ...profileForm,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!data.success) {
+                throw new Error(data.error || "Update failed");
+            }
+
+            // ✅ Update UI instantly
+            setUser(data.data);
+            setIsEditingProfile(false);
+
+            setToast({
+                show: true,
+                message: "Profile updated successfully",
+                type: "success",
+            });
+        } catch (err: any) {
+            setToast({
+                show: true,
+                message: err.message || "Failed to update profile",
+                type: "error",
+            });
+        } finally {
+            setSavingProfile(false);
+        }
+    };
+
 
     /* ------------------------------------------------------------
        🔥 FETCH ORDERS + PRODUCT IMAGES
@@ -556,80 +627,135 @@ const ProfilePage = () => {
                                 {/* PERSONAL INFO (same) */}
                                 {activeTab === "personal" && (
                                     <div className="space-y-8">
+                                        {/* HEADER */}
                                         <div className="flex items-center justify-between">
-                                            <h2 className="text-xl font-semibold text-gray-900">Personal Information</h2>
-                                            <button className="text-amber-600 hover:text-amber-700 text-sm flex items-center gap-2">
-                                                <Edit2 className="w-4 h-4" />
-                                                Edit
-                                            </button>
+                                            <h2 className="text-xl font-semibold text-gray-900">
+                                                Personal Information
+                                            </h2>
+
+                                            {!isEditingProfile && (
+                                                <button
+                                                    className="text-amber-600 hover:text-amber-700 text-sm flex items-center gap-2"
+                                                    onClick={() => setIsEditingProfile(true)}
+                                                >
+                                                    <Edit2 className="w-4 h-4" />
+                                                    Edit
+                                                </button>
+                                            )}
                                         </div>
 
-                                        <div className="grid md:grid-cols-2 gap-8">
-                                            <div className="space-y-6">
+                                        {/* EDIT MODE */}
+                                        {isEditingProfile ? (
+                                            <div className="grid md:grid-cols-2 gap-6">
+                                                {[
+                                                    { label: "Name", key: "name" },
+                                                    { label: "Email", key: "email" },
+                                                    { label: "Address", key: "address" },
+                                                    { label: "City", key: "city" },
+                                                    { label: "State", key: "state" },
+                                                    { label: "Pincode", key: "pincode" },
+                                                ].map((field) => (
+                                                    <div key={field.key}>
+                                                        <label className="text-sm font-medium text-gray-700">
+                                                            {field.label}
+                                                        </label>
+                                                        <input
+                                                            value={(profileForm as any)[field.key]}
+                                                            onChange={(e) =>
+                                                                setProfileForm((prev) => ({
+                                                                    ...prev,
+                                                                    [field.key]: e.target.value,
+                                                                }))
+                                                            }
+                                                            className="w-full mt-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-amber-500"
+                                                        />
+                                                    </div>
+                                                ))}
 
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
-                                                        <User className="w-5 h-5 text-amber-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-500">Full Name</p>
-                                                        <p className="font-medium text-gray-900">{user.name}</p>
-                                                    </div>
+                                                <div className="md:col-span-2 flex gap-3 mt-4">
+                                                   <button
+  onClick={updateCustomerProfile}
+  disabled={savingProfile}
+  className="bg-amber-600 text-white px-6 py-2 rounded-lg hover:bg-amber-700 disabled:opacity-50"
+>
+  {savingProfile ? "Saving..." : "Save Changes"}
+</button>
+
+
+                                                    <button
+                                                        onClick={() => setIsEditingProfile(false)}
+                                                        className="px-6 py-2 border rounded-lg"
+                                                    >
+                                                        Cancel
+                                                    </button>
                                                 </div>
-
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
-                                                        <Mail className="w-5 h-5 text-amber-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-500">Email</p>
-                                                        <p className="font-medium text-gray-900">{user.email}</p>
-                                                    </div>
-                                                </div>
-
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
-                                                        <Phone className="w-5 h-5 text-amber-600" />
-                                                    </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-500">Phone</p>
-                                                        <p className="font-medium text-gray-900">{user.phone}</p>
-                                                    </div>
-                                                </div>
-
                                             </div>
-
-                                            <div className="space-y-6">
-
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
-                                                        <Calendar className="w-5 h-5 text-amber-600" />
+                                        ) : (
+                                            /* READ-ONLY VIEW */
+                                            <div className="grid md:grid-cols-2 gap-8">
+                                                <div className="space-y-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
+                                                            <User className="w-5 h-5 text-amber-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">Full Name</p>
+                                                            <p className="font-medium text-gray-900">{user.name}</p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-500">Member Since</p>
-                                                        <p className="font-medium text-gray-900">
-                                                            {new Date(user.createdAt).toLocaleDateString("en-IN", {
-                                                                month: "long",
-                                                                year: "numeric",
-                                                            })}
-                                                        </p>
+
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
+                                                            <Mail className="w-5 h-5 text-amber-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">Email</p>
+                                                            <p className="font-medium text-gray-900">{user.email}</p>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
+                                                            <Phone className="w-5 h-5 text-amber-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">Phone</p>
+                                                            <p className="font-medium text-gray-900">{user.phone}</p>
+                                                        </div>
                                                     </div>
                                                 </div>
 
-                                                <div className="flex items-center gap-4">
-                                                    <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
-                                                        <Star className="w-5 h-5 text-amber-600" />
+                                                <div className="space-y-6">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
+                                                            <Calendar className="w-5 h-5 text-amber-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">Member Since</p>
+                                                            <p className="font-medium text-gray-900">
+                                                                {new Date(user.createdAt).toLocaleDateString("en-IN", {
+                                                                    month: "long",
+                                                                    year: "numeric",
+                                                                })}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <p className="text-sm text-gray-500">Loyalty Points</p>
-                                                        <p className="font-medium text-gray-900">1250</p>
+
+                                                    <div className="flex items-center gap-4">
+                                                        <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
+                                                            <Star className="w-5 h-5 text-amber-600" />
+                                                        </div>
+                                                        <div>
+                                                            <p className="text-sm text-gray-500">Loyalty Points</p>
+                                                            <p className="font-medium text-gray-900">1250</p>
+                                                        </div>
                                                     </div>
                                                 </div>
-
                                             </div>
-                                        </div>
+                                        )}
                                     </div>
                                 )}
+
 
                                 {/* ADDRESSES (same) */}
                                 {activeTab === "addresses" && (
