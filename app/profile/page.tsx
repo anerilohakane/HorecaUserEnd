@@ -30,6 +30,7 @@ import Header from '@/components/Header';
 import { useAuth } from '@/lib/context/AuthContext';
 import ShippingAddressSelector from '@/components/checkout/ShippingForm';
 import { useRouter } from "next/navigation";
+import ReviewFormModal from '@/components/products/ReviewFormModal';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -59,6 +60,70 @@ const ProfilePage = () => {
         pincode: "",
     });
     const [savingProfile, setSavingProfile] = useState(false);
+
+    // Review State
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [reviewProduct, setReviewProduct] = useState<{ id: string, name: string } | null>(null);
+    const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+
+    const handleWriteReview = (orderId: string, product: { id: string, name: string }) => {
+        console.log("Opening Review Modal with:", { orderId, product });
+        if (!orderId) console.error("❌ Order ID is missing!");
+        if (!product?.id) console.error("❌ Product ID is missing!");
+
+        setReviewOrderId(orderId);
+        setReviewProduct(product);
+        setIsReviewModalOpen(true);
+    };
+
+    const handleReviewSubmit = async (data: { rating: number; comment: string; images: string[] }) => {
+        if (!reviewProduct || !reviewOrderId || !token || !authUser) return;
+
+        try {
+            const rawUserId = authUser.id || (authUser as any)._id; // Handle both structures
+
+            const payload = {
+                userId: rawUserId,
+                user: rawUserId,
+                productId: reviewProduct.id,
+                product: reviewProduct.id,
+                orderId: reviewOrderId,
+                order: reviewOrderId,
+                rating: data.rating,
+                comment: data.comment,
+                images: data.images
+            };
+
+            console.log("Submitting Review Payload:", payload);
+
+            const res = await fetch(`${API_BASE}/api/reviews`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!res.ok) {
+                const text = await res.text();
+                console.error("Review Submission Error Response:", text);
+                try {
+                    const err = JSON.parse(text);
+                    throw new Error(err.message || err.error || "Failed to submit review");
+                } catch (e) {
+                    throw new Error(text || "Failed to submit review");
+                }
+            }
+
+            setToast({ show: true, message: "Review submitted successfully!", type: "success" });
+            setIsReviewModalOpen(false);
+
+        } catch (error: any) {
+            console.error("Review submission failed:", error);
+            alert(error.message || "Failed to submit review");
+        }
+    };
 
 
 
@@ -1043,6 +1108,19 @@ const ProfilePage = () => {
                                                                                 </p>
                                                                             </div>
                                                                         </div>
+
+                                                                        {/* Write Review Button */}
+                                                                        {/* Write Review Button */}
+                                                                        <button
+                                                                            onClick={() => {
+                                                                                // robustly find product ID
+                                                                                const pId = item.product?._id || item.product?.id || item.productId || (typeof item.product === 'string' ? item.product : null);
+                                                                                handleWriteReview(ord.id || ord._id, { id: pId, name: item.productName || item.name });
+                                                                            }}
+                                                                            className="px-4 py-2 text-sm font-medium text-white bg-[#D97706] rounded-full hover:bg-[#7CB342] transition-colors shadow-sm"
+                                                                        >
+                                                                            Write Review
+                                                                        </button>
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -1101,6 +1179,14 @@ const ProfilePage = () => {
 
                 </div>
             </div>
+
+            {/* Review Modal */}
+            <ReviewFormModal
+                isOpen={isReviewModalOpen}
+                onClose={() => setIsReviewModalOpen(false)}
+                onSubmit={handleReviewSubmit}
+                productName={reviewProduct?.name || 'Product'}
+            />
         </>
     );
 };

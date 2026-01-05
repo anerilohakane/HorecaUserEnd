@@ -427,7 +427,9 @@ import { useEffect, useState } from 'react';
 import { Product } from '@/lib/types/product';
 import ProductImageGallery from './ProductImageGallery';
 import ProductReviews from './ProductReviews';
+import ReviewFormModal from './ReviewFormModal'; // Added
 import RelatedProducts from './RelatedProducts';
+import { Review } from '@/lib/types/product'; // Added
 import {
   Star,
   Minus,
@@ -443,13 +445,14 @@ import {
 import Link from 'next/link';
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
+import { useMemo } from 'react';
 
 interface ProductDetailClientProps {
   product?: Product; // made optional so the component can fetch when not provided
   relatedProducts?: Product[];
 }
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim();
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://horeca-backend-six.vercel.app').trim();
 
 export default function ProductDetailClient({
   product: initialProduct,
@@ -466,6 +469,20 @@ export default function ProductDetailClient({
   const [wishlistError, setWishlistError] = useState<string | null>(null);
   const { user } = useAuth();
   const [shareMessage, setShareMessage] = useState<string | null>(null);
+
+  // Reviews State
+  const [reviews, setReviews] = useState<Review[]>([]);
+
+
+  const averageRating = useMemo(() => {
+    if (!reviews.length) return 0;
+    const sum = reviews.reduce((acc, r) => acc + r.rating, 0);
+    return Number((sum / reviews.length).toFixed(1));
+  }, [reviews]);
+
+
+  const [isReviewFormOpen, setIsReviewFormOpen] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
 
   const handleShare = async () => {
@@ -741,6 +758,70 @@ export default function ProductDetailClient({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [product?.id]);
 
+  // Fetch Reviews
+  const fetchReviews = async () => {
+    if (!product?.id) return;
+
+    setReviewsLoading(true);
+    try {
+      const res = await fetch(
+        `${API_BASE.replace(/\/$/, '')}/api/reviews?productId=${product.id}`,
+        { headers: { Accept: 'application/json' } }
+      );
+
+      if (!res.ok) throw new Error("Failed to fetch reviews");
+
+      const json = await res.json();
+      setReviews(json.reviews || []);
+    } catch (err) {
+      console.error("Fetch reviews failed:", err);
+    } finally {
+      setReviewsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchReviews();
+  }, [product?.id]);
+
+
+  const handleReviewSubmit = async (data: { rating: number; comment: string; images: string[] }) => {
+    if (!product?.id) return;
+
+    // Check auth
+    const token = localStorage.getItem("unifoods_token");
+    if (!token) {
+      // You might want to show a toast or alert here
+      alert("Please log in to submit a review.");
+      return;
+    }
+
+    const payload = {
+      productId: product.id,
+      rating: data.rating,
+      comment: data.comment,
+      images: data.images
+    };
+
+    const base = API_BASE.replace(/\/$/, "");
+    const res = await fetch(`${base}/api/reviews`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(payload)
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || "Failed to submit review");
+    }
+
+    // Refresh reviews
+    fetchReviews();
+  };
+
   const handleAddToCart = () => {
     if (!product) return;
     setIsAdding(true);
@@ -772,12 +853,8 @@ export default function ProductDetailClient({
     );
   }
 
-  // Sample reviews (kept as before)
-  const reviews = [
-    { id: 1, author: 'Priya Sharma', rating: 5, date: '2 weeks ago', title: 'Excellent quality!', comment: 'This product exceeded my expectations. Perfect for professional baking and the quality is consistent.', verified: true, helpful: 12 },
-    { id: 2, author: 'Rajesh Kumar', rating: 4, date: '1 month ago', title: 'Good value for money', comment: 'Great product at a reasonable price. Would recommend for bakeries looking for bulk supplies.', verified: true, helpful: 8 },
-    { id: 3, author: 'Anita Desai', rating: 5, date: '1 month ago', title: 'Best in the market', comment: 'We\'ve tried many suppliers but this is by far the best quality we\'ve found. Will order again!', verified: true, helpful: 15 },
-  ];
+  // Reviews now fetched from API
+
 
   return (
     <div className="min-h-screen bg-[#FAFAF7]">
@@ -817,9 +894,9 @@ export default function ProductDetailClient({
               <span className="text-sm text-gray-600">{product.category}</span>
               {product.badge && (
                 <span className={`px-3 py-1 rounded-full text-xs font-medium ${product.badge === 'Bestseller' ? 'bg-[#D97706] text-white' :
-                    product.badge === 'New' ? 'bg-[#D97706] text-white' :
-                      product.badge === 'Premium' ? 'bg-purple-500 text-white' :
-                        'bg-emerald-500 text-white'
+                  product.badge === 'New' ? 'bg-[#D97706] text-white' :
+                    product.badge === 'Premium' ? 'bg-purple-500 text-white' :
+                      'bg-emerald-500 text-white'
                   }`}>
                   {product.badge}
                 </span>
@@ -839,16 +916,18 @@ export default function ProductDetailClient({
                     <Star
                       key={i}
                       size={18}
-                      className={`${i < Math.floor(product.rating)
-                          ? 'fill-[#FFB800] text-[#FFB800]'
-                          : 'text-gray-300'
+                      className={`${i < Math.floor(averageRating || 0)
+                        ? 'fill-[#FFB800] text-[#FFB800]'
+                        : 'text-gray-300'
                         }`}
                     />
                   ))}
                 </div>
-                <span className="font-semibold text-[#111827]">{product.rating}</span>
+                {/* Dynamically calculated average rating */}
+                <span className="font-semibold text-[#111827]">{averageRating || 0}</span>
               </div>
-              <span className="text-gray-600">({product.reviews} reviews)</span>
+              {/* Actual fetched review count */}
+              <span className="text-gray-600">({reviews.length} reviews)</span>
             </div>
 
             {/* Price */}
@@ -928,8 +1007,8 @@ export default function ProductDetailClient({
                 disabled={isWishlisting}
                 title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
                 className={`p-4 border-2 rounded-full transition-all ${isInWishlist
-                    ? "border-red-500 text-red-500"
-                    : "border-gray-300 hover:border-[#D97706] hover:text-[#D97706]"
+                  ? "border-red-500 text-red-500"
+                  : "border-gray-300 hover:border-[#D97706] hover:text-[#D97706]"
                   } disabled:opacity-50`}
               >
                 {isWishlisting ? (
@@ -1025,7 +1104,7 @@ export default function ProductDetailClient({
                 className={`py-4 font-medium transition-colors relative ${activeTab === 'reviews' ? 'text-[#D97706]' : 'text-gray-600 hover:text-[#D97706]'
                   }`}
               >
-                Reviews ({product.reviews})
+                Reviews ({reviews.length})
                 {activeTab === 'reviews' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
               </button>
             </div>
@@ -1095,16 +1174,26 @@ export default function ProductDetailClient({
             {activeTab === 'reviews' && (
               <ProductReviews
                 reviews={reviews}
-                averageRating={product.rating}
-                totalReviews={product.reviews}
+                averageRating={averageRating}
+                totalReviews={reviews.length}
+                onWriteReview={() => setIsReviewFormOpen(true)}
               />
+
             )}
           </div>
         </div>
 
         {/* Related Products */}
         <RelatedProducts products={relatedProducts} />
+
+        <ReviewFormModal
+          isOpen={isReviewFormOpen}
+          onClose={() => setIsReviewFormOpen(false)}
+          onSubmit={handleReviewSubmit}
+          productName={product.name}
+        />
       </div>
     </div>
   );
 }
+

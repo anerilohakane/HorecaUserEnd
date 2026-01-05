@@ -17,6 +17,20 @@ export interface Product {
   tags: string[];
 }
 
+export interface Review {
+  _id: string;
+  user: any; // User object or null often comes back
+  product: string;
+  order?: string;
+  rating: number;
+  comment: string;
+  images?: string[];
+  isApproved: boolean;
+  createdAt: string;
+  updatedAt: string;
+  author?: string; // Derived for UI
+}
+
 // Filter Types
 export interface FilterOptions {
   categories: string[];
@@ -30,7 +44,7 @@ export interface FilterOptions {
 }
 
 // Sort Options
-export type SortOption = 
+export type SortOption =
   | 'popular'
   | 'price-low'
   | 'price-high'
