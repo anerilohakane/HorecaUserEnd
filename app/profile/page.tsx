@@ -1287,16 +1287,48 @@ const ProfilePage = () => {
                                                         </div>
 
                                                         {/* Order Footer - Return Action */}
-                                                        {ord.status?.toLowerCase() === 'delivered' && (
-                                                            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
-                                                                <button
-                                                                    onClick={() => handleReturnOrder(ord.id || ord._id, ord.items, ord.shippingAddress)}
-                                                                    className="px-6 py-2.5 text-sm font-medium text-red-600 border border-red-200 bg-white rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-sm flex items-center gap-2"
-                                                                >
-                                                                    Return Order
-                                                                </button>
-                                                            </div>
-                                                        )}
+                                                        {(() => {
+                                                            if (ord.status?.toLowerCase() !== 'delivered') return null;
+
+                                                            // Calculate Return Window (7 Days)
+                                                            // Prefer deliveredAt, fallback to updatedAt (when status became delivered), fallback to createdAt + shipping time?
+                                                            // Using updatedAt as proxy for delivery time if deliveredAt is missing
+                                                            const promptDeliveryDate = ord.deliveredAt || ord.updatedAt || ord.createdAt;
+                                                            const deliveryDate = new Date(promptDeliveryDate);
+                                                            const currentDate = new Date();
+
+                                                            const diffTime = Math.abs(currentDate.getTime() - deliveryDate.getTime());
+                                                            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                                                            const daysLeft = 7 - diffDays;
+
+                                                            const isReturnable = daysLeft >= 0;
+
+                                                            return (
+                                                                <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
+                                                                    {/* Return Window Message */}
+                                                                    <div className="text-sm">
+                                                                        {isReturnable ? (
+                                                                            <span className="text-amber-600 font-medium">
+                                                                                Return available for {daysLeft} more day{daysLeft !== 1 ? 's' : ''}
+                                                                            </span>
+                                                                        ) : (
+                                                                            <span className="text-gray-500 font-medium">
+                                                                                Return window closed
+                                                                            </span>
+                                                                        )}
+                                                                    </div>
+
+                                                                    {isReturnable && (
+                                                                        <button
+                                                                            onClick={() => handleReturnOrder(ord.id || ord._id, ord.items, ord.shippingAddress)}
+                                                                            className="px-6 py-2.5 text-sm font-medium text-red-600 border border-red-200 bg-white rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-sm flex items-center gap-2"
+                                                                        >
+                                                                            Return Order
+                                                                        </button>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
                                                     </div>
                                                 ))}
                                             </div>
