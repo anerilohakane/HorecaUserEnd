@@ -32,6 +32,7 @@ import ShippingAddressSelector from '@/components/checkout/ShippingForm';
 import { useRouter } from "next/navigation";
 import ReviewFormModal from '@/components/products/ReviewFormModal';
 import ReturnOrderModal from '@/components/orders/ReturnOrderModal';
+import CancelOrderModal from '@/components/orders/CancelOrderModal';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -131,6 +132,10 @@ const ProfilePage = () => {
     const [returnOrderItems, setReturnOrderItems] = useState<any[]>([]);
     const [returnOrderId, setReturnOrderId] = useState<string | null>(null);
     const [returnAddress, setReturnAddress] = useState<any>(null);
+
+    // Cancel Order State
+    const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
+    const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
 
     const handleReturnOrder = (orderId: string, items: any[], address: any) => {
         setReturnOrderId(orderId);
@@ -247,6 +252,47 @@ const ProfilePage = () => {
             console.error("Return submission failed:", error);
             alert(error.message || "Failed to submit return request");
             throw error; // Re-throw to show error in modal
+        }
+    };
+
+    // Cancel Order Handler - OPEN MODAL
+    const handleCancelOrder = (orderId: string) => {
+        setCancelOrderId(orderId);
+        setIsCancelModalOpen(true);
+    };
+
+    // Cancel Submit Handler
+    const handleCancelSubmit = async (data: { reason: string, comment: string }) => {
+        if (!cancelOrderId) return;
+
+        try {
+            // Backend expects PATCH request with ID in query params
+            const res = await fetch(`${API_BASE}/api/order?id=${cancelOrderId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    status: 'cancelled',
+                    cancellationReason: data.reason,
+                    notes: data.comment // Using notes for comment
+                })
+            });
+
+            const resData = await res.json();
+
+            if (!res.ok || !resData.success) {
+                throw new Error(resData.message || resData.error || "Failed to cancel order");
+            }
+
+            setToast({ show: true, message: "Order cancelled successfully", type: "success" });
+            fetchOrders();
+            setIsCancelModalOpen(false);
+
+        } catch (error: any) {
+            console.error("Cancel order failed:", error);
+            throw error; // Propagate to modal to show error
         }
     };
 
@@ -1329,6 +1375,18 @@ const ProfilePage = () => {
                                                                 </div>
                                                             );
                                                         })()}
+
+                                                        {/* Cancel Action - Pending/Confirmed */}
+                                                        {['pending', 'confirmed'].includes(ord.status?.toLowerCase()) && (
+                                                            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                                                                <button
+                                                                    onClick={() => handleCancelOrder(ord.id || ord._id)}
+                                                                    className="px-6 py-2.5 text-sm font-medium text-red-600 border border-red-200 bg-white rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-sm flex items-center gap-2"
+                                                                >
+                                                                    Cancel Order
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
@@ -1379,6 +1437,13 @@ const ProfilePage = () => {
                 onSubmit={handleReturnSubmit}
                 orderItems={returnOrderItems}
                 orderId={returnOrderId || ''}
+            />
+            {/* Cancel Order Modal */}
+            <CancelOrderModal
+                isOpen={isCancelModalOpen}
+                onClose={() => setIsCancelModalOpen(false)}
+                onSubmit={handleCancelSubmit}
+                orderId={cancelOrderId || ''}
             />
         </>
     );
