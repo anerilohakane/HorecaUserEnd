@@ -31,6 +31,7 @@ import { useAuth } from '@/lib/context/AuthContext';
 import ShippingAddressSelector from '@/components/checkout/ShippingForm';
 import { useRouter } from "next/navigation";
 import ReviewFormModal from '@/components/products/ReviewFormModal';
+import ReturnOrderModal from '@/components/orders/ReturnOrderModal';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -122,6 +123,130 @@ const ProfilePage = () => {
         } catch (error: any) {
             console.error("Review submission failed:", error);
             alert(error.message || "Failed to submit review");
+        }
+    };
+
+    // Return Order State
+    const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
+    const [returnOrderItems, setReturnOrderItems] = useState<any[]>([]);
+    const [returnOrderId, setReturnOrderId] = useState<string | null>(null);
+    const [returnAddress, setReturnAddress] = useState<any>(null);
+
+    const handleReturnOrder = (orderId: string, items: any[], address: any) => {
+        setReturnOrderId(orderId);
+        setReturnOrderItems(items);
+        setReturnAddress(address);
+        setIsReturnModalOpen(true);
+    };
+
+    const handleReturnSubmit = async (data: { selectedItems: any[]; reason: string; comment: string; images: string[] }) => {
+        if (!returnOrderId || !token || !authUser) return;
+
+        try {
+            const rawUserId = authUser.id || (authUser as any)._id;
+
+            // Calculate total refund amount from selected items
+            const totalRefundAmount = data.selectedItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0);
+
+            // Map selected items to the schema format
+            const formattedItems = data.selectedItems.map(item => ({
+                product: item.product?._id || item.product?.id || item.productId || item.product,
+                productId: item.product?._id || item.product?.id || item.productId || item.product,
+                quantity: item.quantity,
+                price: item.unitPrice,
+                reason: data.reason // Apply global reason to all items for now
+            }));
+
+            const payload = {
+                userId: rawUserId,
+                user: rawUserId,
+                customerId: rawUserId, // Alias
+                orderId: returnOrderId,
+                order: returnOrderId,
+
+                // Top-Level Product ID (Required by some backend logic? use first item's ID as fallback)
+                productId: formattedItems[0]?.productId,
+                product: formattedItems[0]?.productId,
+
+                reason: data.reason,
+                comment: data.comment,
+                images: data.images || [],
+                quantity: formattedItems.length, // Number of unique items returned? Or total qty?
+
+                // Refund Amount
+                amount: totalRefundAmount,
+                refundAmount: totalRefundAmount,
+
+                // Flattened Address
+                addressLine1: returnAddress?.addressLine1 || "",
+                addressLine2: returnAddress?.addressLine2 || "",
+                city: returnAddress?.city || "",
+                state: returnAddress?.state || "",
+                pincode: returnAddress?.pincode || "",
+                phone: returnAddress?.phone || "",
+
+                // Address Objects
+                pickupAddress: returnAddress,
+                address: returnAddress,
+
+                // Refund Method
+                refundMode: 'Source',
+                refundMethod: 'Source',
+
+                // Bank Details (Mock)
+                bankDetails: {
+                    accountHolderName: authUser.name || "Test User",
+                    bankName: "Test Bank",
+                    accountNumber: "1234567890",
+                    ifscCode: "TEST0000001"
+                },
+
+                // Resolution
+                resolution: 'Refund',
+                action: 'Refund',
+                type: 'refund',
+                condition: 'Unopened',
+
+                // Items Arrays
+                items: formattedItems,
+                products: formattedItems
+            };
+
+            console.log("Submitting Return Payload:", payload);
+
+            const res = await fetch(`${API_BASE}/api/return-order`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            const text = await res.text();
+            console.log("Return Order Response Text:", text);
+
+            let json;
+            try {
+                json = JSON.parse(text);
+            } catch (e) {
+                throw new Error(text || "Failed to submit return request");
+            }
+
+            if (!res.ok || !json.success) {
+                throw new Error(json.message || json.error || "Failed to submit return request");
+            }
+
+            setToast({ show: true, message: "Return request submitted successfully!", type: "success" });
+            setIsReturnModalOpen(false);
+
+            // Refresh orders to show updated status
+            fetchOrders();
+
+        } catch (error: any) {
+            console.error("Return submission failed:", error);
+            alert(error.message || "Failed to submit return request");
+            throw error; // Re-throw to show error in modal
         }
     };
 
@@ -226,6 +351,8 @@ const ProfilePage = () => {
                 setLoading(false);
                 return;
             }
+
+            fetchReviewsCount();
 
             const userId = authUser.id;
             const API_URL = `${API_BASE}/api/customers/${userId}`;
@@ -336,6 +463,33 @@ const ProfilePage = () => {
         }
     };
 
+
+    const [reviewsCount, setReviewsCount] = useState(0);
+
+    /* ------------------------------------------------------------
+       🔥 FETCH REVIEWS COUNT
+    ------------------------------------------------------------- */
+    const fetchReviewsCount = async () => {
+        if (!authUser) return;
+        const userId = authUser.id || (authUser as any)._id;
+        if (!userId) return;
+
+        try {
+            // Assuming endpoint supports filtering by userId to get all reviews by user
+            const res = await fetch(`${API_BASE}/api/reviews?userId=${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (res.ok) {
+                const data = await res.json();
+                if (data.success) {
+                    // If data.total exists, use it. Otherwise count the array.
+                    setReviewsCount(data.total || data.reviews?.length || 0);
+                }
+            }
+        } catch (e) {
+            console.error("Failed to fetch reviews count", e);
+        }
+    };
 
     /* ------------------------------------------------------------
        🔥 FETCH ORDERS + PRODUCT IMAGES
@@ -619,7 +773,7 @@ const ProfilePage = () => {
                                         </div>
 
                                         <div>
-                                            <p className="text-2xl font-bold text-gray-900">8</p>
+                                            <p className="text-2xl font-bold text-gray-900">{reviewsCount}</p>
                                             <p className="text-sm text-gray-600">Reviews</p>
                                         </div>
                                     </div>
@@ -634,7 +788,7 @@ const ProfilePage = () => {
                         {[
                             { icon: ShoppingBag, label: "Recent Orders", value: orders.length },
                             { icon: Heart, label: "Saved Items", value: savedItemsCount },
-                            { icon: Star, label: "Reviews Given", value: 8 },
+                            { icon: Star, label: "Reviews Given", value: reviewsCount },
                             { icon: MessageSquare, label: "Coupon", value: 0 },
                         ].map((stat, i) => (
                             <motion.div
@@ -1025,13 +1179,18 @@ const ProfilePage = () => {
                                                                         ? "bg-green-100 text-green-800"
                                                                         : ord.status === "Cancelled"
                                                                             ? "bg-red-100 text-red-800"
-                                                                            : "bg-amber-100 text-amber-800"
+                                                                            : ord.status === "return_requested"
+                                                                                ? "bg-orange-100 text-orange-800"
+                                                                                : "bg-amber-100 text-amber-800"
                                                                         }`}>
-                                                                        {ord.status || "Processing"}
+                                                                        {ord.status === "return_requested" ? "Return Requested" : (ord.status || "Processing")}
                                                                     </span>
                                                                     <span className="text-lg font-bold text-gray-900">
                                                                         ₹{ord.total.toLocaleString('en-IN')}
                                                                     </span>
+
+                                                                    {/* Return Order Button - Visible if Delivered and Not already returned */}
+                                                                    {/* Removed from header */}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1109,42 +1268,35 @@ const ProfilePage = () => {
                                                                             </div>
                                                                         </div>
 
-                                                                        {/* Write Review Button */}
-                                                                        {/* Write Review Button */}
-                                                                        <button
-                                                                            onClick={() => {
-                                                                                // robustly find product ID
-                                                                                const pId = item.product?._id || item.product?.id || item.productId || (typeof item.product === 'string' ? item.product : null);
-                                                                                handleWriteReview(ord.id || ord._id, { id: pId, name: item.productName || item.name });
-                                                                            }}
-                                                                            className="px-4 py-2 text-sm font-medium text-white bg-[#D97706] rounded-full hover:bg-[#7CB342] transition-colors shadow-sm"
-                                                                        >
-                                                                            Write Review
-                                                                        </button>
+                                                                        <div className="flex gap-2">
+                                                                            {/* Write Review Button */}
+                                                                            <button
+                                                                                onClick={() => {
+                                                                                    // robustly find product ID
+                                                                                    const pId = item.product?._id || item.product?.id || item.productId || (typeof item.product === 'string' ? item.product : null);
+                                                                                    handleWriteReview(ord.id || ord._id, { id: pId, name: item.productName || item.name });
+                                                                                }}
+                                                                                className="px-4 py-2 text-sm font-medium text-white bg-[#D97706] rounded-full hover:bg-[#7CB342] transition-colors shadow-sm"
+                                                                            >
+                                                                                Write Review
+                                                                            </button>
+                                                                        </div>
                                                                     </div>
                                                                 ))}
                                                             </div>
-
-                                                            {/* Order Footer */}
-                                                            {/* <div className="mt-6 pt-4 border-t border-gray-100">
-                                                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                                                                    <div className="text-sm text-gray-600">
-                                                                        Need help with this order?
-                                                                        <button className="ml-2 text-amber-600 hover:text-amber-700 font-medium">
-                                                                            Contact Support
-                                                                        </button>
-                                                                    </div>
-                                                                    <div className="flex gap-3">
-                                                                        <button className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors">
-                                                                            View Details
-                                                                        </button>
-                                                                        <button className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition-colors">
-                                                                            Track Order
-                                                                        </button>
-                                                                    </div>
-                                                                </div>
-                                                            </div> */}
                                                         </div>
+
+                                                        {/* Order Footer - Return Action */}
+                                                        {ord.status?.toLowerCase() === 'delivered' && (
+                                                            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                                                                <button
+                                                                    onClick={() => handleReturnOrder(ord.id || ord._id, ord.items, ord.shippingAddress)}
+                                                                    className="px-6 py-2.5 text-sm font-medium text-red-600 border border-red-200 bg-white rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-sm flex items-center gap-2"
+                                                                >
+                                                                    Return Order
+                                                                </button>
+                                                            </div>
+                                                        )}
                                                     </div>
                                                 ))}
                                             </div>
@@ -1186,6 +1338,15 @@ const ProfilePage = () => {
                 onClose={() => setIsReviewModalOpen(false)}
                 onSubmit={handleReviewSubmit}
                 productName={reviewProduct?.name || 'Product'}
+            />
+
+            {/* Return Modal */}
+            <ReturnOrderModal
+                isOpen={isReturnModalOpen}
+                onClose={() => setIsReturnModalOpen(false)}
+                onSubmit={handleReturnSubmit}
+                orderItems={returnOrderItems}
+                orderId={returnOrderId || ''}
             />
         </>
     );
