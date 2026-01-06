@@ -86,7 +86,7 @@ export default function HowItWorks() {
 
             {/* Secondary Button – Register */}
             <Link
-              href="/register"
+              href="/become-supplier"
               className="inline-flex items-center justify-center bg-white text-[#D97706] border-2 border-[#D97706] px-8 py-3 rounded-full hover:bg-[#D97706] hover:text-white transition-all shadow-md hover:shadow-lg font-medium text-sm w-full sm:w-auto"
             >
               Become a Supplier
