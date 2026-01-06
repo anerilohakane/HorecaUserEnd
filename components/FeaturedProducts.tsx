@@ -129,6 +129,8 @@ import { featuredProducts as fallbackFeatured } from '@/lib/data';
 import { ArrowRight, Plus } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { toast } from 'sonner';
+import { useCart } from '@/lib/context/CartContext';
 
 type Raw = any;
 
@@ -197,6 +199,7 @@ export default function FeaturedProducts() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { addItem } = useCart();
 
   const getBadgeColor = (badge: string) => {
     switch (badge) {
@@ -256,43 +259,12 @@ export default function FeaturedProducts() {
     e.preventDefault();
     e.stopPropagation();
 
-    const token = localStorage.getItem("unifoods_token");
-    const user = JSON.parse(localStorage.getItem("unifoods_user") || "null");
-    const userId = user?.id;
-
-    if (!token) return alert("Please log in first!");
-    if (!userId) return alert("User ID missing! Re-login required.");
-
-    const payload = {
-      userId,
-      productId: product.id,
-      quantity: 1,
-    };
-
-    console.log("📤 ADD TO CART PAYLOAD:", payload);
-
     try {
-      const response = await fetch(`${API_URL}/api/cart`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
-
-      const json = await response.json();
-      console.log("📥 ADD TO CART RESPONSE:", json);
-
-      if (!json.success) {
-        alert(json.error || "Failed to add product");
-        return;
-      }
-
-      alert("Product added to cart!");
-    } catch (err) {
+      await addItem(product, 1);
+      toast.success("Product added to cart!");
+    } catch (err: any) {
       console.error("❌ Add to Cart Error:", err);
-      alert("Something went wrong while adding the product.");
+      toast.error(err.message || "Something went wrong while adding the product.");
     }
   };
 
@@ -322,51 +294,51 @@ export default function FeaturedProducts() {
           {loading
             ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
             : displayed.map((product) => (
-                <Link
-                  key={product.id}
-                  href={`/products/${product.id}`}
-                  className="group block cursor-pointer"
-                >
-                  {/* Product Image */}
-                  <div className="relative aspect-square bg-[#F5F5F5] rounded-3xl overflow-hidden mb-4 soft-shadow">
-                    <Image
-                      src={product.image}
-                      alt={product.name}
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform"
-                      unoptimized={product.image.startsWith("http")}
-                    />
+              <Link
+                key={product.id}
+                href={`/products/${product.id}`}
+                className="group block cursor-pointer"
+              >
+                {/* Product Image */}
+                <div className="relative aspect-square bg-[#F5F5F5] rounded-3xl overflow-hidden mb-4 soft-shadow">
+                  <Image
+                    src={product.image}
+                    alt={product.name}
+                    fill
+                    className="object-cover group-hover:scale-105 transition-transform"
+                    unoptimized={product.image.startsWith("http")}
+                  />
 
-                    {/* Badge */}
-                    {product.badge && (
-                      <span
-                        className={`${getBadgeColor(product.badge)} absolute top-4 left-4 px-3 py-1 text-xs rounded-full`}
-                      >
-                        {product.badge}
-                      </span>
-                    )}
-
-                    {/* Add to Cart button */}
-                    <button
-                      onClick={(e) => handleAddToCart(e, product)}
-                      className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg hover:bg-[#D97706] hover:text-white"
+                  {/* Badge */}
+                  {product.badge && (
+                    <span
+                      className={`${getBadgeColor(product.badge)} absolute top-4 left-4 px-3 py-1 text-xs rounded-full`}
                     >
-                      <Plus size={20} />
-                    </button>
-                  </div>
+                      {product.badge}
+                    </span>
+                  )}
 
-                  {/* Product Info */}
-                  <div className="text-center">
-                    <h3 className="font-medium text-gray-800 group-hover:text-[#D97706]">
-                      {product.name}
-                    </h3>
-                    <div className="flex justify-center gap-2 text-gray-800">
-                      <span className="text-lg font-semibold">₹{product.price}</span>
-                      <span className="text-xs text-gray-500">/ {product.unit}</span>
-                    </div>
+                  {/* Add to Cart button */}
+                  <button
+                    onClick={(e) => handleAddToCart(e, product)}
+                    className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg hover:bg-[#D97706] hover:text-white"
+                  >
+                    <Plus size={20} />
+                  </button>
+                </div>
+
+                {/* Product Info */}
+                <div className="text-center">
+                  <h3 className="font-medium text-gray-800 group-hover:text-[#D97706]">
+                    {product.name}
+                  </h3>
+                  <div className="flex justify-center gap-2 text-gray-800">
+                    <span className="text-lg font-semibold">₹{product.price}</span>
+                    <span className="text-xs text-gray-500">/ {product.unit}</span>
                   </div>
-                </Link>
-              ))}
+                </div>
+              </Link>
+            ))}
         </div>
 
         {/* Mobile View All */}

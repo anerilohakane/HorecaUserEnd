@@ -1,5 +1,6 @@
 import { ArrowRight } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Hero() {
   return (
@@ -15,17 +16,20 @@ export default function Hero() {
                 <span className="font-normal italic">Everyone</span>
               </h1>
               <p className="text-base lg:text-lg text-gray-600 leading-relaxed max-w-lg mx-auto lg:mx-0">
-                A good place to find bakery supplies, packaging, quality ingredients, 
+                A good place to find bakery supplies, packaging, quality ingredients,
                 tools and all that good stuff.
               </p>
             </div>
 
             {/* CTA Button */}
             <div className="flex justify-center lg:justify-start">
-              <button className="bg-[#D97706] text-white px-10 py-4 rounded-full hover:bg-[#db8c32] transition-all shadow-lg hover:shadow-xl font-medium text-base inline-flex items-center gap-2 group">
+              <Link
+                href="/products"
+                className="bg-[#D97706] text-white px-10 py-4 rounded-full hover:bg-[#db8c32] transition-all shadow-lg hover:shadow-xl font-medium text-base inline-flex items-center gap-2 group"
+              >
                 Shop Now
                 <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </button>
+              </Link>
             </div>
           </div>
 
