@@ -8,9 +8,9 @@ interface RelatedProductsProps {
   title?: string;
 }
 
-export default function RelatedProducts({ 
-  products, 
-  title = "You May Also Like" 
+export default function RelatedProducts({
+  products,
+  title = "You May Also Like"
 }: RelatedProductsProps) {
   return (
     <section className="py-12">
@@ -18,9 +18,9 @@ export default function RelatedProducts({
         <h2 className="text-3xl font-light text-[#111827]">
           {title}
         </h2>
-        <Link 
+        <Link
           href="/products"
-          className="flex items-center gap-1 text-[#D97706] hover:text-[#7CB342] font-medium transition-colors group"
+          className="flex items-center gap-1 text-[#D97706] hover:text-[#B45309] font-medium transition-colors group"
         >
           <span>View All</span>
           <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />

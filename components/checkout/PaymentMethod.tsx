@@ -64,16 +64,14 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
             return (
               <label
                 key={method.id}
-                className={`block cursor-pointer transition-all ${
-                  isSelected ? 'scale-[1.02]' : 'hover:scale-[1.01]'
-                }`}
+                className={`block cursor-pointer transition-all ${isSelected ? 'scale-[1.02]' : 'hover:scale-[1.01]'
+                  }`}
               >
                 <div
-                  className={`relative p-5 border-2 rounded-2xl transition-all ${
-                    isSelected
+                  className={`relative p-5 border-2 rounded-2xl transition-all ${isSelected
                       ? 'border-[#D97706] bg-[#E8F5E9] shadow-md'
                       : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                    }`}
                 >
                   <div className="flex items-start gap-4">
                     {/* Radio Button */}
@@ -90,9 +88,8 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
 
                     {/* Icon */}
                     <div
-                      className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${
-                        isSelected ? 'bg-[#D97706] text-white' : 'bg-gray-100 text-gray-600'
-                      }`}
+                      className={`flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${isSelected ? 'bg-[#D97706] text-white' : 'bg-gray-100 text-gray-600'
+                        }`}
                     >
                       <Icon size={24} />
                     </div>
@@ -185,7 +182,7 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
       {/* Submit Button */}
       <button
         type="submit"
-        className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#7CB342] transition-all font-semibold shadow-md hover:shadow-lg"
+        className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#B45309] transition-all font-semibold shadow-md hover:shadow-lg"
       >
         Review Order
       </button>

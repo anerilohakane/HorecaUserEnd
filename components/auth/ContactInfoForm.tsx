@@ -113,9 +113,8 @@ export default function ContactInfoForm({ onSubmit, initialData }: ContactInfoFo
             type="text"
             value={formData.contactPerson}
             onChange={(e) => handleChange('contactPerson', e.target.value)}
-            className={`w-full px-4 py-3 pl-11 border ${
-              errors.contactPerson ? 'border-red-500' : 'border-gray-300'
-            } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
+            className={`w-full px-4 py-3 pl-11 border ${errors.contactPerson ? 'border-red-500' : 'border-gray-300'
+              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
             placeholder="John Doe"
           />
           <User size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -135,9 +134,8 @@ export default function ContactInfoForm({ onSubmit, initialData }: ContactInfoFo
             type="email"
             value={formData.email}
             onChange={(e) => handleChange('email', e.target.value)}
-            className={`w-full px-4 py-3 pl-11 border ${
-              errors.email ? 'border-red-500' : 'border-gray-300'
-            } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
+            className={`w-full px-4 py-3 pl-11 border ${errors.email ? 'border-red-500' : 'border-gray-300'
+              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
             placeholder="business@example.com"
           />
           <Mail size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -158,9 +156,8 @@ export default function ContactInfoForm({ onSubmit, initialData }: ContactInfoFo
               type={showPassword ? 'text' : 'password'}
               value={formData.password}
               onChange={(e) => handleChange('password', e.target.value)}
-              className={`w-full px-4 py-3 pl-11 border ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
-              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
+              className={`w-full px-4 py-3 pl-11 border ${errors.password ? 'border-red-500' : 'border-gray-300'
+                } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
               placeholder="••••••••"
             />
             <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -183,9 +180,8 @@ export default function ContactInfoForm({ onSubmit, initialData }: ContactInfoFo
               type={showPassword ? 'text' : 'password'}
               value={formData.confirmPassword}
               onChange={(e) => handleChange('confirmPassword', e.target.value)}
-              className={`w-full px-4 py-3 pl-11 border ${
-                errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
-              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
+              className={`w-full px-4 py-3 pl-11 border ${errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+                } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
               placeholder="••••••••"
             />
             <Lock size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -218,9 +214,8 @@ export default function ContactInfoForm({ onSubmit, initialData }: ContactInfoFo
               type="tel"
               value={formData.phone}
               onChange={(e) => handleChange('phone', e.target.value)}
-              className={`w-full px-4 py-3 pl-11 border ${
-                errors.phone ? 'border-red-500' : 'border-gray-300'
-              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
+              className={`w-full px-4 py-3 pl-11 border ${errors.phone ? 'border-red-500' : 'border-gray-300'
+                } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
               placeholder="9322506730"
               maxLength={10}
             />
@@ -241,9 +236,8 @@ export default function ContactInfoForm({ onSubmit, initialData }: ContactInfoFo
               type="tel"
               value={formData.alternatePhone}
               onChange={(e) => handleChange('alternatePhone', e.target.value)}
-              className={`w-full px-4 py-3 pl-11 border ${
-                errors.alternatePhone ? 'border-red-500' : 'border-gray-300'
-              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
+              className={`w-full px-4 py-3 pl-11 border ${errors.alternatePhone ? 'border-red-500' : 'border-gray-300'
+                } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
               placeholder="9322506730"
               maxLength={10}
             />
@@ -265,9 +259,8 @@ export default function ContactInfoForm({ onSubmit, initialData }: ContactInfoFo
             type="url"
             value={formData.website}
             onChange={(e) => handleChange('website', e.target.value)}
-            className={`w-full px-4 py-3 pl-11 border ${
-              errors.website ? 'border-red-500' : 'border-gray-300'
-            } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
+            className={`w-full px-4 py-3 pl-11 border ${errors.website ? 'border-red-500' : 'border-gray-300'
+              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors`}
             placeholder="https://www.yourbusiness.com"
           />
           <Globe size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -280,7 +273,7 @@ export default function ContactInfoForm({ onSubmit, initialData }: ContactInfoFo
       {/* Submit Button */}
       <button
         type="submit"
-        className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#7CB342] transition-all font-semibold shadow-md hover:shadow-lg"
+        className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#B45309] transition-all font-semibold shadow-md hover:shadow-lg"
       >
         Continue to Business Address
       </button>

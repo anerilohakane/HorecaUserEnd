@@ -110,7 +110,7 @@
 //         <div className="text-center mt-12 lg:hidden">
 //           <Link
 //             href="/products"
-//             className="inline-flex items-center gap-2 bg-[#D97706] text-white px-8 py-4 rounded-full hover:bg-[#7CB342] transition-all shadow-lg hover:shadow-xl font-medium group"
+//             className="inline-flex items-center gap-2 bg-[#D97706] text-white px-8 py-4 rounded-full hover:bg-[#B45309] transition-all shadow-lg hover:shadow-xl font-medium group"
 //           >
 //             View All Products
 //             <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />

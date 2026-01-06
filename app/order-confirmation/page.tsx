@@ -217,7 +217,7 @@
 //               Download Invoice
 //             </button>
 //             <Link href="/products" className="flex-1">
-//               <button className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#7CB342] transition-all font-semibold flex items-center justify-center gap-2">
+//               <button className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#B45309] transition-all font-semibold flex items-center justify-center gap-2">
 //                 Continue Shopping
 //                 <ArrowRight size={20} />
 //               </button>
@@ -585,52 +585,52 @@ export default function OrderConfirmationPage() {
                   <h3 className="text-xl font-semibold text-gray-900">Order Items</h3>
                 </div>
                 <div className="space-y-4">
-                {order.items.map((item, index) => {
-  const unitPrice =
-    typeof item.price === "number"
-      ? item.price
-      : typeof (item as any).unitPrice === "number"
-      ? (item as any).unitPrice
-      : 0;
+                  {order.items.map((item, index) => {
+                    const unitPrice =
+                      typeof item.price === "number"
+                        ? item.price
+                        : typeof (item as any).unitPrice === "number"
+                          ? (item as any).unitPrice
+                          : 0;
 
-  return (
-    <div
-      key={index}
-      className="flex items-center gap-5 p-5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all border border-gray-200"
-    >
-      {/* PRODUCT IMAGE */}
-      <div className="relative w-20 h-20 bg-white rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-gray-300">
-        <Image
-          src={resolveImage(item.image)}
-          alt={item.productName || "Ordered product image"}
-          fill
-          className="object-cover"
-          unoptimized={resolveImage(item.image).startsWith("http")}
-        />
-      </div>
+                    return (
+                      <div
+                        key={index}
+                        className="flex items-center gap-5 p-5 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all border border-gray-200"
+                      >
+                        {/* PRODUCT IMAGE */}
+                        <div className="relative w-20 h-20 bg-white rounded-xl overflow-hidden shadow-sm flex-shrink-0 border border-gray-300">
+                          <Image
+                            src={resolveImage(item.image)}
+                            alt={item.productName || "Ordered product image"}
+                            fill
+                            className="object-cover"
+                            unoptimized={resolveImage(item.image).startsWith("http")}
+                          />
+                        </div>
 
-      {/* PRODUCT INFO */}
-      <div className="flex-1">
-        <h4 className="font-semibold text-gray-900 text-lg">
-          {item.productName}
-        </h4>
-        <p className="text-gray-600 mt-1">
-          Quantity: <span className="font-medium">{item.quantity}</span>
-        </p>
-      </div>
+                        {/* PRODUCT INFO */}
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-900 text-lg">
+                            {item.productName}
+                          </h4>
+                          <p className="text-gray-600 mt-1">
+                            Quantity: <span className="font-medium">{item.quantity}</span>
+                          </p>
+                        </div>
 
-      {/* PRICE */}
-      <div className="text-right">
-        <p className="font-bold text-amber-600 text-xl">
-          ₹{(item.quantity * unitPrice).toFixed(2)}
-        </p>
-        <p className="text-sm text-gray-500">
-          ₹{unitPrice.toFixed(2)} each
-        </p>
-      </div>
-    </div>
-  );
-})}
+                        {/* PRICE */}
+                        <div className="text-right">
+                          <p className="font-bold text-amber-600 text-xl">
+                            ₹{(item.quantity * unitPrice).toFixed(2)}
+                          </p>
+                          <p className="text-sm text-gray-500">
+                            ₹{unitPrice.toFixed(2)} each
+                          </p>
+                        </div>
+                      </div>
+                    );
+                  })}
 
                 </div>
               </div>

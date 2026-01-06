@@ -21,18 +21,18 @@ export default function CheckoutPage() {
   const [shippingAddress, setShippingAddress] = useState<ShippingAddress | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('cod');
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
-  const {user} = useAuth();
-const [mounted, setMounted] = useState(false);
+  const { user } = useAuth();
+  const [mounted, setMounted] = useState(false);
 
 
-console.log("User ",user);
+  console.log("User ", user);
 
-useEffect(() => {
-  setMounted(true);
-}, []);
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   console.log(shippingAddress);
-  
+
   // // Redirect if cart is empty
   // useEffect(() => {
   //   if (items.length === 0) {
@@ -157,10 +157,10 @@ useEffect(() => {
                       <div className="flex flex-col items-center">
                         <div
                           className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold transition-all ${isCompleted
-                              ? 'bg-[#D97706] text-white'
-                              : isCurrent
-                                ? 'bg-[#D97706] text-white ring-4 ring-[#D97706]/20'
-                                : 'bg-gray-200 text-gray-500'
+                            ? 'bg-[#D97706] text-white'
+                            : isCurrent
+                              ? 'bg-[#D97706] text-white ring-4 ring-[#D97706]/20'
+                              : 'bg-gray-200 text-gray-500'
                             }`}
                         >
                           {isCompleted ? (
@@ -204,7 +204,7 @@ useEffect(() => {
               <div className="space-y-4">
                 <button
                   onClick={() => setCurrentStep('shipping')}
-                  className="text-[#D97706] hover:text-[#7CB342] font-medium text-sm"
+                  className="text-[#D97706] hover:text-[#B45309] font-medium text-sm"
                 >
                   ← Back to Shipping
                 </button>
@@ -219,7 +219,7 @@ useEffect(() => {
               <div className="space-y-4">
                 <button
                   onClick={() => setCurrentStep('payment')}
-                  className="text-[#D97706] hover:text-[#7CB342] font-medium text-sm"
+                  className="text-[#D97706] hover:text-[#B45309] font-medium text-sm"
                 >
                   ← Back to Payment
                 </button>

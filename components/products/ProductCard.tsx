@@ -447,7 +447,7 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
           disabled={isAdding || !API_BASE}
           className={`w-full py-2.5 rounded-full transition-all font-medium text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed relative ${success
             ? 'bg-green-600 text-white hover:bg-green-700'
-            : 'bg-[#D97706] text-white hover:bg-[#7CB342]'
+            : 'bg-[#D97706] text-white hover:bg-[#B45309]'
             }`}
         >
           {isAdding ? (

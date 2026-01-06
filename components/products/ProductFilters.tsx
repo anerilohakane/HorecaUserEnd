@@ -45,7 +45,7 @@
 //         {hasActiveFilters && (
 //           <button
 //             onClick={onClearFilters}
-//             className="text-sm text-[#D97706] hover:text-[#7CB342] font-medium flex items-center gap-1"
+//             className="text-sm text-[#D97706] hover:text-[#B45309] font-medium flex items-center gap-1"
 //           >
 //             <X size={16} />
 //             Clear All
@@ -377,7 +377,7 @@
 //       <div className="flex items-center justify-between mb-6">
 //         <h3 className="text-lg font-semibold text-[#111827]">Filters</h3>
 //         {hasActiveFilters && (
-//           <button onClick={onClearFilters} className="text-sm text-[#D97706] hover:text-[#7CB342] font-medium flex items-center gap-1">
+//           <button onClick={onClearFilters} className="text-sm text-[#D97706] hover:text-[#B45309] font-medium flex items-center gap-1">
 //             <X size={16} />
 //             Clear All
 //           </button>
@@ -589,10 +589,10 @@ export default function ProductFilters({
           const childrenFromApi = c.children ?? c.subcategories ?? [];
           const children = Array.isArray(childrenFromApi)
             ? childrenFromApi.map((ch: any) => ({
-                id: ch._id ?? ch.id ?? String(ch.name ?? ''),
-                name: ch.name ?? ch.title ?? 'Unnamed',
-                count: typeof ch.productCount === 'number' ? ch.productCount : undefined,
-              }))
+              id: ch._id ?? ch.id ?? String(ch.name ?? ''),
+              name: ch.name ?? ch.title ?? 'Unnamed',
+              count: typeof ch.productCount === 'number' ? ch.productCount : undefined,
+            }))
             : [];
           return {
             id: String(id),
@@ -643,7 +643,7 @@ export default function ProductFilters({
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-[#111827]">Filters</h3>
         {hasActiveFilters && (
-          <button onClick={onClearFilters} className="text-sm text-[#D97706] hover:text-[#7CB342] font-medium flex items-center gap-1">
+          <button onClick={onClearFilters} className="text-sm text-[#D97706] hover:text-[#B45309] font-medium flex items-center gap-1">
             <X size={16} />
             Clear All
           </button>

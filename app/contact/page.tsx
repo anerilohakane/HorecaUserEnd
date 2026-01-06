@@ -19,11 +19,11 @@ export default function ContactPage() {
         {/* HERO */}
         <div className="bg-white border-b border-gray-100">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 text-center">
-           <h1 className="text-4xl md:text-5xl font-light text-[#111827] mb-4">
+            <h1 className="text-4xl md:text-5xl font-light text-[#111827] mb-4">
               Contact <span className="text-[#D97706]">Us</span>
             </h1>
             <p className="text-gray-600 max-w-2xl mx-auto text-lg">
-              Have a question, feedback, or need help?  
+              Have a question, feedback, or need help?
               We’d love to hear from you.
             </p>
           </div>
@@ -133,7 +133,7 @@ export default function ContactPage() {
 
                 <button
                   type="submit"
-                  className="w-full bg-[#D97706] text-white py-3 rounded-lg hover:bg-[#7CB342] transition flex items-center justify-center gap-2 font-medium"
+                  className="w-full bg-[#D97706] text-white py-3 rounded-lg hover:bg-[#B45309] transition flex items-center justify-center gap-2 font-medium"
                 >
                   <Send className="w-5 h-5" />
                   Send Message
@@ -144,7 +144,7 @@ export default function ContactPage() {
           </div>
         </div>
       </div>
-      <Footer/>
+      <Footer />
     </>
   );
 }

@@ -192,7 +192,7 @@ export default function ProductReviews({
         {/* <div className="text-center pt-4">
           <button
             onClick={onWriteReview}
-            className="bg-[#D97706] text-white px-8 py-3 rounded-full hover:bg-[#7CB342] transition-all shadow-md hover:shadow-lg font-medium"
+            className="bg-[#D97706] text-white px-8 py-3 rounded-full hover:bg-[#B45309] transition-all shadow-md hover:shadow-lg font-medium"
           >
             Write a Review
           </button>

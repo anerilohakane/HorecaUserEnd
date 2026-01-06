@@ -19,7 +19,7 @@ export default function EmptyCart() {
 
       {/* CTA Button */}
       <Link href="/products">
-        <button className="bg-[#D97706] text-white px-8 py-4 rounded-full hover:bg-[#7CB342] transition-all font-semibold shadow-md hover:shadow-lg">
+        <button className="bg-[#D97706] text-white px-8 py-4 rounded-full hover:bg-[#B45309] transition-all font-semibold shadow-md hover:shadow-lg">
           Start Shopping
         </button>
       </Link>

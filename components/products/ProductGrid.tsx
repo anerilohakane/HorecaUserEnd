@@ -49,7 +49,7 @@
 //   // Sort products
 //   const sortedProducts = useMemo(() => {
 //     const sorted = [...filteredProducts];
-    
+
 //     switch (sortBy) {
 //       case 'price-low':
 //         return sorted.sort((a, b) => a.price - b.price);
@@ -207,7 +207,7 @@
 //                 </p>
 //                 <button
 //                   onClick={clearFilters}
-//                   className="bg-[#D97706] text-white px-6 py-3 rounded-full hover:bg-[#7CB342] transition-all"
+//                   className="bg-[#D97706] text-white px-6 py-3 rounded-full hover:bg-[#B45309] transition-all"
 //                 >
 //                   Clear Filters
 //                 </button>

@@ -233,7 +233,7 @@
 //              <button 
 //         onClick={handleAddToCart}
 //         disabled={isAdding}
-//         className="flex-1 bg-[#D97706] text-white py-4 px-6 rounded-full hover:bg-[#7CB342] transition-all shadow-md hover:shadow-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+//         className="flex-1 bg-[#D97706] text-white py-4 px-6 rounded-full hover:bg-[#B45309] transition-all shadow-md hover:shadow-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
 //       >
 //         <ShoppingCart size={20} />
 //         {isAdding ? 'Added to Cart! ✓' : 'Add to Cart'}
@@ -997,7 +997,7 @@ export default function ProductDetailClient({
               <button
                 onClick={handleAddToCart}
                 disabled={isAdding}
-                className="flex-1 bg-[#D97706] text-white py-4 px-6 rounded-full hover:bg-[#7CB342] transition-all shadow-md hover:shadow-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-1 bg-[#D97706] text-white py-4 px-6 rounded-full hover:bg-[#B45309] transition-all shadow-md hover:shadow-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <ShoppingCart size={20} />
                 {isAdding ? 'Added to Cart! ✓' : 'Add to Cart'}
@@ -1184,7 +1184,7 @@ export default function ProductDetailClient({
         </div>
 
         {/* Related Products */}
-        <RelatedProducts products={relatedProducts} />
+        {/* <RelatedProducts products={relatedProducts} /> */}
 
         <ReviewFormModal
           isOpen={isReviewFormOpen}

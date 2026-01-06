@@ -225,7 +225,7 @@ export default function CartPage() {
             <div className="mt-16">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-light text-[#111827]">You might also like</h3>
-                <Link href="/products" className="text-[#D97706] hover:text-[#7CB342] font-medium transition-colors">
+                <Link href="/products" className="text-[#D97706] hover:text-[#B45309] font-medium transition-colors">
                   Browse all products →
                 </Link>
               </div>

@@ -11,7 +11,7 @@ interface CartSummaryProps {
 
 export default function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
   const [couponCode, setCouponCode] = useState('');
-  const [appliedCoupon, setAppliedCoupon] = useState<{code: string; discount: number} | null>(null);
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState('');
 
   // Sample coupons
@@ -85,7 +85,7 @@ export default function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
               <button
                 onClick={applyCoupon}
                 disabled={!couponCode}
-                className="px-6 py-2.5 bg-[#D97706] text-white rounded-full hover:bg-[#7CB342] transition-all font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 bg-[#D97706] text-white rounded-full hover:bg-[#B45309] transition-all font-medium text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Apply
               </button>
@@ -182,7 +182,7 @@ export default function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
 
       {/* Checkout Button */}
       <Link href="/checkout">
-        <button className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#7CB342] transition-all font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-2 group">
+        <button className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#B45309] transition-all font-semibold shadow-md hover:shadow-lg flex items-center justify-center gap-2 group">
           <span>Proceed to Checkout</span>
           <ChevronRight size={20} className="group-hover:translate-x-1 transition-transform" />
         </button>

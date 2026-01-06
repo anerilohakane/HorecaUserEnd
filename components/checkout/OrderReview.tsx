@@ -54,7 +54,7 @@
 //           </h2>
 //           <button
 //             onClick={onEditShipping}
-//             className="text-[#D97706] hover:text-[#7CB342] font-medium text-sm flex items-center gap-1"
+//             className="text-[#D97706] hover:text-[#B45309] font-medium text-sm flex items-center gap-1"
 //           >
 //             <Edit2 size={16} />
 //             Edit
@@ -87,7 +87,7 @@
 //           </h2>
 //           <button
 //             onClick={onEditPayment}
-//             className="text-[#D97706] hover:text-[#7CB342] font-medium text-sm flex items-center gap-1"
+//             className="text-[#D97706] hover:text-[#B45309] font-medium text-sm flex items-center gap-1"
 //           >
 //             <Edit2 size={16} />
 //             Edit
@@ -217,7 +217,7 @@
 //       <button
 //         onClick={onPlaceOrder}
 //         disabled={isPlacingOrder}
-//         className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#7CB342] transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-75 flex items-center justify-center gap-2"
+//         className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#B45309] transition-all font-semibold shadow-md hover:shadow-lg disabled:opacity-75 flex items-center justify-center gap-2"
 //       >
 //         {isPlacingOrder ? (
 //           <>
@@ -392,7 +392,7 @@ export default function OrderReview({
           </h2>
           <button
             onClick={onEditShipping}
-            className="text-[#D97706] hover:text-[#7CB342] font-medium text-sm flex items-center gap-1"
+            className="text-[#D97706] hover:text-[#B45309] font-medium text-sm flex items-center gap-1"
           >
             <Edit2 size={16} /> Edit
           </button>
@@ -418,7 +418,7 @@ export default function OrderReview({
           </h2>
           <button
             onClick={onEditPayment}
-            className="text-[#D97706] hover:text-[#7CB342] font-medium text-sm flex items-center gap-1"
+            className="text-[#D97706] hover:text-[#B45309] font-medium text-sm flex items-center gap-1"
           >
             <Edit2 size={16} /> Edit
           </button>
@@ -499,7 +499,7 @@ export default function OrderReview({
       <button
         onClick={handlePlaceOrder}
         disabled={isPlacingOrder}
-        className="w-full bg-[#D97706] text-white py-4 rounded-full font-semibold hover:bg-[#7CB342] transition-all"
+        className="w-full bg-[#D97706] text-white py-4 rounded-full font-semibold hover:bg-[#B45309] transition-all"
       >
         {isPlacingOrder ? "Placing Order..." : "Place Order"}
       </button>
@@ -644,7 +644,7 @@ export default function OrderReview({
 //           </h2>
 //           <button
 //             onClick={onEditShipping}
-//             className="text-[#D97706] hover:text-[#7CB342] font-medium text-sm flex items-center gap-1"
+//             className="text-[#D97706] hover:text-[#B45309] font-medium text-sm flex items-center gap-1"
 //           >
 //             <Edit2 size={16} /> Edit
 //           </button>
@@ -670,7 +670,7 @@ export default function OrderReview({
 //           </h2>
 //           <button
 //             onClick={onEditPayment}
-//             className="text-[#D97706] hover:text-[#7CB342] font-medium text-sm flex items-center gap-1"
+//             className="text-[#D97706] hover:text-[#B45309] font-medium text-sm flex items-center gap-1"
 //           >
 //             <Edit2 size={16} /> Edit
 //           </button>
@@ -751,7 +751,7 @@ export default function OrderReview({
 //       <button
 //         onClick={handlePlaceOrder}
 //         disabled={isPlacingOrder}
-//         className="w-full bg-[#D97706] text-white py-4 rounded-full font-semibold hover:bg-[#7CB342] transition-all"
+//         className="w-full bg-[#D97706] text-white py-4 rounded-full font-semibold hover:bg-[#B45309] transition-all"
 //       >
 //         {isPlacingOrder ? "Placing Order..." : "Place Order"}
 //       </button>

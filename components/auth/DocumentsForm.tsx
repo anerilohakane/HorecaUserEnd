@@ -1,4 +1,4 @@
-    'use client';
+'use client';
 
 import { useState } from 'react';
 import { FileText, Upload, CheckCircle, X } from 'lucide-react';
@@ -158,9 +158,8 @@ export default function DocumentsForm({ onSubmit, initialData }: DocumentsFormPr
               type="text"
               value={formData.gstNumber}
               onChange={(e) => handleChange('gstNumber', e.target.value.toUpperCase())}
-              className={`w-full px-4 py-3 border ${
-                errors.gstNumber ? 'border-red-500' : 'border-gray-300'
-              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors bg-white`}
+              className={`w-full px-4 py-3 border ${errors.gstNumber ? 'border-red-500' : 'border-gray-300'
+                } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors bg-white`}
               placeholder="22AAAAA0000A1Z5"
               maxLength={15}
             />
@@ -178,9 +177,8 @@ export default function DocumentsForm({ onSubmit, initialData }: DocumentsFormPr
               type="text"
               value={formData.panNumber}
               onChange={(e) => handleChange('panNumber', e.target.value.toUpperCase())}
-              className={`w-full px-4 py-3 border ${
-                errors.panNumber ? 'border-red-500' : 'border-gray-300'
-              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors bg-white`}
+              className={`w-full px-4 py-3 border ${errors.panNumber ? 'border-red-500' : 'border-gray-300'
+                } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors bg-white`}
               placeholder="ABCDE1234F"
               maxLength={10}
             />
@@ -198,9 +196,8 @@ export default function DocumentsForm({ onSubmit, initialData }: DocumentsFormPr
               type="text"
               value={formData.fssaiNumber}
               onChange={(e) => handleChange('fssaiNumber', e.target.value)}
-              className={`w-full px-4 py-3 border ${
-                errors.fssaiNumber ? 'border-red-500' : 'border-gray-300'
-              } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors bg-white`}
+              className={`w-full px-4 py-3 border ${errors.fssaiNumber ? 'border-red-500' : 'border-gray-300'
+                } rounded-xl focus:outline-none focus:border-[#D97706] transition-colors bg-white`}
               placeholder="12345678901234"
               maxLength={14}
             />
@@ -249,11 +246,10 @@ export default function DocumentsForm({ onSubmit, initialData }: DocumentsFormPr
           {purchaseVolumes.map((volume) => (
             <label
               key={volume}
-              className={`p-3 border-2 rounded-xl cursor-pointer transition-all text-center ${
-                formData.monthlyPurchaseVolume === volume
+              className={`p-3 border-2 rounded-xl cursor-pointer transition-all text-center ${formData.monthlyPurchaseVolume === volume
                   ? 'border-[#D97706] bg-[#E8F5E9]'
                   : 'border-gray-200 hover:border-gray-300'
-              }`}
+                }`}
             >
               <input
                 type="radio"
@@ -300,7 +296,7 @@ export default function DocumentsForm({ onSubmit, initialData }: DocumentsFormPr
       {/* Submit Button */}
       <button
         type="submit"
-        className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#7CB342] transition-all font-semibold shadow-md hover:shadow-lg"
+        className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#B45309] transition-all font-semibold shadow-md hover:shadow-lg"
       >
         Complete Registration
       </button>
