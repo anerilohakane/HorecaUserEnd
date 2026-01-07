@@ -495,7 +495,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { ChevronDown, X } from 'lucide-react';
+import { ChevronDown, X, Check, Filter } from 'lucide-react';
 
 export interface CategoryItem {
   id: string;
@@ -521,23 +521,13 @@ const buildUrl = (path: string) => {
   return raw.replace(/([^:]\/)\/+/g, '$1');
 };
 
-/**
- * Resolve common response shapes into an array of categories.
- * Accepts:
- *  - { data: { items: [...] } }
- *  - { data: [...] }
- *  - { items: [...] }
- *  - [ ... ]
- */
 const resolveCategoriesList = (json: any): any[] => {
   if (!json) return [];
   if (Array.isArray(json)) return json;
   if (Array.isArray(json.data)) return json.data;
   if (Array.isArray(json.items)) return json.items;
   if (Array.isArray(json.categories)) return json.categories;
-  // nested common shapes
   if (json?.data?.items && Array.isArray(json.data.items)) return json.data.items;
-  // try to find first array property
   const arr = Object.values(json).find((v: any) => Array.isArray(v));
   if (Array.isArray(arr)) return arr;
   return [];
@@ -561,7 +551,6 @@ export default function ProductFilters({
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
-  // track which parent id is expanded (accordion)
   const [expandedParents, setExpandedParents] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
@@ -572,17 +561,12 @@ export default function ProductFilters({
       setLoading(true);
       setError(null);
       try {
-        // include children so the API returns { children: [...] } per category
         const url = buildUrl('api/categories?include=children');
         const res = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
-        if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          throw new Error(`Failed to fetch categories: ${res.status} ${res.statusText} ${text}`);
-        }
+        if (!res.ok) throw new Error('Failed to load');
         const json = await res.json();
         const list = resolveCategoriesList(json);
 
-        // map to CategoryItem (prefer children array from API)
         const mapped: CategoryItem[] = list.map((c: any) => {
           const id = c._id ?? c.id ?? String(c.name ?? '');
           const name = c.name ?? c.title ?? 'Unnamed';
@@ -604,11 +588,8 @@ export default function ProductFilters({
 
         setCategories(mapped);
       } catch (err: any) {
-        if (err?.name === 'AbortError') {
-          console.debug('[ProductFilters] fetch aborted');
-        } else {
-          console.error('[ProductFilters] fetchCategories', err);
-          setError(err?.message ?? 'Failed to load categories');
+        if (err?.name !== 'AbortError') {
+          setError('Could not load categories');
         }
       } finally {
         clearTimeout(timeout);
@@ -617,7 +598,6 @@ export default function ProductFilters({
     };
 
     fetchCategories();
-
     return () => {
       controller.abort();
       clearTimeout(timeout);
@@ -630,7 +610,7 @@ export default function ProductFilters({
   const hasActiveFilters = selectedCategory !== 'all' || selectedPriceRange !== 'all' || selectedRating > 0;
 
   const priceRanges = [
-    { id: 'all', label: 'All' },
+    { id: 'all', label: 'All Prices' },
     { id: 'under-100', label: 'Under ₹100' },
     { id: '100-200', label: '₹100 - ₹200' },
     { id: '200-300', label: '₹200 - ₹300' },
@@ -638,184 +618,195 @@ export default function ProductFilters({
     { id: 'above-400', label: 'Above ₹400' },
   ];
 
+  // Custom Radio Component
+  const CustomRadio = ({ checked }: { checked: boolean }) => (
+    <div className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${checked ? 'border-[#D97706] bg-[#D97706]' : 'border-gray-300 bg-white group-hover:border-[#D97706]'
+      }`}>
+      {checked && <div className="w-2 h-2 rounded-full bg-white" />}
+    </div>
+  );
+
   return (
-    <div className="bg-white rounded-2xl soft-shadow p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-[#111827]">Filters</h3>
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-5">
+      {/* Header */}
+      <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-100">
+        <div className="flex items-center gap-2 text-gray-900">
+          <Filter size={18} />
+          <h3 className="font-bold text-lg">Filters</h3>
+        </div>
+
         {hasActiveFilters && (
-          <button onClick={onClearFilters} className="text-sm text-[#D97706] hover:text-[#B45309] font-medium flex items-center gap-1">
-            <X size={16} />
+          <button
+            onClick={onClearFilters}
+            className="text-xs font-semibold text-red-500 hover:text-red-600 bg-red-50 hover:bg-red-100 px-3 py-1.5 rounded-full transition-colors flex items-center gap-1"
+          >
             Clear All
+            <X size={12} />
           </button>
         )}
       </div>
 
-      {/* Category */}
-      <div className="mb-6">
-        <button onClick={() => toggleSection('category')} className="flex items-center justify-between w-full mb-3">
-          <h4 className="font-medium text-[#111827]">Category</h4>
-          <ChevronDown size={18} className={`transition-transform ${openSections.category ? 'rotate-180' : ''}`} />
+      {/* Categories */}
+      <div className="mb-8">
+        <button
+          onClick={() => toggleSection('category')}
+          className="flex items-center justify-between w-full mb-4 group"
+        >
+          <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wide group-hover:text-[#D97706] transition-colors">Category</h4>
+          <ChevronDown
+            size={16}
+            className={`text-gray-400 transition-transform duration-300 ${openSections.category ? 'rotate-180' : ''} group-hover:text-[#D97706]`}
+          />
         </button>
 
-        {openSections.category && (
-          <div className="space-y-2" aria-busy={loading}>
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${openSections.category ? 'max-h-[800px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="space-y-1 max-h-[400px] overflow-y-auto pr-1 custom-scrollbar">
+            {/* All Categories Option */}
+            <button
+              onClick={() => onCategoryChange('all')}
+              className={`w-full flex items-center justify-between p-2 rounded-lg transition-all text-sm ${selectedCategory === 'all'
+                  ? 'bg-[#D97706]/10 text-[#D97706] font-semibold'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+            >
+              <span>All Categories</span>
+              {selectedCategory === 'all' && <Check size={16} />}
+            </button>
+
             {loading ? (
-              <div className="text-sm text-gray-500">Loading categories...</div>
-            ) : error ? (
-              <div className="text-sm text-red-500">{error}</div>
-            ) : categories.length === 0 ? (
-              <div className="text-sm text-gray-500">No categories</div>
-            ) : (
-              // Render parent categories with toggle & nested subcategories
-              <div className="space-y-3">
-                {/* 'All' option */}
-                <label className="flex items-center justify-between cursor-pointer group">
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="radio"
-                      name="category"
-                      value="all"
-                      checked={selectedCategory === 'all'}
-                      onChange={() => onCategoryChange('all')}
-                      className="w-4 h-4 text-[#D97706] focus:ring-[#D97706]"
-                    />
-                    <span className="text-sm text-gray-700 group-hover:text-[#D97706] transition-colors">All Categories</span>
-                  </div>
-                  <span className="text-xs text-gray-400">({categories.reduce((s, c) => s + (c.count ?? 0), 0) || '—'})</span>
-                </label>
-
-                {categories.map((cat) => (
-                  <div key={cat.id} className="border border-transparent rounded-lg p-2 group hover:bg-gray-50">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="radio"
-                          name="category"
-                          value={cat.id}
-                          checked={selectedCategory === cat.id}
-                          onChange={() => {
-                            onCategoryChange(cat.id);
-                            // auto-expand when parent selected
-                            setExpandedParents(prev => ({ ...prev, [cat.id]: true }));
-                          }}
-                          className="w-4 h-4 text-[#D97706] focus:ring-[#D97706]"
-                        />
-                        <div>
-                          <div className="text-sm text-gray-800">{cat.name}</div>
-                          {typeof cat.count === 'number' && (
-                            <div className="text-xs text-gray-400">({cat.count} products)</div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        {Array.isArray(cat.children) && cat.children.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={() => toggleParent(cat.id)}
-                            aria-expanded={!!expandedParents[cat.id]}
-                            className="p-1 rounded-full hover:bg-gray-100"
-                          >
-                            <ChevronDown size={16} className={`transition-transform ${expandedParents[cat.id] ? 'rotate-180' : ''}`} />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Subcategories */}
-                    {Array.isArray(cat.children) && cat.children.length > 0 && expandedParents[cat.id] && (
-                      <div className="mt-3 ml-7 space-y-2">
-                        {cat.children.map((sub) => (
-                          <label key={sub.id} className="flex items-center justify-between cursor-pointer group">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="radio"
-                                name="category"
-                                value={sub.id}
-                                checked={selectedCategory === sub.id}
-                                onChange={() => onCategoryChange(sub.id)}
-                                className="w-4 h-4 text-[#D97706] focus:ring-[#D97706]"
-                              />
-                              <span className="text-sm text-gray-700 group-hover:text-[#D97706] transition-colors">{sub.name}</span>
-                            </div>
-                            <span className="text-xs text-gray-400">({sub.count ?? '—'})</span>
-                          </label>
-                        ))}
-                      </div>
+              <div className="p-4 text-center">
+                <div className="w-6 h-6 border-2 border-[#D97706] border-t-transparent rounded-full animate-spin mx-auto"></div>
+              </div>
+            ) : categories.map(cat => (
+              <div key={cat.id}>
+                <div className={`flex items-center justify-between p-2 rounded-lg transition-all text-sm group cursor-pointer ${selectedCategory === cat.id ? 'bg-[#D97706]/10' : 'hover:bg-gray-50'
+                  }`}>
+                  <div
+                    className="flex-1 flex items-center gap-2"
+                    onClick={() => onCategoryChange(cat.id)}
+                  >
+                    <span className={`font-medium ${selectedCategory === cat.id ? 'text-[#D97706]' : 'text-gray-700 group-hover:text-gray-900'}`}>
+                      {cat.name}
+                    </span>
+                    {cat.count !== undefined && (
+                      <span className="text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">{cat.count}</span>
                     )}
                   </div>
-                ))}
+                  {cat.children && cat.children.length > 0 && (
+                    <button
+                      onClick={(e) => { e.stopPropagation(); toggleParent(cat.id); }}
+                      className="p-1 text-gray-400 hover:text-[#D97706]"
+                    >
+                      <ChevronDown size={14} className={`transition-transform ${expandedParents[cat.id] ? 'rotate-180' : ''}`} />
+                    </button>
+                  )}
+                </div>
+
+                {/* Subcategories */}
+                {cat.children && cat.children.length > 0 && expandedParents[cat.id] && (
+                  <div className="ml-4 mt-1 border-l-2 border-gray-100 pl-2 space-y-1">
+                    {cat.children.map(child => (
+                      <button
+                        key={child.id}
+                        onClick={() => onCategoryChange(child.id)}
+                        className={`w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors ${selectedCategory === child.id
+                            ? 'text-[#D97706] font-medium bg-[#D97706]/5'
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                          }`}
+                      >
+                        {child.name}
+                        {child.count !== undefined && <span className="ml-1 text-xs opacity-60">({child.count})</span>}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Price */}
-      <div className="mb-6 pb-6 border-b border-gray-100">
-        <button onClick={() => toggleSection('price')} className="flex items-center justify-between w-full mb-3">
-          <h4 className="font-medium text-[#111827]">Price Range</h4>
-          <ChevronDown size={18} className={`transition-transform ${openSections.price ? 'rotate-180' : ''}`} />
+      {/* Price Range */}
+      <div className="mb-8">
+        <button
+          onClick={() => toggleSection('price')}
+          className="flex items-center justify-between w-full mb-4 group"
+        >
+          <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wide group-hover:text-[#D97706] transition-colors">Price</h4>
+          <ChevronDown
+            size={16}
+            className={`text-gray-400 transition-transform duration-300 ${openSections.price ? 'rotate-180' : ''} group-hover:text-[#D97706]`}
+          />
         </button>
 
-        {openSections.price && (
-          <div className="space-y-2">
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${openSections.price ? 'max-h-[500px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="space-y-3">
             {priceRanges.map(range => (
-              <label key={range.id} className="flex items-center gap-2 cursor-pointer group">
-                <input
-                  type="radio"
-                  name="priceRange"
-                  value={range.id}
-                  checked={selectedPriceRange === range.id}
-                  onChange={(e) => onPriceRangeChange(e.target.value)}
-                  className="w-4 h-4 text-[#D97706] focus:ring-[#D97706]"
-                />
-                <span className="text-sm text-gray-700 group-hover:text-[#D97706] transition-colors">{range.label}</span>
+              <label key={range.id} className="flex items-center gap-3 cursor-pointer group select-none">
+                <div className="relative">
+                  <input
+                    type="radio"
+                    name="price"
+                    className="peer sr-only"
+                    checked={selectedPriceRange === range.id}
+                    onChange={() => onPriceRangeChange(range.id)}
+                  />
+                  <CustomRadio checked={selectedPriceRange === range.id} />
+                </div>
+                <span className={`text-sm transition-colors ${selectedPriceRange === range.id ? 'text-gray-900 font-medium' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                  {range.label}
+                </span>
               </label>
             ))}
           </div>
-        )}
+        </div>
       </div>
 
       {/* Rating */}
       <div>
-        <button onClick={() => toggleSection('rating')} className="flex items-center justify-between w-full mb-3">
-          <h4 className="font-medium text-[#111827]">Minimum Rating</h4>
-          <ChevronDown size={18} className={`transition-transform ${openSections.rating ? 'rotate-180' : ''}`} />
+        <button
+          onClick={() => toggleSection('rating')}
+          className="flex items-center justify-between w-full mb-4 group"
+        >
+          <h4 className="font-bold text-gray-800 text-sm uppercase tracking-wide group-hover:text-[#D97706] transition-colors">Rating</h4>
+          <ChevronDown
+            size={16}
+            className={`text-gray-400 transition-transform duration-300 ${openSections.rating ? 'rotate-180' : ''} group-hover:text-[#D97706]`}
+          />
         </button>
 
-        {openSections.rating && (
-          <div className="space-y-2">
-            {[4.5, 4.0, 3.5, 3.0].map(r => (
-              <label key={r} className="flex items-center gap-2 cursor-pointer group">
-                <input
-                  type="radio"
-                  name="rating"
-                  value={r}
-                  checked={selectedRating === r}
-                  onChange={(e) => onRatingChange(parseFloat(e.target.value))}
-                  className="w-4 h-4 text-[#D97706] focus:ring-[#D97706]"
-                />
-                <div className="flex items-center gap-1">
-                  <span className="text-sm text-gray-700 group-hover:text-[#D97706]">{r}</span>
-                  <span className="text-[#FFB800]">★</span>
-                  <span className="text-sm text-gray-500">& above</span>
+        <div className={`transition-all duration-300 ease-in-out overflow-hidden ${openSections.rating ? 'max-h-[300px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="space-y-3">
+            {[4, 3, 2, 0].map(rating => (
+              <label key={rating} className="flex items-center gap-3 cursor-pointer group select-none">
+                <div className="relative">
+                  <input
+                    type="radio"
+                    name="rating"
+                    className="peer sr-only"
+                    checked={selectedRating === rating}
+                    onChange={() => onRatingChange(rating)}
+                  />
+                  <CustomRadio checked={selectedRating === rating} />
+                </div>
+                <div className={`flex items-center gap-1.5 text-sm transition-colors ${selectedRating === rating ? 'text-gray-900 font-medium' : 'text-gray-600 group-hover:text-gray-900'}`}>
+                  {rating === 0 ? (
+                    <span>All Ratings</span>
+                  ) : (
+                    <>
+                      <div className="flex text-[#FFB800]">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span key={i} className={i < rating ? 'fill-current' : 'text-gray-300'}>★</span>
+                        ))}
+                      </div>
+                      <span className="text-xs text-gray-500">& Up</span>
+                    </>
+                  )}
                 </div>
               </label>
             ))}
-            <label className="flex items-center gap-2 cursor-pointer group">
-              <input
-                type="radio"
-                name="rating"
-                value={0}
-                checked={selectedRating === 0}
-                onChange={() => onRatingChange(0)}
-                className="w-4 h-4 text-[#D97706] focus:ring-[#D97706]"
-              />
-              <span className="text-sm text-gray-700 group-hover:text-[#D97706]">All Ratings</span>
-            </label>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

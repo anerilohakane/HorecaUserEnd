@@ -9,6 +9,7 @@ import { useEffect, useState, useMemo } from 'react';
 
 interface ProductCardProps {
   product?: Partial<Product> | null;
+  initialWishlistState?: boolean;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -46,7 +47,7 @@ function mapRawToProduct(raw: any): Product | null {
   } as Product;
 }
 
-export default function ProductCard({ product: incoming }: ProductCardProps) {
+export default function ProductCard({ product: incoming, initialWishlistState = false }: ProductCardProps) {
   // All state declarations first
   const [isAdding, setIsAdding] = useState(false);
   const [isWishlisting, setIsWishlisting] = useState(false);
@@ -54,7 +55,7 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
   const [wishlistError, setWishlistError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [wishlistSuccess, setWishlistSuccess] = useState(false);
-  const [isInWishlist, setIsInWishlist] = useState(false);
+  const [isInWishlist, setIsInWishlist] = useState(initialWishlistState);
   const [API_BASE, setApiBase] = useState('');
   const [productState, setProductState] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -306,35 +307,29 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
 
   // Render component
   return (
-    <div className="group cursor-pointer bg-white rounded-2xl overflow-hidden soft-shadow hover:elegant-shadow transition-all relative">
+    <div className="group bg-white rounded-xl overflow-hidden hover:shadow-md transition-shadow duration-300 relative border border-transparent hover:border-gray-100">
       {/* Error Messages */}
       {error && (
-        <div className="absolute top-2 left-2 right-2 bg-red-100 text-red-700 text-xs p-2 rounded-md z-10 animate-fade-in whitespace-pre-line">
+        <div className="absolute top-2 left-2 right-2 bg-red-100 text-red-700 text-xs p-2 rounded-md z-20 animate-fade-in whitespace-pre-line">
           {error}
         </div>
       )}
 
       {wishlistError && (
-        <div className="absolute top-2 left-2 right-2 bg-red-100 text-red-700 text-xs p-2 rounded-md z-10 animate-fade-in whitespace-pre-line">
+        <div className="absolute top-2 left-2 right-2 bg-red-100 text-red-700 text-xs p-2 rounded-md z-20 animate-fade-in whitespace-pre-line">
           {wishlistError}
         </div>
       )}
 
       {success && (
-        <div className="pointer-events-none absolute top-2 left-2 right-2 bg-green-100 text-green-700 text-xs p-2 rounded-md z-10">
-          {effectiveProduct.name} added to cart!
+        <div className="pointer-events-none absolute top-2 left-2 right-2 bg-green-100 text-green-700 text-xs p-2 rounded-md z-20">
+          Added to cart!
         </div>
       )}
 
-      {wishlistSuccess && (
-        <div className="absolute top-2 left-2 right-2 bg-green-100 text-green-700 text-xs p-2 rounded-md z-10 animate-fade-in">
-          {effectiveProduct.name} {isInWishlist ? 'added to' : 'added to'} wishlist!
-        </div>
-      )}
-
-      {/* Product Image */}
-      <div className="relative aspect-square bg-[#F5F5F5] overflow-hidden">
-        <Link href={`/products/${effectiveProduct.id}`}>
+      {/* Product Image Area */}
+      <div className="relative aspect-[4/3] bg-[#F9F9F9] overflow-hidden">
+        <Link href={`/products/${effectiveProduct.id}`} className="block w-full h-full relative">
           {(() => {
             const rawImage = (effectiveProduct.image ?? '').trim();
             let src = '/images/placeholder.png';
@@ -356,7 +351,7 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
                 alt={effectiveProduct.name}
                 fill
                 sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                className="object-cover group-hover:scale-105 transition-transform duration-500"
+                className="object-contain group-hover:scale-105 transition-transform duration-500 mix-blend-multiply"
                 unoptimized={isExternal}
                 priority={false}
               />
@@ -364,105 +359,59 @@ export default function ProductCard({ product: incoming }: ProductCardProps) {
           })()}
         </Link>
 
-        {effectiveProduct.badge && (
-          <div className="absolute top-3 left-3">
-            <span className={`${getBadgeColor(effectiveProduct.badge)} px-3 py-1 rounded-full text-xs font-medium`}>
-              {effectiveProduct.badge}
-            </span>
-          </div>
-        )}
-
-        {effectiveProduct.discount ? (
-          <div className="absolute top-3 right-3">
-            <span className="bg-red-500 text-white px-2 py-1 rounded-full text-xs font-semibold">
-              -{effectiveProduct.discount}%
-            </span>
-          </div>
-        ) : null}
-
-        <div className="absolute bottom-3 right-3 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
-            onClick={handleWishlistToggle}
-            disabled={isWishlisting || !API_BASE}
-            className="bg-white p-3 rounded-full shadow-lg hover:bg-[#D97706] hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed relative"
-            title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-          >
-            {isWishlisting ? (
-              <span className="inline-block h-4 w-4 border-2 border-[#D97706] border-t-transparent rounded-full animate-spin"></span>
-            ) : (
-              <Heart
-                size={18}
-                strokeWidth={2.5}
-                className={isInWishlist ? "fill-red-500 text-red-500" : ""}
-              />
-            )}
-          </button>
-        </div>
+        {/* Wishlist Button - Top Right */}
+        <button
+          onClick={handleWishlistToggle}
+          disabled={isWishlisting || !API_BASE}
+          className="absolute top-3 right-3 p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-red-500 transition-colors z-10"
+        >
+          <Heart
+            size={18}
+            className={isInWishlist ? "fill-red-500 text-red-500" : ""}
+          />
+        </button>
       </div>
 
       {/* Product Info */}
-      <div className="p-4">
-        {categoryLabel ? <p className="text-xs text-gray-500 mb-1">{categoryLabel}</p> : null}
+      <div className="p-3">
+        {/* Veg Indicator */}
+        <div className="mb-1">
+          <div className="border border-green-600 p-[2px] w-4 h-4 flex items-center justify-center rounded-[2px]">
+            <div className="w-2 h-2 bg-green-600 rounded-full"></div>
+          </div>
+        </div>
 
+        {/* Title */}
         <Link href={`/products/${effectiveProduct.id}`}>
-          <h3 className="font-medium text-gray-800 mb-2 text-sm group-hover:text-[#D97706] transition-colors line-clamp-2 min-h-[40px]">
+          <h3 className="font-bold text-gray-900 text-[15px] mb-1 leading-tight line-clamp-2 min-h-[40px]">
             {effectiveProduct.name}
           </h3>
         </Link>
 
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex items-center gap-0.5">
-            {[...Array(5)].map((_, i) => (
-              <Star
-                key={i}
-                size={14}
-                className={`${i < Math.floor(dynamicRating)
-                  ? 'fill-[#FFB800] text-[#FFB800]'
-                  : 'text-gray-300'
-                  }`}
-              />
-            ))}
+        {/* Price and Add Button */}
+        <div className="flex items-center justify-between mt-auto">
+          <div className="flex flex-col">
+            <span className="text-sm font-bold text-gray-900">
+              ₹{discountedPrice ? discountedPrice.toFixed(0) : effectiveProduct.price}
+              <span className="text-gray-500 font-normal ml-1">/ {effectiveProduct.unit}</span>
+            </span>
+            {discountedPrice && (
+              <span className="text-xs text-gray-400 line-through">₹{effectiveProduct.price}</span>
+            )}
           </div>
-          <span className="text-xs text-gray-500">({dynamicCount})</span>
+
+          <button
+            onClick={handleAddToCart}
+            disabled={isAdding || !API_BASE}
+            className={`px-4 py-1.5 rounded border text-xs font-bold transition-all uppercase
+              ${isAdding
+                ? 'bg-orange-50 border-orange-500 text-orange-600'
+                : 'bg-white border-orange-400 text-orange-500 hover:bg-orange-50'
+              }`}
+          >
+            {isAdding ? 'ADD...' : 'ADD +'}
+          </button>
         </div>
-
-        <div className="flex items-baseline gap-2 mb-3">
-          {discountedPrice ? (
-            <>
-              <span className="text-lg font-bold text-[#D97706]">₹{discountedPrice.toFixed(0)}</span>
-              <span className="text-sm text-gray-400 line-through">₹{effectiveProduct.price}</span>
-            </>
-          ) : (
-            <span className="text-lg font-bold text-[#111827]">₹{effectiveProduct.price}</span>
-          )}
-          <span className="text-xs text-gray-500">/ {effectiveProduct.unit}</span>
-        </div>
-
-        <p className="text-xs text-gray-500 mb-3">
-          Min. Order: {effectiveProduct.minOrder} {effectiveProduct.unit}
-        </p>
-
-        <button
-          onClick={handleAddToCart}
-          disabled={isAdding || !API_BASE}
-          className={`w-full py-2.5 rounded-full transition-all font-medium text-sm shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed relative ${success
-            ? 'bg-green-600 text-white hover:bg-green-700'
-            : 'bg-[#D97706] text-white hover:bg-[#B45309]'
-            }`}
-        >
-          {isAdding ? (
-            <>
-              <span className="inline-block mr-2">Adding...</span>
-              <span className="inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-            </>
-          ) : success ? (
-            'Added ✓'
-          ) : !API_BASE ? (
-            'Configuring...'
-          ) : (
-            'Add to Cart'
-          )}
-        </button>
       </div>
     </div>
   );

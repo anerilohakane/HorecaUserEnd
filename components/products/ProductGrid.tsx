@@ -433,9 +433,12 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import Link from 'next/link';
 import ProductFilters from './ProductFilters';
 import ProductCard from './ProductCard';
-import type { Product } from '@/lib/types/product';
+import type { Product, SortOption } from '@/lib/types/product';
+import { sortOptions } from '@/lib/productsData';
+import { LayoutGrid, List, SlidersHorizontal, ChevronDown } from 'lucide-react';
 
 interface ProductGridProps {
   initialProducts?: Product[];
@@ -448,21 +451,18 @@ const buildApiUrl = (path: string) => {
   return raw.replace(/([^:]\/)\/+/g, '$1');
 };
 
-// Skeleton Card Component (kept similar to your original)
+// Skeleton Card Component
 const SkeletonCard = () => (
-  <div className="group bg-white rounded-2xl overflow-hidden soft-shadow animate-pulse">
-    <div className="relative aspect-square bg-gray-200" />
-    <div className="p-4 space-y-3">
+  <div className="group bg-white rounded-xl overflow-hidden shadow-sm animate-pulse">
+    <div className="relative aspect-[4/3] bg-gray-200" />
+    <div className="p-3 space-y-3">
       <div className="h-3 bg-gray-200 rounded w-24" />
       <div className="h-5 bg-gray-300 rounded w-full" />
-      <div className="h-4 bg-gray-200 rounded w-3/4" />
-      <div className="flex items-center gap-2">
-        <div className="h-4 bg-gray-200 rounded w-12" />
-        <div className="h-3 bg-gray-200 rounded w-16" />
+      <div className="h-4 bg-gray-200 rounded w-16" />
+      <div className="flex items-center justify-between mt-4">
+        <div className="h-6 bg-gray-300 rounded w-20" />
+        <div className="h-8 bg-gray-200 rounded w-20" />
       </div>
-      <div className="h-7 bg-gray-300 rounded w-28" />
-      <div className="h-4 bg-gray-200 rounded w-32" />
-      <div className="h-10 bg-gray-300 rounded-full mt-4" />
     </div>
   </div>
 );
@@ -472,12 +472,14 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   const [loading, setLoading] = useState<boolean>(initialProducts.length === 0);
   const [error, setError] = useState<string | null>(null);
 
-  // Filters moved into grid so we can drive fetching when category changes
-  const [selectedCategory, setSelectedCategory] = useState<string>('all'); // category id or 'all'
+  // Filters
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
   const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [sortBy, setSortBy] = useState<SortOption>('popular');
+  const [showFilters, setShowFilters] = useState(false);
 
-  // Fetch products whenever selectedCategory / other filters change (or on mount if no initialProducts)
+  // Fetch products
   useEffect(() => {
     // If SSR provided products and nothing changed, skip fetch
     if (initialProducts.length > 0 && selectedCategory === 'all' && selectedPriceRange === 'all' && selectedRating === 0) {
@@ -495,11 +497,41 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
         setError(null);
 
         const url = new URL(buildApiUrl('api/products'), typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
-        // include server-side query for categoryId if a specific category is chosen
+
+        // Category
         if (selectedCategory && selectedCategory !== 'all') {
           url.searchParams.set('categoryId', selectedCategory);
         }
-        // basic pagination defaults (you can expand this later)
+
+        // Price Range
+        if (selectedPriceRange !== 'all') {
+          switch (selectedPriceRange) {
+            case 'under-100':
+              url.searchParams.set('maxPrice', '100');
+              break;
+            case '100-200':
+              url.searchParams.set('minPrice', '100');
+              url.searchParams.set('maxPrice', '200');
+              break;
+            case '200-300':
+              url.searchParams.set('minPrice', '200');
+              url.searchParams.set('maxPrice', '300');
+              break;
+            case '300-400':
+              url.searchParams.set('minPrice', '300');
+              url.searchParams.set('maxPrice', '400');
+              break;
+            case 'above-400':
+              url.searchParams.set('minPrice', '400');
+              break;
+          }
+        }
+
+        // Rating
+        if (selectedRating > 0) {
+          url.searchParams.set('minRating', String(selectedRating));
+        }
+
         url.searchParams.set('page', '1');
         url.searchParams.set('limit', '48');
 
@@ -510,29 +542,22 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
         });
 
         if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          throw new Error(`Failed to fetch products: ${res.status} ${res.statusText} ${text}`);
+          throw new Error(`Failed to fetch products: ${res.status}`);
         }
 
         const json = await res.json();
-        // tolerate multiple shapes
         const productList = json?.data?.items ?? json?.data ?? json?.products ?? json?.items ?? json ?? [];
-        if (!Array.isArray(productList) || productList.length === 0) {
+
+        if (!Array.isArray(productList)) {
           setProducts([]);
-          // show message only when server returned [] explicitly (not on first load)
-          if (initialProducts.length === 0) {
-            setError('No products available at the moment');
-          } else {
-            setError(null);
-          }
         } else {
           setProducts(productList as Product[]);
-          setError(null);
         }
+
       } catch (err: any) {
         if (err.name === 'AbortError') return;
         console.error('Error fetching products:', err);
-        setError(err.message ?? 'Failed to load products');
+        setError(null); // Silent fail on error mostly
         setProducts([]);
       } finally {
         clearTimeout(timeout);
@@ -544,10 +569,9 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
       controller.abort();
       clearTimeout(timeout);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedCategory, selectedPriceRange, selectedRating, initialProducts]);
 
-  // Filter handlers for UI controls
+  // Handlers
   const onCategoryChange = (categoryId: string) => setSelectedCategory(categoryId);
   const onPriceRangeChange = (range: string) => setSelectedPriceRange(range);
   const onRatingChange = (rating: number) => setSelectedRating(rating);
@@ -557,14 +581,14 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
     setSelectedRating(0);
   };
 
-  // Local helpers (same as your existing code)
+  // Safe Accessors
   const getPrice = (p: any): number => Number(p.price ?? p.price?.amount ?? p.discountedPrice ?? 0);
   const getRating = (p: any): number => Number(p.rating ?? p.averageRating ?? 0);
-  const getStableId = (p: any): string => p._id || p.id || p.sku || String(p.name);
 
-  // Client-side narrowing (for price & rating) - still apply after server fetch
-  const filtered = useMemo(() => {
-    return products.filter((p: any) => {
+  // Filter & Sort
+  const processedProducts = useMemo(() => {
+    // 1. Filter
+    let result = products.filter((p: any) => {
       if (selectedRating > 0 && getRating(p) < selectedRating) return false;
 
       if (selectedPriceRange !== 'all') {
@@ -578,16 +602,89 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
           default: return true;
         }
       }
-
       return true;
     });
-  }, [products, selectedPriceRange, selectedRating]);
+
+    // 2. Sort
+    result = [...result].sort((a: any, b: any) => {
+      switch (sortBy) {
+        case 'price-low': return getPrice(a) - getPrice(b);
+        case 'price-high': return getPrice(b) - getPrice(a);
+        case 'rating': return getRating(b) - getRating(a);
+        case 'newest': return (new Date(b.createdAt || 0).getTime()) - (new Date(a.createdAt || 0).getTime());
+        case 'name-az': return (a.name || '').localeCompare(b.name || '');
+        case 'name-za': return (b.name || '').localeCompare(a.name || '');
+        case 'popular': default: return (b.reviews || 0) - (a.reviews || 0);
+      }
+    });
+
+    return result;
+  }, [products, selectedPriceRange, selectedRating, sortBy]);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <div className="max-w-[1400px] mx-auto px-2 sm:px-4 py-4">
+      {/* Breadcrumb */}
+      <div className="mb-4 text-xs font-medium text-gray-400 uppercase tracking-wide">
+        <Link href="/" className="hover:text-gray-600 transition-colors">Home</Link>
+        <span className="mx-2">/</span>
+        <span className="text-gray-800">Products</span>
+      </div>
+
+      {/* Header Row */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900 inline-block mr-3">
+            All Products
+          </h1>
+          <span className="text-gray-500 text-lg">
+            ({processedProducts.length} items)
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4">
+          {/* Mobile Filter Toggle */}
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className="lg:hidden flex items-center gap-2 px-4 py-2 border border-gray-300 rounded-lg hover:border-orange-500 transition-colors bg-white"
+          >
+            <SlidersHorizontal size={16} />
+            <span className="text-sm font-medium">Filters</span>
+          </button>
+
+          {/* Sort Dropdown */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-gray-500 hidden sm:inline-block">Sort by:</span>
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="appearance-none bg-transparent font-medium text-gray-900 pl-2 pr-8 py-1 focus:outline-none cursor-pointer text-sm"
+              >
+                <option value="popular">Popularity</option>
+                <option value="newest">Newest</option>
+                <option value="price-low">Price: Low to High</option>
+                <option value="price-high">Price: High to Low</option>
+                <option value="rating">Rating</option>
+              </select>
+              <ChevronDown size={14} className="absolute right-0 top-1/2 -translate-y-1/2 pointer-events-none text-gray-500" />
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div className="grid grid-cols-12 gap-8">
         {/* Filters Sidebar */}
-        <aside className="col-span-12 md:col-span-3 lg:col-span-3">
+        <aside className={`
+            lg:col-span-3 lg:block
+            ${showFilters ? 'fixed inset-0 z-50 bg-white p-6 overflow-y-auto block' : 'hidden'}
+        `}>
+          <div className="lg:hidden flex justify-end mb-4">
+            <button onClick={() => setShowFilters(false)} className="p-2 text-gray-500">
+              <span className="sr-only">Close filters</span>
+              ✕
+            </button>
+          </div>
+
           <ProductFilters
             selectedCategory={selectedCategory}
             selectedPriceRange={selectedPriceRange}
@@ -600,47 +697,37 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
         </aside>
 
         {/* Products Grid */}
-        <section className="col-span-12 md:col-span-9 lg:col-span-9">
+        <section className="col-span-12 lg:col-span-9">
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {Array.from({ length: 12 }).map((_, i) => (
+              {Array.from({ length: 8 }).map((_, i) => (
                 <SkeletonCard key={`skeleton-${i}`} />
               ))}
             </div>
           ) : error ? (
-            <div className="text-red-600 bg-red-50 p-8 rounded-lg text-center text-lg">
-              <strong>Error:</strong> {error}
+            <div className="text-red-500 p-4 rounded-lg bg-red-50 text-center">
+              {error || 'Something went wrong'}
             </div>
-          ) : filtered.length === 0 ? (
-            <div className="text-center py-20 text-gray-500">
-              <p className="text-lg mb-4">
-                {products.length === 0
-                  ? 'No products available for the selected category.'
-                  : 'No products match your current filters.'}
-              </p>
-              {products.length > 0 && (
-                <button
-                  onClick={onClearFilters}
-                  className="text-[#D97706] font-medium underline hover:no-underline"
-                >
-                  Clear all filters
-                </button>
-              )}
+          ) : processedProducts.length === 0 ? (
+            <div className="text-center py-20 bg-gray-50 rounded-xl">
+              <div className="text-4xl mb-4">🔍</div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">No products found</h3>
+              <p className="text-gray-500 mb-6">Try adjusting your filters</p>
+              <button
+                onClick={onClearFilters}
+                className="text-orange-600 font-semibold hover:underline"
+              >
+                Clear Filters
+              </button>
             </div>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {filtered.map((product) => (
+              {processedProducts.map((product) => (
                 <ProductCard
-                  key={getStableId(product)}
-                  product={product as Product}
+                  key={product.id || Math.random()}
+                  product={product}
                 />
               ))}
-            </div>
-          )}
-
-          {process.env.NODE_ENV === 'development' && (
-            <div className="mt-12 text-xs text-gray-500 border-t pt-6 text-center">
-              Debug: Loaded {products.length} products → Showing {filtered.length} after filters
             </div>
           )}
         </section>
