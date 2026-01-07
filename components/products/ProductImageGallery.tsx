@@ -37,7 +37,7 @@
 //           className="object-cover"
 //           priority
 //         />
-        
+
 //         {/* Zoom Icon */}
 //         <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
 //           <button className="bg-white/90 backdrop-blur-sm p-3 rounded-full shadow-lg hover:bg-white transition-colors">
@@ -65,22 +65,6 @@
 //       </div>
 
 //       {/* Thumbnail Gallery */}
-//       {allImages.length > 1 && (
-//         <div className="grid grid-cols-4 gap-3">
-//           {allImages.map((image, index) => (
-//             <button
-//               key={index}
-//               onClick={() => setSelectedImage(index)}
-//               className={`relative aspect-square bg-[#F5F5F5] rounded-xl overflow-hidden transition-all ${
-//                 selectedImage === index 
-//                   ? 'ring-2 ring-[#D97706] ring-offset-2' 
-//                   : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
-//               }`}
-//             >
-//               <Image
-//                 src={`/images/products/${image}`}
-//                 alt={`${productName} - Image ${index + 1}`}
-//                 fill
 //                 className="object-cover"
 //               />
 //             </button>
@@ -129,8 +113,16 @@ function normalizeImageSrc(img: any): string | null {
   // If it looks like a data URI, return as-is
   if (s.startsWith('data:')) return s;
 
+  // Cleanup: remove leading slashes to standardize
+  const clean = s.replace(/^\/+/, '');
+
+  // Check if it already starts with images/products/ (case insensitive)
+  if (clean.toLowerCase().startsWith('images/products/')) {
+    return `/${clean}`;
+  }
+
   // Otherwise treat it as a filename stored in /images/products/
-  return `/images/products/${s.replace(/^\/+/, '')}`;
+  return `/images/products/${clean}`;
 }
 
 export default function ProductImageGallery({
@@ -234,12 +226,12 @@ export default function ProductImageGallery({
   return (
     <div className="space-y-4">
       {/* Main Image */}
-      <div className="relative aspect-square bg-[#F5F5F5] rounded-2xl overflow-hidden group">
+      <div className="relative aspect-square bg-white rounded-2xl overflow-hidden group">
         <Image
           src={allImages[selectedImage] ?? '/images/placeholder.png'}
           alt={productName}
           fill
-          className="object-cover"
+          className="object-contain"
           priority
           // allow external images if needed
           unoptimized={isExternal(allImages[selectedImage] ?? '')}
@@ -280,11 +272,10 @@ export default function ProductImageGallery({
             <button
               key={image + String(index)}
               onClick={() => setSelectedImage(index)}
-              className={`relative aspect-square bg-[#F5F5F5] rounded-xl overflow-hidden transition-all ${
-                selectedImage === index
-                  ? 'ring-2 ring-[#D97706] ring-offset-2'
-                  : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
-              }`}
+              className={`relative aspect-square bg-[#F5F5F5] rounded-xl overflow-hidden transition-all ${selectedImage === index
+                ? 'ring-2 ring-[#D97706] ring-offset-2'
+                : 'hover:ring-2 hover:ring-gray-300 hover:ring-offset-2'
+                }`}
               aria-label={`Show image ${index + 1}`}
             >
               <Image

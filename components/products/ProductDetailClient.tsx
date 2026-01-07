@@ -904,7 +904,7 @@ export default function ProductDetailClient({
                         </div>
 
                         {/* Product Name */}
-                        <h1 className="text-4xl font-light text-[#111827]">
+                        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">
                             {product.name}
                         </h1>
 
@@ -994,21 +994,32 @@ export default function ProductDetailClient({
 
                         {/* Action Buttons */}
                         <div className="flex gap-3">
-                            <button
-                                onClick={handleAddToCart}
-                                disabled={isAdding}
-                                className="flex-1 bg-[#D97706] text-white py-4 px-6 rounded-full hover:bg-[#B45309] transition-all shadow-md hover:shadow-lg font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
-                            >
-                                <ShoppingCart size={20} />
-                                {isAdding ? 'Added to Cart! ✓' : 'Add to Cart'}
-                            </button>
+                            {product.inStock ? (
+                                <button
+                                    onClick={handleAddToCart}
+                                    disabled={isAdding}
+                                    className={`flex-1 py-4 px-6 rounded-xl border-2 font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 uppercase tracking-wide
+                                    ${isAdding
+                                            ? 'bg-orange-50 border-[#D97706] text-[#D97706]'
+                                            : 'bg-white border-[#D97706] text-[#D97706] hover:bg-orange-50'
+                                        }`}
+                                >
+                                    <ShoppingCart size={20} strokeWidth={2.5} />
+                                    {isAdding ? 'Adding...' : 'Add to Cart'}
+                                </button>
+                            ) : (
+                                <div className="flex-1 py-4 px-6 rounded-xl border-2 border-gray-200 bg-gray-50 text-red-500 font-bold uppercase tracking-wide flex items-center justify-center cursor-not-allowed">
+                                    Out of Stock
+                                </div>
+                            )}
+
                             <button
                                 onClick={handleWishlistToggle}
                                 disabled={isWishlisting}
                                 title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-                                className={`p-4 border-2 rounded-full transition-all ${isInWishlist
-                                    ? "border-red-500 text-red-500"
-                                    : "border-gray-300 hover:border-[#D97706] hover:text-[#D97706]"
+                                className={`p-4 border-2 rounded-xl transition-all ${isInWishlist
+                                    ? "border-red-500 text-red-500 bg-red-50"
+                                    : "border-gray-200 hover:border-[#D97706] hover:text-[#D97706] text-gray-400"
                                     } disabled:opacity-50`}
                             >
                                 {isWishlisting ? (
@@ -1016,7 +1027,8 @@ export default function ProductDetailClient({
                                 ) : (
                                     <Heart
                                         size={20}
-                                        className={isInWishlist ? "fill-red-500 text-red-500" : ""}
+                                        className={isInWishlist ? "fill-current" : ""}
+                                        strokeWidth={2}
                                     />
                                 )}
                             </button>
@@ -1024,54 +1036,49 @@ export default function ProductDetailClient({
                             <button
                                 onClick={handleShare}
                                 title="Share product"
-                                className="p-4 border-2 border-gray-300 rounded-full hover:border-[#D97706] hover:text-[#D97706] transition-all"
+                                className="p-4 border-2 border-gray-200 rounded-xl hover:border-[#D97706] hover:text-[#D97706] text-gray-400 transition-all"
                             >
-                                <Share2 size={20} />
+                                <Share2 size={20} strokeWidth={2} />
                             </button>
 
                         </div>
 
-                        {/* Buy Now */}
-                        {/* <button className="w-full border-2 border-[#D97706] text-[#D97706] py-4 px-6 rounded-full hover:bg-[#D97706] hover:text-white transition-all font-semibold">
-              Buy Now
-            </button> */}
-
                         {/* Features */}
                         <div className="grid grid-cols-2 gap-4 pt-6">
                             <div className="flex items-start gap-3">
-                                <div className="bg-[#E8F5E9] p-2 rounded-full">
-                                    <Truck size={20} className="text-[#D97706]" />
+                                <div className="bg-orange-50 p-2.5 rounded-lg text-[#D97706]">
+                                    <Truck size={22} />
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-[#111827] text-sm">Fast Delivery</h4>
-                                    <p className="text-xs text-gray-600">2-3 business days</p>
+                                    <h4 className="font-bold text-gray-900 text-sm">Fast Delivery</h4>
+                                    <p className="text-xs text-gray-500">2-3 business days</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
-                                <div className="bg-[#E8F5E9] p-2 rounded-full">
-                                    <Shield size={20} className="text-[#D97706]" />
+                                <div className="bg-orange-50 p-2.5 rounded-lg text-[#D97706]">
+                                    <Shield size={22} />
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-[#111827] text-sm">Quality Assured</h4>
-                                    <p className="text-xs text-gray-600">100% authentic</p>
+                                    <h4 className="font-bold text-gray-900 text-sm">Quality Assured</h4>
+                                    <p className="text-xs text-gray-500">100% authentic</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
-                                <div className="bg-[#E8F5E9] p-2 rounded-full">
-                                    <RotateCcw size={20} className="text-[#D97706]" />
+                                <div className="bg-orange-50 p-2.5 rounded-lg text-[#D97706]">
+                                    <RotateCcw size={22} />
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-[#111827] text-sm">Easy Returns</h4>
-                                    <p className="text-xs text-gray-600">7-day return policy</p>
+                                    <h4 className="font-bold text-gray-900 text-sm">Easy Returns</h4>
+                                    <p className="text-xs text-gray-500">7-day return policy</p>
                                 </div>
                             </div>
                             <div className="flex items-start gap-3">
-                                <div className="bg-[#E8F5E9] p-2 rounded-full">
-                                    <Award size={20} className="text-[#D97706]" />
+                                <div className="bg-orange-50 p-2.5 rounded-lg text-[#D97706]">
+                                    <Award size={22} />
                                 </div>
                                 <div>
-                                    <h4 className="font-medium text-[#111827] text-sm">Verified Seller</h4>
-                                    <p className="text-xs text-gray-600">Trusted supplier</p>
+                                    <h4 className="font-bold text-gray-900 text-sm">Verified Seller</h4>
+                                    <p className="text-xs text-gray-500">Trusted supplier</p>
                                 </div>
                             </div>
                         </div>
@@ -1146,7 +1153,9 @@ export default function ProductDetailClient({
                                         </div>
                                         <div className="flex justify-between py-2 border-b border-gray-100">
                                             <span className="text-gray-600">Stock Status:</span>
-                                            <span className="font-medium text-[#D97706]">{product.inStock ? 'In Stock' : 'Out of Stock'}</span>
+                                            <span className={`font-medium ${product.inStock ? 'text-green-600' : 'text-red-500'}`}>
+                                                {product.inStock ? 'In Stock' : 'Out of Stock'}
+                                            </span>
                                         </div>
                                     </div>
                                     <div className="space-y-3">
