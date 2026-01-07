@@ -160,11 +160,17 @@ export default function CategoryHighlights() {
   const displayCats = cats === null ? mappedFallback : cats;
 
   return (
-    <section className="py-20 bg-[#FAFAF7]">
+    <section className="py-10 lg:py-16 bg-[#FAFAF7]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl lg:text-5xl font-light text-[#111827] mb-4">Browse your Essentials</h2>
-          <p className="text-base text-gray-600 max-w-2xl mx-auto">Discover the perfect products for your bakery needs</p>
+        <div className="flex justify-between items-end mb-10">
+          <div>
+            <h2 className="text-3xl lg:text-4xl font-bold text-[#111827] mb-2 tracking-tight">
+              Shop by Category
+            </h2>
+            <p className="text-gray-500">
+              Everything you need for your bakery
+            </p>
+          </div>
         </div>
 
         {fetchError && (
@@ -173,34 +179,32 @@ export default function CategoryHighlights() {
           </div>
         )}
 
-        <div className="flex flex-wrap justify-center gap-8 lg:gap-12">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-6">
           {/* if loading and cats are empty, you can show skeletons here */}
           {displayCats.length === 0 && !loading ? (
-            <div className="text-gray-500">No categories available.</div>
+            <div className="col-span-full text-center text-gray-500">No categories available.</div>
           ) : (
             displayCats.map((category) => (
               <a
                 key={category.id}
                 href={`/products?category=${encodeURIComponent(category.name)}`}
-                className="group cursor-pointer flex flex-col items-center"
+                className="group cursor-pointer flex flex-col bg-white rounded-xl shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden"
               >
-                <div className="relative mb-4">
-                  <div className="w-28 h-28 lg:w-36 lg:h-36 rounded-full overflow-hidden bg-white soft-shadow group-hover:elegant-shadow transition-all group-hover:scale-105">
-                    <div className="relative w-full h-full">
-                      <Image
-                        src={category.image || '/images/placeholder.png'}
-                        alt={category.name}
-                        fill
-                        className="object-cover"
-                        unoptimized={Boolean(category.image && typeof category.image === 'string' && category.image.startsWith('http'))}
-                      />
-                    </div>
-                  </div>
+                <div className="relative aspect-[4/3] w-full bg-gray-50">
+                  <Image
+                    src={category.image || '/images/placeholder.png'}
+                    alt={category.name}
+                    fill
+                    className="object-contain group-hover:scale-105 transition-transform duration-500"
+                    unoptimized={Boolean(category.image && typeof category.image === 'string' && category.image.startsWith('http'))}
+                  />
                 </div>
 
-                <p className="text-center text-sm font-medium text-gray-800 group-hover:text-[#D97706] transition-colors">
-                  {category.name}
-                </p>
+                <div className="p-4 border-t border-gray-50 bg-white">
+                  <h3 className="text-sm font-semibold text-gray-900 group-hover:text-[#D97706] transition-colors line-clamp-1">
+                    {category.name}
+                  </h3>
+                </div>
               </a>
             ))
           )}

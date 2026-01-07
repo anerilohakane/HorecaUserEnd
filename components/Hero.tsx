@@ -1,100 +1,99 @@
-import { ArrowRight } from 'lucide-react';
+'use client';
+import { Search, ArrowRight, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 
 export default function Hero() {
+  const router = useRouter();
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const handleSearch = () => {
+    if (!searchQuery.trim()) return;
+    router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+  };
   return (
-    <section className="relative bg-white overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-24">
+    <section className="relative bg-[#FAFAF7] overflow-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-10 lg:pt-16 lg:pb-12">
         <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left Content */}
-          <div className="space-y-8 text-center lg:text-left order-2 lg:order-1">
-            <div className="space-y-6">
-              <h1 className="text-5xl lg:text-7xl font-light text-[#111827] leading-tight tracking-tight">
-                Baking for
-                <br />
-                <span className="font-normal italic">Everyone</span>
+          <div className="space-y-10 text-center lg:text-left order-2 lg:order-1 relative z-10">
+            <div className="space-y-4">
+              <h1 className="text-5xl lg:text-7xl font-extrabold text-[#111827] leading-tight tracking-tight">
+                Quality Supplies <br />
+                <span className="text-[#D97706]">Best Prices.</span>
               </h1>
-              <p className="text-base lg:text-lg text-gray-600 leading-relaxed max-w-lg mx-auto lg:mx-0">
-                A good place to find bakery supplies, packaging, quality ingredients,
-                tools and all that good stuff.
+              <p className="text-lg text-gray-500 max-w-lg mx-auto lg:mx-0 font-medium leading-relaxed">
+                One-stop solution for all your Horeca needs.
+                <span className="hidden lg:inline"> Fresh ingredients, packaging, and equipment delivered to your doorstep.</span>
               </p>
             </div>
 
-            {/* CTA Button */}
-            <div className="flex justify-center lg:justify-start">
-              <Link
-                href="/products"
-                className="bg-[#D97706] text-white px-10 py-4 rounded-full hover:bg-[#db8c32] transition-all shadow-lg hover:shadow-xl font-medium text-base inline-flex items-center gap-2 group"
+            {/* Search Bar Container */}
+            <div className="bg-white p-2 rounded-full shadow-xl border border-gray-100 flex items-center max-w-xl mx-auto lg:mx-0 transform transition-all hover:scale-[1.01]">
+
+              {/* Location Mockup */}
+              <div className="hidden sm:flex items-center gap-2 pl-6 pr-4 border-r border-gray-100 text-sm font-medium text-gray-600">
+                <MapPin size={18} className="text-[#D97706]" />
+                <span>Mumbai</span>
+              </div>
+
+              <div className="pl-4 text-gray-400">
+                <Search size={20} />
+              </div>
+              <input
+                type="text"
+                value={searchQuery || ''}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                placeholder="Search for sugar, flour, butter..."
+                className="flex-1 w-full p-4 outline-none text-gray-700 placeholder-gray-400 bg-transparent text-lg"
+              />
+              <button
+                onClick={handleSearch}
+                className="bg-[#D97706] text-white px-8 py-3 rounded-full font-bold hover:bg-[#B45309] transition-colors"
               >
-                Shop Now
-                <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
+                Search
+              </button>
             </div>
           </div>
 
           {/* Right Images */}
           <div className="relative order-1 lg:order-2">
-            {/* Main Hero Images Grid */}
-            <div className="grid grid-cols-2 gap-6">
-              {/* Top Left - Decorative Ingredient */}
-              <div className="relative h-64 lg:h-80">
-                <div className="absolute inset-0 bg-white rounded-3xl overflow-hidden soft-shadow">
-                  <Image
-                    src="/images/hero/hero-left.jpg"
-                    alt="Fresh baking ingredients"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </div>
-
-              {/* Top Right - Product Display */}
-              <div className="relative h-64 lg:h-80 mt-12">
-                <div className="absolute inset-0 bg-[#E8F5E9] rounded-3xl overflow-hidden soft-shadow flex items-center justify-center">
-                  <Image
-                    src="/images/hero/hero-right.jpg"
-                    alt="Unifoods quality products"
-                    fill
-                    className="object-contain p-8"
-                  />
-                </div>
-              </div>
-
-              {/* Bottom Left - Secondary Product */}
-              <div className="relative h-48 lg:h-64 -mt-8">
-                <div className="absolute inset-0 bg-white rounded-3xl overflow-hidden soft-shadow">
-                  <Image
-                    src="/images/products/flour.jpg"
-                    alt="Premium flour"
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-              </div>
-
-              {/* Bottom Right - Feature Product */}
-              <div className="relative h-48 lg:h-64">
-                <div className="absolute inset-0 bg-[#FFF3E0] rounded-3xl overflow-hidden soft-shadow flex items-center justify-center">
-                  <Image
-                    src="/images/products/chocolate.jpg"
-                    alt="Premium chocolate"
-                    fill
-                    className="object-contain p-6"
-                  />
+            {/* Main Hero Composite */}
+            <div className="relative z-10">
+              <div className="relative h-[28rem] w-full">
+                {/* We can use a single composed image or a nice grid. 
+                      For Hyperpure style, let's keep it clean. 
+                      Maybe a single high-quality collage or the existing grid if it looks neat. 
+                      Let's stick to the existing grid but simplified props. */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-4 pt-8">
+                    <div className="relative h-48 bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                      <Image src="/images/hero/hero-left.jpg" alt="Fresh" fill className="object-cover" />
+                    </div>
+                    <div className="relative h-32 bg-[#FFF3E0] rounded-2xl overflow-hidden shadow-sm flex items-center justify-center">
+                      <Image src="/images/products/flour.jpg" alt="Flour" fill className="object-contain p-4" />
+                    </div>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="relative h-32 bg-[#E8F5E9] rounded-2xl overflow-hidden shadow-sm flex items-center justify-center">
+                      <Image src="/images/products/chocolate.jpg" alt="Chocolate" fill className="object-contain p-4" />
+                    </div>
+                    <div className="relative h-48 bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100">
+                      <Image src="/images/hero/hero-right.jpg" alt="Quality" fill className="object-cover" />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Decorative Element */}
-            <div className="absolute -z-10 -top-10 -right-10 w-64 h-64 bg-[#D97706] rounded-full opacity-5 blur-3xl"></div>
-            <div className="absolute -z-10 -bottom-10 -left-10 w-64 h-64 bg-[#D97706] rounded-full opacity-5 blur-3xl"></div>
+            {/* Subtle Decor */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-orange-100/50 rounded-full blur-3xl -z-10"></div>
           </div>
         </div>
       </div>
-
-      {/* Bottom Wave */}
-      <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-[#FAFAF7] to-transparent"></div>
     </section>
   );
 }

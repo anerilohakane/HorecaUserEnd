@@ -126,13 +126,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { featuredProducts as fallbackFeatured } from '@/lib/data';
-import { ArrowRight, Plus } from 'lucide-react';
-import Image from 'next/image';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
-import { toast } from 'sonner';
-import { useCart } from '@/lib/context/CartContext';
-
-type Raw = any;
+import ProductCard from './products/ProductCard';
 
 // API Base URL
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -154,7 +150,7 @@ function normalizeImageSrc(img: any) {
   return `/images/products/${s}`;
 }
 
-function mapRawToCard(raw: Raw) {
+function mapRawToCard(raw: any) {
   if (!raw) return null;
 
   const id = raw._id ?? raw.id ?? raw.productId ?? null;
@@ -173,23 +169,10 @@ function mapRawToCard(raw: Raw) {
     unit: raw.unit ?? "pcs",
     badge: raw.badge ?? (raw.isFeatured ? "Featured" : null),
     image: normalizeImageSrc(imageCandidate),
-    raw,
+    inStock: typeof raw.inStock === 'boolean' ? raw.inStock : (typeof raw.stockQuantity === 'number' ? raw.stockQuantity > 0 : true),
+    ...raw,
   };
 }
-
-// ----------------------------------
-// 🦴 Skeleton Loader
-// ----------------------------------
-
-const SkeletonCard = () => (
-  <div className="group block cursor-pointer">
-    <div className="relative aspect-square bg-[#F5F5F5] rounded-3xl overflow-hidden mb-4 soft-shadow animate-pulse" />
-    <div className="text-center">
-      <div className="h-4 bg-gray-200 rounded w-3/4 mx-auto mb-2 animate-pulse" />
-      <div className="h-3 bg-gray-200 rounded w-1/2 mx-auto animate-pulse" />
-    </div>
-  </div>
-);
 
 // ----------------------------------
 // ⭐ FEATURED PRODUCTS COMPONENT
@@ -198,20 +181,6 @@ const SkeletonCard = () => (
 export default function FeaturedProducts() {
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const { addItem } = useCart();
-
-  const getBadgeColor = (badge: string) => {
-    switch (badge) {
-      case "Bestseller":
-      case "New":
-        return "bg-[#D97706] text-white";
-      case "Premium":
-        return "bg-purple-500 text-white";
-      default:
-        return "bg-gray-500 text-white";
-    }
-  };
 
   // -------------------------------
   // 📌 LOAD FEATURED PRODUCTS
@@ -239,10 +208,10 @@ export default function FeaturedProducts() {
 
         if (mounted) setItems(mapped.length > 0 ? mapped : fallbackFeatured);
       } catch (err) {
-        setError("Failed to load products");
-        setItems(fallbackFeatured);
+        console.error("Featured fetch error", err);
+        if (mounted) setItems(fallbackFeatured);
       } finally {
-        setLoading(false);
+        if (mounted) setLoading(false);
       }
     })();
 
@@ -251,23 +220,6 @@ export default function FeaturedProducts() {
     };
   }, []);
 
-  // -----------------------------------------
-  // 🛒 ADD TO CART — WORKING API INTEGRATION
-  // -----------------------------------------
-
-  const handleAddToCart = async (e: any, product: any) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    try {
-      await addItem(product, 1);
-      toast.success("Product added to cart!");
-    } catch (err: any) {
-      console.error("❌ Add to Cart Error:", err);
-      toast.error(err.message || "Something went wrong while adding the product.");
-    }
-  };
-
   const displayed = items ?? [];
 
   return (
@@ -275,69 +227,28 @@ export default function FeaturedProducts() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <div className="flex justify-between items-end mb-12">
+        <div className="flex justify-between items-end mb-10">
           <div>
-            <h2 className="text-4xl font-light text-[#111827]">Most Popular</h2>
-            <p className="text-gray-600">Handpicked products trusted by professionals</p>
+            <h2 className="text-3xl font-bold text-[#111827]">Trending Near You</h2>
+            <p className="text-gray-500 mt-1">Best deals on highly demanded products</p>
           </div>
 
           <Link
             href="/products"
-            className="hidden lg:flex items-center gap-2 bg-[#D97706] text-white px-6 py-3 rounded-full hover:bg-[#d48021]"
+            className="hidden lg:flex items-center gap-2 text-[#D97706] font-bold hover:text-[#B45309] transition-colors"
           >
-            View All <ArrowRight size={18} />
+            View All <ArrowRight size={20} />
           </Link>
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
           {loading
-            ? Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
+            ? Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="aspect-[3/4] bg-gray-100 rounded-2xl animate-pulse" />
+            ))
             : displayed.map((product) => (
-              <Link
-                key={product.id}
-                href={`/products/${product.id}`}
-                className="group block cursor-pointer"
-              >
-                {/* Product Image */}
-                <div className="relative aspect-square bg-[#F5F5F5] rounded-3xl overflow-hidden mb-4 soft-shadow">
-                  <Image
-                    src={product.image}
-                    alt={product.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform"
-                    unoptimized={product.image.startsWith("http")}
-                  />
-
-                  {/* Badge */}
-                  {product.badge && (
-                    <span
-                      className={`${getBadgeColor(product.badge)} absolute top-4 left-4 px-3 py-1 text-xs rounded-full`}
-                    >
-                      {product.badge}
-                    </span>
-                  )}
-
-                  {/* Add to Cart button */}
-                  <button
-                    onClick={(e) => handleAddToCart(e, product)}
-                    className="absolute bottom-4 right-4 bg-white p-3 rounded-full shadow-lg hover:bg-[#D97706] hover:text-white"
-                  >
-                    <Plus size={20} />
-                  </button>
-                </div>
-
-                {/* Product Info */}
-                <div className="text-center">
-                  <h3 className="font-medium text-gray-800 group-hover:text-[#D97706]">
-                    {product.name}
-                  </h3>
-                  <div className="flex justify-center gap-2 text-gray-800">
-                    <span className="text-lg font-semibold">₹{product.price}</span>
-                    <span className="text-xs text-gray-500">/ {product.unit}</span>
-                  </div>
-                </div>
-              </Link>
+              <ProductCard key={product.id} product={product} />
             ))}
         </div>
 
@@ -345,7 +256,7 @@ export default function FeaturedProducts() {
         <div className="text-center mt-12 lg:hidden">
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 bg-[#D97706] text-white px-8 py-4 rounded-full"
+            className="inline-flex items-center gap-2 bg-[#D97706] text-white px-8 py-4 rounded-full font-medium shadow-lg"
           >
             View All Products <ArrowRight size={18} />
           </Link>

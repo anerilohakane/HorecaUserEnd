@@ -15,24 +15,24 @@ export default function ValueSection() {
         </div>
 
         {/* Services Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {valueServices.map((service, index) => (
             <div
               key={index}
-              className="group text-center p-8 rounded-2xl bg-white soft-shadow hover:elegant-shadow transition-all cursor-pointer"
+              className="group text-center p-6 rounded-xl bg-white border border-gray-100 hover:border-[#D97706] transition-all cursor-pointer hover:shadow-lg"
             >
               {/* Icon */}
-              <div className="text-5xl mb-4 group-hover:scale-110 transition-transform duration-300">
+              <div className="text-4xl mb-3 group-hover:scale-110 transition-transform duration-300 text-[#D97706]">
                 {service.icon}
               </div>
-              
+
               {/* Title */}
-              <h3 className="font-semibold text-[#111827] mb-2 text-sm">
+              <h3 className="font-bold text-gray-900 mb-1 text-sm">
                 {service.title}
               </h3>
-              
+
               {/* Description */}
-              <p className="text-xs text-gray-600 leading-relaxed">
+              <p className="text-xs text-gray-500 leading-relaxed">
                 {service.description}
               </p>
             </div>
