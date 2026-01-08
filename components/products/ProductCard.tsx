@@ -10,6 +10,7 @@ import { useEffect, useState, useMemo } from 'react';
 interface ProductCardProps {
   product?: Partial<Product> | null;
   initialWishlistState?: boolean;
+  onRemove?: (id: string) => void;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -47,7 +48,7 @@ function mapRawToProduct(raw: any): Product | null {
   } as Product;
 }
 
-export default function ProductCard({ product: incoming, initialWishlistState = false }: ProductCardProps) {
+export default function ProductCard({ product: incoming, initialWishlistState = false, onRemove }: ProductCardProps) {
   // All state declarations first
   const [isAdding, setIsAdding] = useState(false);
   const [isWishlisting, setIsWishlisting] = useState(false);
@@ -227,9 +228,11 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
       };
 
       const method = isInWishlist ? "DELETE" : "POST";
-      const endpoint = isInWishlist
-        ? `https://horeca-backend-six.vercel.app/api/wishlist/${effectiveProduct.id}`
-        : `https://horeca-backend-six.vercel.app/api/wishlist`;
+      // FIX: use base URL for DELETE too, as /:id path returns 405 Method Not Allowed
+      const endpoint = `https://horeca-backend-six.vercel.app/api/wishlist`;
+
+      console.log(`💟 Wishlist Request: ${method} to ${endpoint}`);
+      console.log("Payload:", payload);
 
       const response = await fetch(endpoint, {
         method: method,
@@ -237,7 +240,7 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`,
         },
-        body: method === "POST" ? JSON.stringify(payload) : undefined,
+        body: JSON.stringify(payload),
       });
 
       if (!response.ok) {
@@ -252,6 +255,14 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
       // Toggle the wishlist status
       setIsInWishlist(!isInWishlist);
       setWishlistSuccess(true);
+
+      // Notify Header to update count
+      window.dispatchEvent(new Event("wishlist-updated"));
+
+      // Notify parent if removal happened and onRemove prop exists
+      if (isInWishlist && onRemove && effectiveProduct.id) {
+        onRemove(effectiveProduct.id);
+      }
 
     } catch (err: any) {
       setWishlistError(err?.message ||

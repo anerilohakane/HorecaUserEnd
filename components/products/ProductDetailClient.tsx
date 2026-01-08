@@ -568,9 +568,8 @@ export default function ProductDetailClient({
                 (process.env.NEXT_PUBLIC_API_BASE_URL ||
                     "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
 
-            const endpoint = isInWishlist
-                ? `${base}/api/wishlist/${product.id}`
-                : `${base}/api/wishlist`;
+            // ✅ FIX: Use base URL for DELETE too, as /:id returns 405 Method Not Allowed
+            const endpoint = `${base}/api/wishlist`;
 
             const res = await fetch(endpoint, {
                 method: isInWishlist ? "DELETE" : "POST",
@@ -578,12 +577,10 @@ export default function ProductDetailClient({
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
-                body: isInWishlist
-                    ? undefined
-                    : JSON.stringify({
-                        productId: product.id,
-                        userId: user?.id || user?.id,
-                    }),
+                body: JSON.stringify({
+                    productId: product.id,
+                    userId: user?.id || user?.id,
+                }),
             });
 
             if (!res.ok) {
@@ -593,6 +590,8 @@ export default function ProductDetailClient({
             }
 
             setIsInWishlist((prev) => !prev);
+            // Notify Header
+            window.dispatchEvent(new Event("wishlist-updated"));
         } catch (err: any) {
             setWishlistError(err.message || "Wishlist error");
             setTimeout(() => setWishlistError(null), 3000);

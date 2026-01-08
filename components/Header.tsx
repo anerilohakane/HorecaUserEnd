@@ -44,6 +44,16 @@ export default function Header() {
     }
   }, [mounted, isAuthenticated, user?.id]);
 
+  // Listen for realtime wishlist updates
+  useEffect(() => {
+    const handleWishlistUpdate = () => {
+      if (user?.id) fetchWishlistCount();
+    };
+
+    window.addEventListener('wishlist-updated', handleWishlistUpdate);
+    return () => window.removeEventListener('wishlist-updated', handleWishlistUpdate);
+  }, [user?.id]);
+
   useEffect(() => {
     // Focus input when search opens
     if (isSearchOpen && searchInputRef.current) {

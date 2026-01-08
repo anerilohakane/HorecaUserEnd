@@ -179,15 +179,17 @@ export default function WishlistPage() {
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 md:gap-4"
+                            className="flex overflow-x-auto pb-8 gap-4 px-1 snap-x scrollbar-hide"
                         >
                             <AnimatePresence>
                                 {wishlistItems.map((item) => (
-                                    <ProductCard
-                                        key={item.id}
-                                        product={item}
-                                        initialWishlistState={true}
-                                    />
+                                    <div key={item.id} className="min-w-[260px] md:min-w-[280px] snap-start">
+                                        <ProductCard
+                                            product={item}
+                                            initialWishlistState={true}
+                                            onRemove={(id) => setWishlistItems(prev => prev.filter(p => p.id !== id))}
+                                        />
+                                    </div>
                                 ))}
                             </AnimatePresence>
                         </motion.div>
