@@ -195,7 +195,7 @@ export default function CategoryHighlights() {
                     src={category.image || '/images/placeholder.png'}
                     alt={category.name}
                     fill
-                    className="object-contain group-hover:scale-105 transition-transform duration-500"
+                    className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-xl"
                     unoptimized={Boolean(category.image && typeof category.image === 'string' && category.image.startsWith('http'))}
                   />
                 </div>

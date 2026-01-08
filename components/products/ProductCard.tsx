@@ -351,7 +351,7 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
                 alt={effectiveProduct.name}
                 fill
                 sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                className="object-contain group-hover:scale-105 transition-transform duration-500 mix-blend-multiply"
+                className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-xl"
                 unoptimized={isExternal}
                 priority={false}
               />

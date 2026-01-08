@@ -231,7 +231,7 @@ export default function ProductImageGallery({
           src={allImages[selectedImage] ?? '/images/placeholder.png'}
           alt={productName}
           fill
-          className="object-contain"
+          className="object-cover"
           priority
           // allow external images if needed
           unoptimized={isExternal(allImages[selectedImage] ?? '')}
