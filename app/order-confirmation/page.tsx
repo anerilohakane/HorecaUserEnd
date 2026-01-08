@@ -424,23 +424,11 @@ const OrderConfirmationPage = () => {
                 </button>
               </div>
             </div>
-
-            {/* Safe & Secure Badge */}
-            {/* <div className="flex items-center gap-3 justify-center text-gray-400 text-xs grayscale opacity-70">
-              <ShieldCheck size={14} />
-              <span>100% Safe & Secure Payments</span>
-            </div> */}
-
           </div>
 
         </div>
       </main>
       <Footer />
-      {/* DEBUG SECTION */}
-      <div className="bg-gray-900 text-green-400 p-4 font-mono text-xs overflow-auto max-h-96 m-4 rounded">
-        <p className="font-bold border-b border-green-700 mb-2">DEBUG: Order Items Only</p>
-        <pre>{JSON.stringify(order.items, null, 2)}</pre>
-      </div>
     </div>
   );
 };
