@@ -315,39 +315,60 @@ function mapApiToProduct(raw: any, fallbackId?: string): Product {
     fallbackId ??
     "unknown";
 
- return {
-  id: String(id),
-  name: raw.name ?? raw.title ?? raw.productName ?? "Unnamed product",
-  description: raw.description ?? raw.desc ?? "",
-  price: Number(raw.price ?? 0),
-  discount: Number(raw.discount ?? raw.offerPercentage ?? 0),
-  image:
-    typeof raw.image === "string"
-      ? raw.image
-      : raw.images?.[0]?.url ??
+  return {
+    id: String(id),
+    name: raw.name ?? raw.title ?? raw.productName ?? "Unnamed product",
+    description: raw.description ?? raw.desc ?? "",
+    price: Number(raw.price ?? 0),
+    discount: Number(raw.discount ?? raw.offerPercentage ?? 0),
+    image:
+      typeof raw.image === "string"
+        ? raw.image
+        : raw.images?.[0]?.url ??
         raw.images?.[0] ??
         raw.imageUrl ??
         "",
-  unit: raw.unit ?? raw.uom ?? "pcs",
-  minOrder: Number(raw.minOrder ?? raw.min_order ?? 1),
-  rating: Number(raw.rating ?? raw.averageRating ?? 0),
-  reviews: Number(raw.reviews ?? raw.totalReviews ?? 0),
-  category: normalizeCategory(
-    raw.category ?? raw.categoryName ?? raw.categoryId
-  ),
-  badge: raw.badge ?? (raw.isFeatured ? "Featured" : undefined),
-  inStock:
-    typeof raw.inStock === "boolean"
-      ? raw.inStock
-      : Number(raw.stockQuantity ?? 1) > 0,
+    unit: raw.unit ?? raw.uom ?? "pcs",
+    minOrder: Number(raw.minOrder ?? raw.min_order ?? 1),
+    rating: Number(raw.rating ?? raw.averageRating ?? 0),
+    reviews: Number(raw.reviews ?? raw.totalReviews ?? 0),
+    category: normalizeCategory(
+      raw.category ?? raw.categoryName ?? raw.categoryId
+    ),
+    badge: raw.badge ?? (raw.isFeatured ? "Featured" : undefined),
+    inStock:
+      typeof raw.inStock === "boolean"
+        ? raw.inStock
+        : Number(raw.stockQuantity ?? 1) > 0,
 
-  // ✅ ADD THIS
-  tags: Array.isArray(raw.tags)
-    ? raw.tags
-    : typeof raw.tags === "string"
-    ? raw.tags.split(",").map((t: string) => t.trim())
-    : [],
-};
+    // ✅ ADD THIS
+    tags: Array.isArray(raw.tags)
+      ? raw.tags
+      : typeof raw.tags === "string"
+        ? raw.tags.split(",").map((t: string) => t.trim())
+        : [],
+
+    // Extra fields
+    storage: raw.storage ?? "Cool, dry place",
+    shelfLife: raw.shelfLife ?? raw.shelf_life ?? "12 months",
+    origin: raw.origin ?? "India",
+    certification: raw.certification ?? raw.certificates ?? "FSSAI Approved",
+
+    // Construct Dynamic Specifications
+    specifications: Array.isArray(raw.specifications)
+      ? raw.specifications
+      : [
+        { name: "Category", value: normalizeCategory(raw.category ?? raw.categoryName) },
+        { name: "Unit", value: raw.unit ?? raw.uom ?? "pcs" },
+        { name: "Minimum Order", value: `${Number(raw.minOrder ?? 1)} ${raw.unit ?? 'pcs'}` },
+        { name: "Stock Status", value: (typeof raw.inStock === "boolean" ? raw.inStock : Number(raw.stockQuantity ?? 1) > 0) ? "In Stock" : "Out of Stock" },
+        { name: "Storage", value: raw.storage ?? "Cool, dry place" },
+        { name: "Shelf Life", value: raw.shelfLife ?? raw.shelf_life ?? "12 months" },
+        { name: "Origin", value: raw.origin ?? "India" },
+        { name: "Certification", value: raw.certification ?? raw.certificates ?? "FSSAI Approved" },
+        // Add any other dynamic fields here if needed
+      ],
+  };
 }
 
 
@@ -355,7 +376,7 @@ function mapApiToProduct(raw: any, fallbackId?: string): Product {
 function looksLikeId(value: string) {
   if (!value) return false;
   const s = value.trim();
-  return /^[0-9a-fA-F]{24}$/.test(s ) || /^[0-9a-fA-F-]{36}$/.test(s);
+  return /^[0-9a-fA-F]{24}$/.test(s) || /^[0-9a-fA-F-]{36}$/.test(s);
 }
 
 /** ---------- STATIC PARAMS ---------- **/
@@ -431,7 +452,7 @@ export default async function ProductPage({ params }: any) {
           const raw = catJson?.data ?? catJson;
           product.category = normalizeCategory(raw);
         }
-      } catch {}
+      } catch { }
     }
 
     /** ---------- FETCH RELATED PRODUCTS ---------- **/
@@ -454,7 +475,7 @@ export default async function ProductPage({ params }: any) {
           .filter((p: Product) => p && p.id !== product.id)
           .slice(0, 6);
       }
-    } catch {}
+    } catch { }
 
     return renderPage(product, related);
   } catch (err) {

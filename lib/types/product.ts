@@ -15,6 +15,12 @@ export interface Product {
   minOrder: number;
   discount?: number;
   tags: string[];
+  // Dynamic fields
+  specifications?: { name: string; value: string }[];
+  storage?: string;
+  shelfLife?: string;
+  origin?: string;
+  certification?: string;
 }
 
 export interface Review {

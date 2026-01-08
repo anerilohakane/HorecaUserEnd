@@ -1135,46 +1135,24 @@ export default function ProductDetailClient({
 
                         {activeTab === 'specifications' && (
                             <div>
-                                <h3 className="text-xl font-medium text-[#111827] mb-4">Product Specifications</h3>
-                                <div className="grid md:grid-cols-2 gap-6">
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between py-2 border-b border-gray-100">
-                                            <span className="text-gray-600">Category:</span>
-                                            <span className="font-medium text-[#111827]">{product.category}</span>
-                                        </div>
-                                        <div className="flex justify-between py-2 border-b border-gray-100">
-                                            <span className="text-gray-600">Unit:</span>
-                                            <span className="font-medium text-[#111827]">{product.unit}</span>
-                                        </div>
-                                        <div className="flex justify-between py-2 border-b border-gray-100">
-                                            <span className="text-gray-600">Minimum Order:</span>
-                                            <span className="font-medium text-[#111827]">{product.minOrder} {product.unit}</span>
-                                        </div>
-                                        <div className="flex justify-between py-2 border-b border-gray-100">
-                                            <span className="text-gray-600">Stock Status:</span>
-                                            <span className={`font-medium ${product.inStock ? 'text-green-600' : 'text-red-500'}`}>
-                                                {product.inStock ? 'In Stock' : 'Out of Stock'}
+                                <h3 className="text-xl font-medium text-[#111827] mb-6">Product Specifications</h3>
+                                <div className="grid md:grid-cols-2 gap-x-12 gap-y-4">
+                                    {(product?.specifications || [
+                                        // Fallback if null (though page.tsx handles this)
+                                        { name: "Category", value: product?.category || '-' },
+                                        { name: "Unit", value: product?.unit || 'pcs' },
+                                        { name: "Stock", value: product?.inStock ? 'In Stock' : 'Out of Stock' },
+                                    ]).map((spec, idx) => (
+                                        <div key={idx} className="flex justify-between py-3 border-b border-gray-100 group hover:bg-gray-50 px-2 rounded-lg transition-colors">
+                                            <span className="text-gray-500 font-medium">{spec.name}:</span>
+                                            <span className={`font-semibold text-right ${spec.name.toLowerCase().includes('stock')
+                                                    ? (spec.value === 'In Stock' ? 'text-green-600' : 'text-red-500')
+                                                    : 'text-[#111827]'
+                                                }`}>
+                                                {spec.value}
                                             </span>
                                         </div>
-                                    </div>
-                                    <div className="space-y-3">
-                                        <div className="flex justify-between py-2 border-b border-gray-100">
-                                            <span className="text-gray-600">Storage:</span>
-                                            <span className="font-medium text-[#111827]">Cool, dry place</span>
-                                        </div>
-                                        <div className="flex justify-between py-2 border-b border-gray-100">
-                                            <span className="text-gray-600">Shelf Life:</span>
-                                            <span className="font-medium text-[#111827]">12 months</span>
-                                        </div>
-                                        <div className="flex justify-between py-2 border-b border-gray-100">
-                                            <span className="text-gray-600">Origin:</span>
-                                            <span className="font-medium text-[#111827]">India</span>
-                                        </div>
-                                        <div className="flex justify-between py-2 border-b border-gray-100">
-                                            <span className="text-gray-600">Certification:</span>
-                                            <span className="font-medium text-[#111827]">FSSAI Approved</span>
-                                        </div>
-                                    </div>
+                                    ))}
                                 </div>
                             </div>
                         )}
