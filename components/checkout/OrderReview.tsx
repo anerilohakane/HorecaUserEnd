@@ -269,6 +269,7 @@ interface OrderReviewProps {
   shipping: number;
   total: number;
   couponCode?: string;
+  platformFee?: number;
   onEditShipping: () => void;
   onEditPayment: () => void;
 }
@@ -282,6 +283,7 @@ export default function OrderReview({
   tax,
   shipping,
   total,
+  platformFee = 5,
   onEditShipping,
   onEditPayment,
 }: OrderReviewProps) {
@@ -486,6 +488,10 @@ export default function OrderReview({
           <div className="flex justify-between">
             <span>Shipping</span>
             <span>{shipping === 0 ? "FREE" : `₹${shipping}`}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Platform Fee</span>
+            <span>₹{platformFee.toFixed(2)}</span>
           </div>
         </div>
 

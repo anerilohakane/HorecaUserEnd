@@ -52,8 +52,9 @@ export default function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
   const discount = appliedCoupon ? (subtotal * appliedCoupon.discount) / 100 : 0;
   const subtotalAfterDiscount = subtotal - discount;
   const tax = subtotalAfterDiscount * 0.18; // 18% GST
-  const shipping = subtotal >= 1000 ? 0 : 50; // Free shipping above ₹1000
-  const total = subtotalAfterDiscount + tax + shipping;
+  const shipping = subtotal >= 500 ? 0 : 20; // Free shipping above ₹500
+  const platformFee = 5;
+  const total = subtotalAfterDiscount + tax + shipping + platformFee;
 
   return (
     <div className="bg-white rounded-2xl soft-shadow p-6 sticky top-24">
@@ -162,9 +163,16 @@ export default function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
           )}
         </div>
 
-        {shipping > 0 && subtotal < 1000 && (
+        <div className="flex justify-between text-sm">
+          <span className="text-gray-600">Platform Fee</span>
+          <span className="font-semibold text-[#111827]">
+            ₹{platformFee.toFixed(2)}
+          </span>
+        </div>
+
+        {shipping > 0 && subtotal < 500 && (
           <p className="text-xs text-gray-500">
-            Add ₹{(1000 - subtotal).toFixed(0)} more for FREE shipping
+            Add ₹{(500 - subtotal).toFixed(0)} more for FREE shipping
           </p>
         )}
       </div>

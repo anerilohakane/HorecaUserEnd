@@ -291,6 +291,7 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Order } from '@/lib/types/checkout';
 import { CheckCircle, Package, MapPin, CreditCard, Download, ArrowRight, Calendar, Hash, IndianRupee } from 'lucide-react';
+import { generateInvoice } from '@/lib/utils/invoice-generator';
 import Image from 'next/image';
 
 type PaymentMethodKey = 'cod' | 'upi' | 'card' | 'netbanking';
@@ -303,86 +304,14 @@ export default function OrderConfirmationPage() {
   const [loading, setLoading] = useState(true);
 
 
-  const handleDownloadInvoice = async () => {
-    console.log("🧾 Download Invoice clicked");
-
-    if (!order) {
-      console.error("❌ order is null");
-      return;
-    }
-
-    console.log("📦 Order object:", order);
-    console.log("🆔 order._id:", order.id);
-
-    // if (!order._id) {
-    //   console.error("❌ order._id missing");
-    //   alert("Order ID missing");
-    //   return;
-    // }
-
-    // const apiUrl = `/api/order/invoice?orderId=${order._id}`;
-
-    console.log("🆔 order.id:", order.id);
-
-    if (!order.id) {
-      alert("Order ID missing");
-    }
-
-    const apiUrl = `/api/order/invoice?orderId=${order.id}`;
-
-    console.log("🌐 Fetching Invoice API:", apiUrl);
-
+  const handleDownloadInvoice = () => {
+    if (!order) return;
     try {
-      const res = await fetch(apiUrl);
-
-      console.log("📥 Raw response:", res);
-      console.log("📥 Response status:", res.status);
-      console.log("📥 Response ok?:", res.ok);
-
-      const text = await res.text();
-      console.log("📥 Raw response text:", text);
-
-      let data;
-      try {
-        data = JSON.parse(text);
-        console.log("📥 Parsed JSON:", data);
-      } catch (e) {
-        console.error("❌ Failed to parse JSON", e);
-        throw new Error("Invalid JSON from server");
-      }
-
-      if (!res.ok) {
-        console.error("❌ API returned error:", data);
-        throw new Error(`Failed to fetch invoice (${res.status})`);
-      }
-
-      if (!data.success || !data.invoice) {
-        console.error("❌ success=false or invoice missing", data);
-        throw new Error("Invoice not available");
-      }
-
-      console.log("✅ Invoice fetched successfully");
-
-      const blob = new Blob(
-        [JSON.stringify(data.invoice, null, 2)],
-        { type: "application/json" }
-      );
-
-      const url = window.URL.createObjectURL(blob);
-      console.log("⬇️ Download URL created:", url);
-
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `${data.invoice.invoiceNumber}.json`;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-
-      window.URL.revokeObjectURL(url);
-      console.log("✅ Invoice download triggered");
+      generateInvoice(order);
+      // toast.success("Invoice downloaded!"); // Optional if you have toast
     } catch (err) {
-      console.error("🔥 Invoice download error (FINAL):", err);
-      alert("Unable to download invoice");
+      console.error("Invoice generation failed:", err);
+      // toast.error("Failed to generate invoice");
     }
   };
 
@@ -636,31 +565,47 @@ export default function OrderConfirmationPage() {
               </div>
 
               {/* Price Breakdown */}
-              <div className="bg-gradient-to-r from-amber-50 to-orange-50 rounded-xl p-6 border border-amber-200">
-                <h3 className="text-xl font-semibold text-gray-900 mb-5 flex items-center gap-3">
-                  <IndianRupee className="w-7 h-7 text-amber-600" />
-                  Price Details
-                </h3>
-                <div className="space-y-4 text-lg">
-                  <div className="flex justify-between text-gray-700">
+              <div className="bg-white rounded-xl overflow-hidden border border-gray-100 shadow-sm">
+                <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+                  <div className="bg-amber-100 p-2 rounded-lg">
+                    <IndianRupee className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-800">
+                    Payment Details
+                  </h3>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  <div className="flex justify-between items-center text-gray-600">
                     <span>Subtotal</span>
-                    <span className="font-medium">₹{order.subtotal.toFixed(2)}</span>
+                    <span className="font-medium text-gray-900">₹{order.subtotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700">
-                    <span>Tax (GST)</span>
-                    <span className="font-medium">₹{order.tax.toFixed(2)}</span>
+
+                  <div className="flex justify-between items-center text-gray-600">
+                    <span>Tax (GST 18%)</span>
+                    <span className="font-medium text-gray-900">₹{order.tax.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between text-gray-700">
-                    <span>Shipping</span>
-                    <span className="font-medium text-amber-600">
-                      {order.shipping === 0 ? 'FREE' : `₹${order.shipping}`}
+
+                  <div className="flex justify-between items-center text-gray-600">
+                    <span>Shipping Charges</span>
+                    <span className={`font-medium ${(order.shipping ?? (order as any).shippingCharges ?? 0) === 0 ? 'text-green-600' : 'text-gray-900'}`}>
+                      {(order.shipping ?? (order as any).shippingCharges ?? 0) === 0 ? 'FREE' : `₹${(order.shipping ?? (order as any).shippingCharges ?? 0).toFixed(2)}`}
                     </span>
                   </div>
-                  <div className="border-t-2 border-amber-300 pt-4">
-                    <div className="flex justify-between">
-                      <span className="text-xl font-bold text-gray-900">Total Amount</span>
-                      <span className="text-2xl font-bold text-amber-600">₹{order.total.toFixed(2)}</span>
-                    </div>
+
+                  <div className="flex justify-between items-center text-gray-600">
+                    <span>Platform Fee</span>
+                    <span className="font-medium text-gray-900">₹{(order.platformFee || 5).toFixed(2)}</span>
+                  </div>
+
+                  <div className="border-t border-dashed border-gray-200 my-4" />
+
+                  <div className="flex justify-between items-center">
+                    <span className="text-lg font-bold text-gray-900">Grand Total</span>
+                    <span className="text-2xl font-bold text-amber-600">₹{order.total.toFixed(2)}</span>
+                  </div>
+                  <div className="text-right text-xs text-gray-500 mt-1">
+                    (Inclusive of all taxes)
                   </div>
                 </div>
               </div>

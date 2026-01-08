@@ -45,8 +45,9 @@ export default function CheckoutPage() {
   const discount = 0; // Would come from applied coupon
   const subtotalAfterDiscount = subtotal - discount;
   const tax = subtotalAfterDiscount * 0.18;
-  const shipping = subtotal >= 1000 ? 0 : 50;
-  const total = subtotalAfterDiscount + tax + shipping;
+  const shipping = subtotal >= 500 ? 0 : 20;
+  const platformFee = 5;
+  const total = subtotalAfterDiscount + tax + shipping + platformFee;
 
   const steps = [
     { id: 'shipping' as CheckoutStep, label: 'Shipping', number: 1 },
@@ -98,6 +99,7 @@ export default function CheckoutPage() {
       discount,
       tax,
       shipping,
+      platformFee,
       total,
     };
 
@@ -249,6 +251,7 @@ export default function CheckoutPage() {
                   total={total}
                   onEditShipping={() => setCurrentStep('shipping')}
                   onEditPayment={() => setCurrentStep('payment')}
+                  platformFee={platformFee}
                 />
 
               </div>

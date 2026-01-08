@@ -33,8 +33,13 @@ export interface Order {
   discount: number;
   tax: number;
   shipping: number;
+  platformFee: number;
   total: number;
   couponCode?: string;
+  invoice?: {
+    invoiceNumber: string;
+    url?: string;
+  };
 }
 
 // Checkout Step Type
