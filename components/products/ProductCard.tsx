@@ -105,19 +105,20 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
   useEffect(() => {
     if (!effectiveProduct?.id || !API_BASE) return;
 
-    // Determine if we should fetch reviews. 
-    // Optimization: Only fetch if reviews are 0 (implies listing API didn't provide them)
-    // or always fetch to be safe. Since listing API returns 0 rating, we fetch.
-
     const fetchReviews = async () => {
       try {
+        console.log(`⭐ Fetching reviews for product: ${effectiveProduct.id} from ${API_BASE}`);
         const res = await fetch(`${API_BASE}/api/reviews?productId=${effectiveProduct.id}`);
+        console.log(`⭐ Fetch status for ${effectiveProduct.id}: ${res.status}`);
         if (res.ok) {
           const data = await res.json();
+          console.log(`⭐ Reviews data for ${effectiveProduct.id}:`, data);
           setReviews(data.reviews || []);
+        } else {
+          console.log(`⭐ Fetch failed for ${effectiveProduct.id}`);
         }
       } catch (e) {
-        // silent fail
+        console.error(`⭐ Error fetching reviews for ${effectiveProduct.id}:`, e);
       }
     };
 
@@ -388,6 +389,17 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
           </h3>
         </Link>
 
+        {/* Rating */}
+        <div className="flex items-center gap-1 mb-2">
+          <div className={`flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold ${dynamicRating > 0 ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+            {dynamicRating > 0 ? dynamicRating : 'New'}
+            {dynamicRating > 0 && <Star size={10} className="fill-green-700 ml-0.5" />}
+          </div>
+          {dynamicCount > 0 && (
+            <span className="text-xs text-gray-400">({dynamicCount} reviews)</span>
+          )}
+        </div>
+
         {/* Price and Add Button */}
         <div className="flex items-center justify-between mt-auto">
           <div className="flex flex-col">
@@ -413,6 +425,6 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
           </button>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

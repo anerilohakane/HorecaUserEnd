@@ -220,9 +220,10 @@ export default function Header() {
 
   return (
     <>
-      <header className="w-full bg-white">
+      <>
         {/* Top Utility Bar */}
         <div className="bg-[#F0F4E8] border-b border-[#D4DFBD]">
+          {/* ... existing utility bar content ... */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center py-2 text-xs">
               <div className="flex items-center gap-3">
@@ -261,7 +262,8 @@ export default function Header() {
         </div>
 
         {/* Main Navigation Bar */}
-        <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
+        <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm w-full">
+          {/* ... existing navbar content ... */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-20">
               {/* Logo */}
@@ -464,7 +466,7 @@ export default function Header() {
             setIsLoginModalOpen(false);
           }}
         />
-      </header>
+      </>
     </>
   );
 }

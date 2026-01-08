@@ -150,24 +150,45 @@ export const generateInvoice = (order: any) => {
         finalY += (isHighlight ? 10 : 7);
     };
 
-    const subtotal = order.subtotal || 0;
-    const discount = order.discount || 0;
-    const tax = order.tax || 0; // If tax is not pre-calculated
-    const shipping = order.shipping ?? (order as any).shippingCharges ?? 0;
-    const total = order.total || (subtotal - discount + tax + shipping + (order.platformFee || 5));
+    // 1. Calculate Subtotal
+    const calculatedSubtotal = (order.items || []).reduce((acc: number, item: any) => {
+        const price = typeof item.price === 'number' ? item.price : (typeof item.unitPrice === 'number' ? item.unitPrice : 0);
+        const qty = item.quantity || 1;
+        return acc + (price * qty);
+    }, 0);
 
-    printTotal("Subtotal:", `Rs. ${subtotal.toFixed(2)}`);
-    if (discount > 0) {
-        printTotal("Discount:", `- Rs. ${discount.toFixed(2)}`);
+    // 2. Shipping
+    const dbShipping = order.shipping ?? (order as any).shippingCharges;
+    const calculatedShipping = dbShipping !== undefined
+        ? dbShipping
+        : (calculatedSubtotal >= 500 ? 0 : 20);
+
+    // 3. Discount
+    const discountVal = order.discount || (order as any).discounts || 0;
+
+    // 4. Tax (18%)
+    const taxableAmount = Math.max(0, calculatedSubtotal - discountVal);
+    const calculatedTax = taxableAmount * 0.18;
+
+    // 5. Platform Fee
+    const platformFee = 5;
+
+    // 6. Total
+    const calculatedTotal = calculatedSubtotal - discountVal + calculatedTax + calculatedShipping + platformFee;
+
+
+    printTotal("Subtotal:", `Rs. ${calculatedSubtotal.toFixed(2)}`);
+    if (discountVal > 0) {
+        printTotal("Discount:", `- Rs. ${discountVal.toFixed(2)}`);
     }
-    printTotal("Tax (GST):", `Rs. ${tax.toFixed(2)}`);
-    printTotal("Shipping:", shipping === 0 ? "FREE" : `Rs. ${shipping.toFixed(2)}`);
-    printTotal("Platform Fee:", `Rs. ${(order.platformFee || 5).toFixed(2)}`);
+    printTotal("Platform Fee:", `Rs. ${platformFee.toFixed(2)}`);
+    printTotal("Delivery Charges:", calculatedShipping === 0 ? "FREE" : `Rs. ${calculatedShipping.toFixed(2)}`);
+    printTotal("Tax (GST 18%):", `Rs. ${calculatedTax.toFixed(2)}`);
 
     doc.setDrawColor(220);
     doc.line(130, finalY - 3, 196, finalY - 3);
 
-    printTotal("Grand Total:", `Rs. ${total.toFixed(2)}`, true, true);
+    printTotal("Grand Total:", `Rs. ${calculatedTotal.toFixed(2)}`, true, true);
 
     // --- Signatures / Footer ---
     const pageHeight = doc.internal.pageSize.height;
