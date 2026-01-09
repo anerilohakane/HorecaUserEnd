@@ -255,7 +255,10 @@ import { MapPin, CreditCard, Package, Edit2 } from "lucide-react";
 import Image from "next/image";
 import { useCart } from "@/lib/context/CartContext";
 import { useAuth } from "@/lib/context/AuthContext";
-import { u } from "framer-motion/client";
+// import { u } from "framer-motion/client"; // This looked accidental in previous read?? removing it.
+import OrderSuccessModal from "./OrderSuccessModal";
+import { generateInvoice } from "@/lib/utils/invoice-generator";
+import { useRouter } from "next/navigation";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -289,8 +292,11 @@ export default function OrderReview({
 }: OrderReviewProps) {
   
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successOrder, setSuccessOrder] = useState<any>(null); // Using any or Order type if available
   const { clearCart } = useCart();
-  const{ user } = useAuth();
+  const { user } = useAuth();
+  const router = useRouter();
   const paymentMethodNames = {
     cod: "Cash on Delivery",
     upi: "UPI Payment",
@@ -359,17 +365,14 @@ export default function OrderReview({
         return;
       }
 
-      localStorage.setItem("lastOrder", JSON.stringify(data.order));
-      // localStorage.setItem("lastOrderId", data.order._id);
-      localStorage.setItem("lastOrderId", data.order.id || data.order._id);
-
-
+      // Success! Show modal
+      setSuccessOrder(data.order);
+      setShowSuccessModal(true);
       await clearCart();
-
       window.dispatchEvent(new Event("cart-updated"));
-
-      window.location.href = `/order-confirmation?order=${data.order._id}`;
-
+      
+      // Removed redirect
+      // window.location.href = `/order-confirmation?order=${data.order._id}`;
 
     } catch (err) {
       console.error("🔥 Error placing order:", err);
@@ -509,6 +512,14 @@ export default function OrderReview({
       >
         {isPlacingOrder ? "Placing Order..." : "Place Order"}
       </button>
+
+      {/* SUCCESS MODAL */}
+      <OrderSuccessModal
+        isOpen={showSuccessModal}
+        onClose={() => router.push('/products')} 
+        orderId={successOrder?.orderNumber || successOrder?._id || "---"}
+        onDownloadInvoice={() => successOrder && generateInvoice(successOrder)}
+      />
     </div>
   );
 }
