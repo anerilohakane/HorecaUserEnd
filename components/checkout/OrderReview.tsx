@@ -323,6 +323,7 @@ export default function OrderReview({
         product: item.product.id,
         quantity: item.quantity,
         unitPrice: item.product.price,
+        image: item.product.image || "", // ✅ Added image field
         attributes: item.selectedAttributes || {},
       }));
 

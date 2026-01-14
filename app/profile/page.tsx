@@ -34,7 +34,7 @@ import ReviewFormModal from '@/components/products/ReviewFormModal';
 import ReturnOrderModal from '@/components/orders/ReturnOrderModal';
 import CancelOrderModal from '@/components/orders/CancelOrderModal';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
 
 const ProfilePage = () => {
     const { user: authUser, isAuthenticated, token, logout } = useAuth();
@@ -324,10 +324,10 @@ const ProfilePage = () => {
             const API_URL = `${API_BASE}/api/products/${productId}`;
             const res = await fetch(API_URL);
 
-            console.log("🖼 RAW PRODUCT RESPONSE:", res);
+            // console.log("🖼 RAW PRODUCT RESPONSE:", res);
 
             const text = await res.text();
-            console.log("🖼 RAW PRODUCT TEXT:", text);
+            // console.log("🖼 RAW PRODUCT TEXT:", text);
 
             let json = null;
             try {
@@ -338,8 +338,16 @@ const ProfilePage = () => {
             }
 
             if (json?.success && json.data?.image) {
-                console.log("🖼 Product Image Found:", json.data.image);
-                return json.data.image;
+                const rawImage = json.data.image.trim();
+                console.log("🖼 Product Image Found:", rawImage);
+
+                if (rawImage.startsWith('http://') || rawImage.startsWith('https://') || rawImage.startsWith('//')) {
+                    return rawImage;
+                } else {
+                    // Match ProductCard logic: assume local path in /images/products/
+                    const filename = rawImage.replace(/^\/+/, '');
+                    return `/images/products/${filename}`;
+                }
             } else {
                 console.warn("⚠ No image field in product:", json);
                 return "/images/placeholder.png";
@@ -587,35 +595,50 @@ const ProfilePage = () => {
 
                         // 🔥 FETCH FULL ORDER (to get shippingAddress)
                         let fullOrder = ord;
+                        const orderId = ord.id || ord._id;
                         try {
-                            const orderRes = await fetch(
-                                `${API_BASE}/api/order?id=${ord.id}`,
-                                {
-                                    headers: {
-                                        Authorization: `Bearer ${token}`,
-                                        Accept: "application/json",
-                                    },
-                                }
-                            );
+                            if (orderId) {
+                                const orderRes = await fetch(
+                                    `${API_BASE}/api/order?id=${orderId}`,
+                                    {
+                                        headers: {
+                                            Authorization: `Bearer ${token}`,
+                                            Accept: "application/json",
+                                        },
+                                    }
+                                );
 
-                            const orderJson = await orderRes.json();
-                            if (orderJson?.success && orderJson.order) {
-                                fullOrder = orderJson.order;
+                                const orderJson = await orderRes.json();
+                                if (orderJson?.success && orderJson.order) {
+                                    fullOrder = orderJson.order;
+                                }
                             }
                         } catch (err) {
-                            console.error("❌ Failed to fetch full order:", ord.id, err);
+                            console.error("❌ Failed to fetch full order:", orderId, err);
                         }
 
-                        // ⭐ ATTACH PRODUCT IMAGES (same as before)
+                        // ⭐ ATTACH PRODUCT IMAGES
                         const updatedItems = await Promise.all(
                             fullOrder.items.map(async (it: any) => {
-                                const productId = it.product?.id || it.productId;
-                                const image = await fetchProductImage(productId);
+                                // 1. Try to get image from the order item directly (if saved)
+                                if (it.image) return { ...it, productName: it.product?.name || it.name || it.productName };
+
+                                // 2. Fallback: Fetch from product ID
+                                const productId = it.product?._id || it.product?.id || it.productId || it.product;
+
+                                // robust check: if productId is an object (unexpected), try to extract id
+                                const validProductId = typeof productId === 'object' ? (productId._id || productId.id) : productId;
+
+                                let image = "/images/placeholder.png";
+
+                                if (validProductId) {
+                                    image = await fetchProductImage(validProductId);
+                                }
 
                                 return {
                                     ...it,
                                     image,
-                                    productName: it.product?.name || it.name,
+                                    productName: it.product?.name || it.name || it.productName,
                                     price: it.product?.price || it.unitPrice || 0,
                                 };
                             })
