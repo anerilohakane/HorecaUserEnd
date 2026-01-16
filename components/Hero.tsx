@@ -25,7 +25,7 @@ export default function Hero() {
                 <span className="text-[#D97706]">Best Prices.</span>
               </h1>
               <p className="text-lg text-gray-500 max-w-lg mx-auto lg:mx-0 font-medium leading-relaxed">
-                One-stop solution for all your Horeca needs.
+                One-stop solution for all your Unifood needs.
                 <span className="hidden lg:inline"> Fresh ingredients, packaging, and equipment delivered to your doorstep.</span>
               </p>
             </div>
