@@ -1,5 +1,6 @@
 import { MapPin, Mail, Phone, Linkedin, Instagram, Youtube } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 export default function Footer() {
   return (
@@ -10,30 +11,33 @@ export default function Footer() {
           {/* About Unifoods */}
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <div className="text-2xl">🌾</div>
-              <span className="text-2xl font-bold text-[#111827]" style={{ fontFamily: 'serif' }}>
-                Unifoods
-              </span>
+              <Image
+                src="/images/logo.png"
+                alt="Unifoods"
+                width={150}
+                height={50}
+                className="h-10 w-auto object-contain"
+              />
             </div>
             <p className="text-gray-600 leading-relaxed mb-6 text-sm">
-              India&apos;s most trusted B2B marketplace connecting bakeries with quality suppliers. 
+              India&apos;s most trusted B2B marketplace connecting bakeries with quality suppliers.
               Empowering food professionals with premium ingredients and equipment.
             </p>
             <div className="flex gap-3">
-              <Link 
-                href="#" 
+              <Link
+                href="#"
                 className="w-10 h-10 rounded-full bg-white soft-shadow flex items-center justify-center text-gray-600 hover:bg-[#D97706] hover:text-white transition-all"
               >
                 <Linkedin size={18} />
               </Link>
-              <Link 
-                href="#" 
+              <Link
+                href="#"
                 className="w-10 h-10 rounded-full bg-white soft-shadow flex items-center justify-center text-gray-600 hover:bg-[#D97706] hover:text-white transition-all"
               >
                 <Instagram size={18} />
               </Link>
-              <Link 
-                href="#" 
+              <Link
+                href="#"
                 className="w-10 h-10 rounded-full bg-white soft-shadow flex items-center justify-center text-gray-600 hover:bg-[#D97706] hover:text-white transition-all"
               >
                 <Youtube size={18} />

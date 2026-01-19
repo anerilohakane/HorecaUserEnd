@@ -2,6 +2,7 @@
 
 import { Search, Heart, ShoppingCart, User, Linkedin, Instagram, Facebook, Phone, Mail, X } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import CartButton from '@/components/cart/CartButton';
@@ -207,13 +208,14 @@ export default function Header() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-20">
               <Link href="/" className="flex items-center gap-2 group">
-                <div className="text-3xl">🌾</div>
-                <div>
-                  <span className="text-3xl font-bold text-[#111827] block leading-none" style={{ fontFamily: 'serif' }}>
-                    Unifoods
-                  </span>
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">B2B Marketplace</span>
-                </div>
+                <Image
+                  src="/images/logo.png"
+                  alt="Unifoods"
+                  width={180}
+                  height={60}
+                  className="h-12 w-auto object-contain"
+                  priority
+                />
               </Link>
               <div className="flex items-center gap-5">
                 <div className="w-5 h-5 bg-gray-200 rounded"></div>
@@ -278,13 +280,14 @@ export default function Header() {
             <div className="flex justify-between items-center h-20">
               {/* Logo */}
               <Link href="/" className="flex items-center gap-2 group">
-                <div className="text-3xl transition-transform group-hover:scale-110">🌾</div>
-                <div>
-                  <span className="text-3xl font-bold text-[#111827] block leading-none" style={{ fontFamily: 'serif' }}>
-                    Unifoods
-                  </span>
-                  <span className="text-xs text-gray-500 uppercase tracking-wider">B2B Marketplace</span>
-                </div>
+                <Image
+                  src="/images/logo.png"
+                  alt="Unifoods"
+                  width={180}
+                  height={60}
+                  className="h-14 w-auto object-contain transition-transform group-hover:scale-105"
+                  priority
+                />
               </Link>
 
               {/* Navigation Menu */}

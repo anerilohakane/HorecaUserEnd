@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { X, Phone, Lock } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 
@@ -87,10 +88,13 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
 
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 mb-2">
-              <div className="text-3xl">🌾</div>
-              <span className="text-3xl font-bold text-[#111827]" style={{ fontFamily: "serif" }}>
-                Unifoods
-              </span>
+              <Image
+                src="/images/logo.png"
+                alt="Unifoods"
+                width={150}
+                height={50}
+                className="h-12 w-auto object-contain"
+              />
             </div>
             <p className="text-gray-600">B2B Marketplace</p>
           </div>
