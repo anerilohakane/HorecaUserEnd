@@ -2,10 +2,11 @@
 
 import { useAuth } from '@/lib/context/AuthContext';
 import { Product } from '@/lib/types/product';
-import { Star, Plus, Heart } from 'lucide-react';
+import { Star, Plus, Heart, RotateCw } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
+import AutoReorderModal from './AutoReorderModal';
 
 interface ProductCardProps {
   product?: Partial<Product> | null;
@@ -61,6 +62,7 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
   const [API_BASE, setApiBase] = useState('');
   const [productState, setProductState] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
+  const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
   const { user } = useAuth();
 
   // Helper function defined early
@@ -410,16 +412,28 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
         )}
 
         {/* Wishlist Button - Top Right */}
-        <button
-          onClick={handleWishlistToggle}
-          disabled={isWishlisting || !API_BASE}
-          className="absolute top-3 right-3 p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-red-500 transition-colors z-10"
-        >
-          <Heart
-            size={18}
-            className={isInWishlist ? "fill-red-500 text-red-500" : ""}
-          />
-        </button>
+        <div className="absolute top-3 right-3 flex flex-col gap-2 z-10">
+          <button
+            onClick={handleWishlistToggle}
+            disabled={isWishlisting || !API_BASE}
+            className="p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-red-500 transition-colors shadow-sm"
+          >
+            <Heart
+              size={18}
+              className={isInWishlist ? "fill-red-500 text-red-500" : ""}
+            />
+          </button>
+          <button
+            onClick={(e) => {
+              e.preventDefault();
+              setIsReorderModalOpen(true);
+            }}
+            className="p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-orange-600 transition-colors shadow-sm"
+            title="Auto Reorder"
+          >
+            <RotateCw size={18} />
+          </button>
+        </div>
       </div>
 
       {/* Product Info */}
@@ -476,6 +490,19 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
           </button>
         </div>
       </div>
+
+      {effectiveProduct?.id && (
+        <AutoReorderModal
+          product={{
+            id: effectiveProduct.id,
+            name: effectiveProduct.name,
+            image: effectiveProduct.image,
+            minOrder: effectiveProduct.minOrder
+          }}
+          isOpen={isReorderModalOpen}
+          onClose={() => setIsReorderModalOpen(false)}
+        />
+      )}
     </div >
   );
 }

@@ -33,6 +33,8 @@ import { useRouter } from "next/navigation";
 import ReviewFormModal from '@/components/products/ReviewFormModal';
 import ReturnOrderModal from '@/components/orders/ReturnOrderModal';
 import CancelOrderModal from '@/components/orders/CancelOrderModal';
+import OrderSubscriptionModal from '@/components/orders/OrderSubscriptionModal';
+import { RotateCw } from 'lucide-react';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
 
@@ -136,6 +138,17 @@ const ProfilePage = () => {
     // Cancel Order State
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+
+    // Order Subscription State
+    const [isSubModalOpen, setIsSubModalOpen] = useState(false);
+    const [subModalOrderId, setSubModalOrderId] = useState<string>("");
+    const [subModalItems, setSubModalItems] = useState<any[]>([]);
+
+    const handleScheduleRepeat = (orderId: string, items: any[]) => {
+        setSubModalOrderId(orderId);
+        setSubModalItems(items);
+        setIsSubModalOpen(true);
+    };
 
     const handleReturnOrder = (orderId: string, items: any[], address: any) => {
         setReturnOrderId(orderId);
@@ -1399,6 +1412,19 @@ const ProfilePage = () => {
                                                             );
                                                         })()}
 
+                                                        {/* Schedule Repeat Action */}
+                                                        {ord.status?.toLowerCase() === 'delivered' && (
+                                                            <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
+                                                                <button
+                                                                    onClick={() => handleScheduleRepeat(ord.id || ord._id, ord.items)}
+                                                                    className="px-6 py-2.5 text-sm font-medium text-blue-600 border border-blue-200 bg-white rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all shadow-sm flex items-center gap-2"
+                                                                >
+                                                                    <RotateCw size={16} />
+                                                                    Schedule Repeat Order
+                                                                </button>
+                                                            </div>
+                                                        )}
+
                                                         {/* Cancel Action - Pending/Confirmed */}
                                                         {['pending', 'confirmed'].includes(ord.status?.toLowerCase()) && (
                                                             <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
@@ -1459,7 +1485,14 @@ const ProfilePage = () => {
                 onClose={() => setIsReturnModalOpen(false)}
                 onSubmit={handleReturnSubmit}
                 orderItems={returnOrderItems}
-                orderId={returnOrderId || ''}
+                orderId={returnOrderId!}
+            />
+
+            <OrderSubscriptionModal
+                isOpen={isSubModalOpen}
+                onClose={() => setIsSubModalOpen(false)}
+                orderId={subModalOrderId}
+                items={subModalItems}
             />
             {/* Cancel Order Modal */}
             <CancelOrderModal
