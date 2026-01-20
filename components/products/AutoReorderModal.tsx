@@ -24,7 +24,7 @@ export default function AutoReorderModal({ product, isOpen, onClose }: AutoReord
 
     const [quantity, setQuantity] = useState(product.minOrder || 1);
     const [frequency, setFrequency] = useState('Monthly');
-    const [preferredDay, setPreferredDay] = useState<number>(new Date().getDate());
+    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
     const [preferredTime, setPreferredTime] = useState('09:00');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,7 +46,7 @@ export default function AutoReorderModal({ product, isOpen, onClose }: AutoReord
                 productId: product.id,
                 quantity,
                 frequency,
-                preferredDay: Number(preferredDay),
+                startDate, // Specific start date
                 preferredTime,
             };
 
@@ -125,8 +125,8 @@ export default function AutoReorderModal({ product, isOpen, onClose }: AutoReord
                                     type="button"
                                     onClick={() => setFrequency(f)}
                                     className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-all ${frequency === f
-                                            ? 'bg-orange-600 text-white border-orange-600'
-                                            : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
+                                        ? 'bg-orange-600 text-white border-orange-600'
+                                        : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                                         }`}
                                 >
                                     {f}
@@ -139,18 +139,16 @@ export default function AutoReorderModal({ product, isOpen, onClose }: AutoReord
                     <div className="grid grid-cols-2 gap-3">
                         <div>
                             <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                {frequency === 'Monthly' ? 'Day of Month' : 'Start Day'}
+                                Start Date
                             </label>
                             <div className="relative">
                                 <Calendar size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
                                 <input
-                                    type="number"
-                                    min={1}
-                                    max={31}
-                                    value={preferredDay}
-                                    onChange={(e) => setPreferredDay(Number(e.target.value))}
+                                    type="date"
+                                    min={new Date().toISOString().split('T')[0]}
+                                    value={startDate}
+                                    onChange={(e) => setStartDate(e.target.value)}
                                     className="w-full pl-8 p-2 border rounded-lg focus:ring-2 focus:ring-orange-500 outline-none text-sm"
-                                    placeholder="Day"
                                 />
                             </div>
                         </div>
@@ -171,10 +169,7 @@ export default function AutoReorderModal({ product, isOpen, onClose }: AutoReord
 
                     {/* Info Text */}
                     <div className="text-[10px] text-gray-500 bg-gray-50 p-2 rounded border border-gray-100">
-                        Order will be placed automatically on
-                        <strong className="text-gray-700">
-                            {frequency === 'Monthly' ? ` day ${preferredDay} of every month` : ' this day every week'}
-                        </strong> at <strong className="text-gray-700">{preferredTime}</strong>.
+                        First order on <strong className="text-gray-700">{new Date(startDate).toLocaleDateString()}</strong> at <strong className="text-gray-700">{preferredTime}</strong>.
                     </div>
 
                     <button
