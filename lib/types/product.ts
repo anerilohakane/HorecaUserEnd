@@ -13,6 +13,7 @@ export interface Product {
   reviews: number;
   inStock: boolean;
   minOrder: number;
+  stockQuantity?: number;
   discount?: number;
   tags: string[];
   // Dynamic fields

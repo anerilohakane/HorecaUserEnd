@@ -44,6 +44,7 @@ function mapRawToProduct(raw: any): Product | null {
     category: raw.category ?? raw.categoryName ?? raw.categoryId ?? '',
     badge: raw.badge ?? (raw.isFeatured ? 'Featured' : undefined),
     inStock: typeof raw.inStock === 'boolean' ? raw.inStock : (typeof raw.stockQuantity === 'number' ? raw.stockQuantity > 0 : true),
+    stockQuantity: typeof raw.stockQuantity === 'number' ? raw.stockQuantity : undefined,
     ...(raw as any),
   } as Product;
 }
@@ -98,6 +99,7 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
       category: '',
       badge: undefined,
       inStock: true,
+      stockQuantity: undefined,
       // minOrder: 1, // Ensure minOrder is set to default
     }) as Product;
   }, [productState, incoming]);
@@ -155,9 +157,21 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
     checkWishlistStatus();
   }, [effectiveProduct?.id, user?.id, "https://horeca-backend-six.vercel.app"]);
 
+  const [notifySuccess, setNotifySuccess] = useState(false);
+
+  // Notify Me handler
+  const handleNotifyMe = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setNotifySuccess(true);
+    setTimeout(() => setNotifySuccess(false), 3000);
+  };
 
   // Cart handler
-  const handleAddToCart = async () => {
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+
     if (!effectiveProduct?.id || isAdding) return;
 
     setIsAdding(true);
@@ -339,6 +353,12 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
         </div>
       )}
 
+      {notifySuccess && (
+        <div className="pointer-events-none absolute top-2 left-2 right-2 bg-blue-100 text-blue-700 text-xs p-2 rounded-md z-20">
+          You will be notified!
+        </div>
+      )}
+
       {/* Product Image Area */}
       <div className="relative aspect-[4/3] bg-[#F9F9F9] overflow-hidden">
         <Link href={`/products/${effectiveProduct.id}`} className="block w-full h-full relative">
@@ -370,6 +390,24 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
             );
           })()}
         </Link>
+
+        {/* Out of Stock Overlay */}
+        {!effectiveProduct.inStock && (
+          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
+            <span className="bg-gray-900 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
+              Out of Stock
+            </span>
+          </div>
+        )}
+
+        {/* Low Stock Warning */}
+        {effectiveProduct.inStock && (effectiveProduct.stockQuantity !== undefined && effectiveProduct.stockQuantity <= 10) && (
+          <div className="absolute bottom-0 left-0 right-0 bg-red-50/90 backdrop-blur-sm border-t border-red-100 p-1.5 z-10 flex justify-center">
+            <span className="text-[10px] font-bold text-red-600 flex items-center gap-1">
+              ⚠️ Only {effectiveProduct.stockQuantity} left!
+            </span>
+          </div>
+        )}
 
         {/* Wishlist Button - Top Right */}
         <button
@@ -424,15 +462,17 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
           </div>
 
           <button
-            onClick={handleAddToCart}
+            onClick={effectiveProduct.inStock ? handleAddToCart : handleNotifyMe}
             disabled={isAdding || !API_BASE}
-            className={`px-4 py-1.5 rounded border text-xs font-bold transition-all uppercase
-              ${isAdding
-                ? 'bg-orange-50 border-orange-500 text-orange-600'
-                : 'bg-white border-orange-400 text-orange-500 hover:bg-orange-50'
+            className={`px-4 py-1.5 rounded border text-xs font-bold transition-all uppercase z-20
+              ${!effectiveProduct.inStock
+                ? 'bg-orange-50 border-orange-200 text-[#D97706] hover:bg-orange-100'
+                : isAdding
+                  ? 'bg-orange-50 border-orange-500 text-orange-600'
+                  : 'bg-white border-orange-400 text-orange-500 hover:bg-orange-50'
               }`}
           >
-            {isAdding ? 'ADD...' : 'ADD +'}
+            {effectiveProduct.inStock ? (isAdding ? 'ADD...' : 'ADD +') : 'Notify Me'}
           </button>
         </div>
       </div>
