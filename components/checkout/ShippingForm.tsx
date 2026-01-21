@@ -18,6 +18,7 @@ console.log("ShippingAddressSelector loaded with API_BASE:", API_BASE);
 export default function ShippingAddressSelector({ onSubmit, initialData }: Props) {
   const [savedAddress, setSavedAddress] = useState<ShippingAddress | null>(null);
   const [selectedType, setSelectedType] = useState<"saved" | "new" | null>(null);
+  const [hasPriorOrders, setHasPriorOrders] = useState(false);
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
 
@@ -54,46 +55,77 @@ export default function ShippingAddressSelector({ onSubmit, initialData }: Props
 
   console.log("user id in ShippingForm: hellooooo", user?.id);
 
-const fetchAddress = async () => {
-  // if (!user?.id) return;
+  const fetchAddress = async () => {
+    // if (!user?.id) return;
 
-  console.log("✅ Fetching address for user:", user?.id);
+    console.log("✅ Fetching address for user:", user?.id);
 
-  try {
-    const res = await fetch(`${API_BASE}/api/customers/${user?.id}`);
-    const data = await res.json();
+    try {
+      // 1. Fetch Latest Order first (Prioritize this)
+      const orderRes = await fetch(`${API_BASE}/api/order?userId=${user?.id}&limit=1&sort=-createdAt`);
+      const orderJson = await orderRes.json();
+      const hasOrders = orderJson.success && Array.isArray(orderJson.orders) && orderJson.orders.length > 0;
 
-    console.log("📦 Address API response:", data);
+      setHasPriorOrders(hasOrders);
 
-    if (data?.success && data.data) {
-      const c = data.data;
+      // If user has prior orders, try to use that address
+      if (hasOrders) {
+        const lastOrder = orderJson.orders[0];
+        if (lastOrder.shippingAddress && lastOrder.shippingAddress.addressLine1) {
+          setSavedAddress(lastOrder.shippingAddress);
+          setSelectedType("saved");
 
-      setSavedAddress({
-        fullName: c.name || "",
-        email: c.email || "",
-        phone: c.phone || "",
-        addressLine1: c.address || "",
-        addressLine2: "",
-        city: c.city || "",
-        state: c.state || "",
-        pincode: c.pincode || "",
-        country: "India",
-      });
+          // Pre-fill form just in case
+          setFormData(lastOrder.shippingAddress);
+          setLoading(false);
+          return; // EXIT EARLY - we found a good address
+        }
+      }
+
+      // 2. Fallback to Customer Profile ONLY if no order address found
+      // AND only if the profile actually has address fields
+      const res = await fetch(`${API_BASE}/api/customers/${user?.id}`);
+      const data = await res.json();
+
+      if (data?.success && data.data && data.data.address) {
+        const c = data.data;
+        // Verify it's not just a partial profile with only phone/email
+        if (c.address && c.pincode) {
+          setSavedAddress({
+            fullName: c.name || "",
+            email: c.email || "",
+            phone: c.phone || "",
+            addressLine1: c.address || "",
+            addressLine2: "",
+            city: c.city || "",
+            state: c.state || "",
+            pincode: c.pincode || "",
+            country: "India",
+          });
+          // If we are here, it means we have a profile address but NO orders.
+          // But we already set 'hasPriorOrders' to false above.
+          // So the "Select Address" card will NOT show (due to my previous fix).
+          // That is CORRECT behavior for new users.
+        }
+      }
+
+      // Default to new address if no good data found
+      setSelectedType("new");
+
+    } catch (err) {
+      console.error("❌ Failed to fetch address/orders", err);
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error("❌ Failed to fetch address", err);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
 
   /* FETCH ADDRESS */
-useEffect(() => {
-  if (user?.id) {
-    fetchAddress();
-  }
-}, [user?.id]);
+  useEffect(() => {
+    if (user?.id) {
+      fetchAddress();
+    }
+  }, [user?.id]);
 
 
   /* FORM HANDLING */
@@ -139,8 +171,8 @@ useEffect(() => {
   return (
     <div className="space-y-6">
 
-      {/* SAVED ADDRESS CARD */}
-      {savedAddress && (
+      {/* SAVED ADDRESS CARD (Only if address exists AND user has prior orders) */}
+      {savedAddress && hasPriorOrders && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
           <h2 className="font-bold text-lg flex items-center gap-2 mb-4 text-[#D97706]">
             <MapPin className="text-[#D97706]" /> Select Delivery Address
