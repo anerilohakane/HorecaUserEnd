@@ -25,6 +25,7 @@ import {
     MessageSquare,
     Settings,
     LogOut,
+    Clock,
 } from 'lucide-react';
 import Header from '@/components/Header';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -34,7 +35,22 @@ import ReviewFormModal from '@/components/products/ReviewFormModal';
 import ReturnOrderModal from '@/components/orders/ReturnOrderModal';
 import CancelOrderModal from '@/components/orders/CancelOrderModal';
 import OrderSubscriptionModal from '@/components/orders/OrderSubscriptionModal';
+import CancelSubscriptionModal from '@/components/orders/CancelSubscriptionModal';
 import { RotateCw } from 'lucide-react';
+
+const formatToIST = (dateString: string | Date) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleString('en-IN', {
+        timeZone: 'Asia/Kolkata',
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true
+    });
+};
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
 
@@ -143,6 +159,47 @@ const ProfilePage = () => {
     const [isSubModalOpen, setIsSubModalOpen] = useState(false);
     const [subModalOrderId, setSubModalOrderId] = useState<string>("");
     const [subModalItems, setSubModalItems] = useState<any[]>([]);
+
+    // Cancel Subscription State
+    const [isCancelSubModalOpen, setIsCancelSubModalOpen] = useState(false);
+    const [cancelSubId, setCancelSubId] = useState<string | null>(null);
+
+    const handleCancelSubscription = (subId: string) => {
+        setCancelSubId(subId);
+        setIsCancelSubModalOpen(true);
+    };
+
+    const handleCancelSubscriptionSubmit = async (data: { reason: string, comment: string }) => {
+        if (!cancelSubId) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/subscriptions`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    subscriptionId: cancelSubId,
+                    status: 'Cancelled',
+                    cancellationReason: data.reason,
+                    cancellationComment: data.comment
+                })
+            });
+
+            const json = await res.json();
+            if (json.success) {
+                setToast({ show: true, message: "Subscription cancelled successfully", type: "success" });
+                // Refresh subscriptions
+                fetchSubscriptions();
+            } else {
+                throw new Error(json.error || "Failed to cancel subscription");
+            }
+        } catch (error: any) {
+            console.error(error);
+            setToast({ show: true, message: error.message, type: "error" });
+        }
+    };
 
     const handleScheduleRepeat = (orderId: string, items: any[]) => {
         setSubModalOrderId(orderId);
@@ -679,6 +736,42 @@ const ProfilePage = () => {
         setOrdersLoading(false);
     };
 
+    /* ------------------------------------------------------------
+       🔄 FETCH SUBSCRIPTIONS
+    ------------------------------------------------------------- */
+    const [subscriptions, setSubscriptions] = useState<any[]>([]);
+    const [subsLoading, setSubsLoading] = useState(false);
+
+    const fetchSubscriptions = async () => {
+        if (!authUser?.id) return;
+        setSubsLoading(true);
+        try {
+            // Need to pass userId. 
+            // Validating if authUser.id is the correct field, seems to be standard in this file.
+            const userId = authUser.id || (authUser as any)._id;
+            const res = await fetch(`${API_BASE}/api/subscriptions?userId=${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const data = await res.json();
+            if (data.success) {
+                setSubscriptions(data.data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch subscriptions", err);
+        } finally {
+            setSubsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        if (activeTab === 'subscriptions') {
+            fetchSubscriptions();
+        }
+    }, [activeTab, authUser]);
+
+
+
+
     const fetchAddresses = async () => {
         if (!authUser?.id) return;
 
@@ -902,6 +995,7 @@ const ProfilePage = () => {
                                     {[
                                         { id: "personal", label: "Personal Info", icon: User },
                                         { id: "orders", label: "My Orders", icon: Package },
+                                        { id: "subscriptions", label: "My Subscriptions", icon: RotateCw },
                                         { id: "addresses", label: "Addresses", icon: MapPin },
                                         { id: "security", label: "Security", icon: Shield },
                                         { id: "preferences", label: "Preferences", icon: Settings },
@@ -1245,14 +1339,7 @@ const ProfilePage = () => {
                                                                         </h3>
                                                                     </div>
                                                                     <p className="text-sm text-gray-500 mt-1">
-                                                                        Placed on {new Date(ord.createdAt).toLocaleDateString('en-US', {
-                                                                            weekday: 'long',
-                                                                            year: 'numeric',
-                                                                            month: 'long',
-                                                                            day: 'numeric',
-                                                                            hour: '2-digit',
-                                                                            minute: '2-digit'
-                                                                        })}
+                                                                        Placed on {formatToIST(ord.createdAt)}
                                                                     </p>
                                                                 </div>
 
@@ -1443,6 +1530,92 @@ const ProfilePage = () => {
                                     </div>
                                 )}
 
+                                {/* SUBSCRIPTIONS TAB */}
+                                {activeTab === "subscriptions" && (
+                                    <div className="space-y-8">
+                                        <div className="text-center mb-2">
+                                            <h2 className="text-2xl font-bold text-gray-900 mb-2">My Subscriptions</h2>
+                                            <p className="text-gray-600">Manage your recurring orders</p>
+
+                                            {/* Debug Button */}
+                                            <button
+                                                onClick={async () => {
+                                                    const res = await fetch(`${API_BASE}/api/cron/process-subscriptions`);
+                                                    const json = await res.json();
+                                                    alert(JSON.stringify(json, null, 2));
+                                                    fetchSubscriptions(); // Refresh list
+                                                }}
+                                                className="mt-2 text-xs text-blue-500 underline"
+                                            >
+                                                {/* [Dev] Test Scheduler Now */}
+                                            </button>
+                                        </div>
+
+                                        {subsLoading && (
+                                            <div className="flex flex-col items-center justify-center py-10">
+                                                <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mb-4" />
+                                                <p className="text-gray-500">Loading subscriptions...</p>
+                                            </div>
+                                        )}
+
+                                        {!subsLoading && subscriptions.length === 0 && (
+                                            <div className="flex flex-col items-center justify-center py-16 px-4">
+                                                <div className="w-24 h-24 rounded-full bg-amber-50 flex items-center justify-center mb-6">
+                                                    <RotateCw className="w-12 h-12 text-amber-500" />
+                                                </div>
+                                                <h3 className="text-xl font-semibold text-gray-900 mb-2">No active subscriptions</h3>
+                                                <p className="text-gray-600 text-center max-w-md">
+                                                    Start a recurring order from your Order History to see it here.
+                                                </p>
+                                            </div>
+                                        )}
+
+                                        {!subsLoading && subscriptions.length > 0 && (
+                                            <div className="grid gap-4">
+                                                {subscriptions.map(sub => (
+                                                    <div key={sub._id} className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col md:flex-row gap-4 items-center hover:shadow-md transition-shadow">
+                                                        <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
+                                                            {sub.productImage ? (
+                                                                <Image src={sub.productImage} alt={sub.productName || "Product"} width={64} height={64} className="object-cover w-full h-full" unoptimized />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">No Img</div>
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 text-center md:text-left">
+                                                            <h4 className="font-semibold text-gray-900 text-lg">{sub.productName || "Unknown Product"}</h4>
+                                                            <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-1 mt-1 text-sm text-gray-600">
+                                                                <span className="flex items-center gap-1">
+                                                                    <RotateCw size={14} className="text-amber-600" />
+                                                                    {sub.frequency}
+                                                                </span>
+                                                                <span className="flex items-center gap-1">
+                                                                    <Clock size={14} className="text-amber-600" />
+                                                                    Next: {formatToIST(sub.nextOrderDate)}
+                                                                </span>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${sub.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                                                                }`}>
+                                                                {sub.status}
+                                                            </span>
+                                                            {sub.status === 'Active' && (
+                                                                <button
+                                                                    onClick={() => handleCancelSubscription(sub._id)}
+                                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                                                                    title="Cancel Auto-reorder"
+                                                                >
+                                                                    <XCircle size={20} />
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* PREFERENCES (unchanged) */}
                                 {activeTab === "preferences" && (
                                     <div className="text-center py-16">
@@ -1500,6 +1673,14 @@ const ProfilePage = () => {
                 onClose={() => setIsCancelModalOpen(false)}
                 onSubmit={handleCancelSubmit}
                 orderId={cancelOrderId || ''}
+            />
+
+            {/* Cancel Subscription Modal */}
+            <CancelSubscriptionModal
+                isOpen={isCancelSubModalOpen}
+                onClose={() => setIsCancelSubModalOpen(false)}
+                onSubmit={handleCancelSubscriptionSubmit}
+                subscriptionId={cancelSubId || ''}
             />
         </>
     );

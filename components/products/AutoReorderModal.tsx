@@ -41,13 +41,16 @@ export default function AutoReorderModal({ product, isOpen, onClose }: AutoReord
         setIsSubmitting(true);
 
         try {
+            const timezoneOffset = new Date().getTimezoneOffset();
+
             const payload = {
                 userId: user?.id,
                 productId: product.id,
                 quantity,
                 frequency,
-                startDate, // Specific start date
+                startDate: startDate, // Already YYYY-MM-DD
                 preferredTime,
+                timezoneOffset,
             };
 
             const res = await fetch(`${API_BASE}/api/subscriptions`, {

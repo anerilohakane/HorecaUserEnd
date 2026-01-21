@@ -28,6 +28,7 @@ export default function OrderSubscriptionModal({ orderId, items, isOpen, onClose
 
     const [frequency, setFrequency] = useState('Monthly');
     const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [endDate, setEndDate] = useState('');
     const [preferredTime, setPreferredTime] = useState('09:00');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [completedCount, setCompletedCount] = useState(0);
@@ -66,13 +67,17 @@ export default function OrderSubscriptionModal({ orderId, items, isOpen, onClose
                         continue;
                     }
 
+                    const timezoneOffset = new Date().getTimezoneOffset();
+
                     const payload = {
                         userId: userId,
                         productId: productId,
                         quantity: item.quantity,
                         frequency,
-                        startDate, // Send specific start date
+                        startDate: startDate, // Already 'YYYY-MM-DD' from input type='date'
+                        endDate: frequency !== 'Once' && endDate ? endDate : undefined,
                         preferredTime,
+                        timezoneOffset,
                     };
 
                     console.log("Submitting Subscription Payload:", payload);
@@ -160,12 +165,12 @@ export default function OrderSubscriptionModal({ orderId, items, isOpen, onClose
                     <div>
                         <label className="block text-xs font-semibold text-gray-700 mb-1">Frequency</label>
                         <div className="flex gap-2">
-                            {['Weekly', 'Monthly'].map(f => (
+                            {['One-time', 'Weekly', 'Monthly'].map(f => (
                                 <button
                                     key={f}
                                     type="button"
-                                    onClick={() => setFrequency(f)}
-                                    className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-all ${frequency === f
+                                    onClick={() => setFrequency(f === 'One-time' ? 'Once' : f)}
+                                    className={`flex-1 py-2 text-xs font-medium rounded-lg border transition-all ${frequency === (f === 'One-time' ? 'Once' : f)
                                         ? 'bg-amber-600 text-white border-amber-600'
                                         : 'bg-white text-gray-600 border-gray-200 hover:bg-gray-50'
                                         }`}
@@ -177,40 +182,65 @@ export default function OrderSubscriptionModal({ orderId, items, isOpen, onClose
                     </div>
 
                     {/* Date & Time */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">
-                                Start Date
-                            </label>
-                            <div className="relative">
-                                <Calendar size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
-                                <input
-                                    type="date"
-                                    min={new Date().toISOString().split('T')[0]}
-                                    value={startDate}
-                                    onChange={(e) => setStartDate(e.target.value)}
-                                    className="w-full pl-8 p-2 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                                />
+                    <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                    {frequency === 'Once' ? 'Schedule Date' : 'Next Order Date'}
+                                </label>
+                                <div className="relative">
+                                    <Calendar size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
+                                    <input
+                                        type="date"
+                                        min={new Date().toISOString().split('T')[0]}
+                                        value={startDate}
+                                        onChange={(e) => setStartDate(e.target.value)}
+                                        className="w-full pl-8 p-2 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">Time</label>
+                                <div className="relative">
+                                    <Clock size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
+                                    <input
+                                        type="time"
+                                        value={preferredTime}
+                                        onChange={(e) => setPreferredTime(e.target.value)}
+                                        className="w-full pl-8 p-2 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                                    />
+                                </div>
                             </div>
                         </div>
 
-                        <div>
-                            <label className="block text-xs font-semibold text-gray-700 mb-1">Time</label>
-                            <div className="relative">
-                                <Clock size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
-                                <input
-                                    type="time"
-                                    value={preferredTime}
-                                    onChange={(e) => setPreferredTime(e.target.value)}
-                                    className="w-full pl-8 p-2 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm"
-                                />
+                        {/* End Date (Only for Recurring) */}
+                        {frequency !== 'Once' && (
+                            <div>
+                                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                                    End Date <span className="text-gray-400 font-normal">(Optional)</span>
+                                </label>
+                                <div className="relative">
+                                    <Calendar size={14} className="absolute left-2.5 top-2.5 text-gray-400" />
+                                    <input
+                                        type="date"
+                                        min={startDate}
+                                        value={endDate}
+                                        onChange={(e) => setEndDate(e.target.value)}
+                                        className="w-full pl-8 p-2 border rounded-lg focus:ring-2 focus:ring-amber-500 outline-none text-sm"
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
 
                     {/* Info Text */}
                     <div className="text-[10px] text-gray-500 bg-amber-50/50 p-2 rounded border border-amber-100">
-                        First order on <strong className="text-amber-800">{new Date(startDate).toLocaleDateString()}</strong> at <strong className="text-amber-800">{preferredTime}</strong>, then repeats {frequency.toLowerCase()}.
+                        {frequency === 'Once' ? (
+                            <>One-time order scheduled for <strong className="text-amber-800">{new Date(startDate).toLocaleDateString()}</strong> at <strong className="text-amber-800">{preferredTime}</strong>.</>
+                        ) : (
+                            <>First order on <strong className="text-amber-800">{new Date(startDate).toLocaleDateString()}</strong> at <strong className="text-amber-800">{preferredTime}</strong>, then repeats {frequency.toLowerCase()}.</>
+                        )}
                     </div>
 
 
