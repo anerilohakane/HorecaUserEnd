@@ -60,7 +60,7 @@ export default function FrequentlyBought() {
             {/* Horizontal Scroll Container */}
             <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
                 {products.map(product => (
-                    <div key={product.id} className="min-w-[200px] w-[200px] snap-start">
+                    <div key={product._id} className="min-w-[200px] w-[200px] snap-start">
                         <ProductCard product={product} />
                     </div>
                 ))}
