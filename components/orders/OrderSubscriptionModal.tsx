@@ -27,9 +27,9 @@ export default function OrderSubscriptionModal({ orderId, items, isOpen, onClose
     const { user, token } = useAuth();
 
     const [frequency, setFrequency] = useState('Monthly');
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
-    const [preferredTime, setPreferredTime] = useState('09:00');
+    const [preferredTime, setPreferredTime] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [completedCount, setCompletedCount] = useState(0);
 
@@ -43,6 +43,11 @@ export default function OrderSubscriptionModal({ orderId, items, isOpen, onClose
 
         if (!token || !userId) {
             toast.error("Please login to enable auto-reorder");
+            return;
+        }
+
+        if (!startDate || !preferredTime) {
+            toast.error("Please select both a start date and time.");
             return;
         }
 
@@ -237,9 +242,9 @@ export default function OrderSubscriptionModal({ orderId, items, isOpen, onClose
                     {/* Info Text */}
                     <div className="text-[10px] text-gray-500 bg-amber-50/50 p-2 rounded border border-amber-100">
                         {frequency === 'Once' ? (
-                            <>One-time order scheduled for <strong className="text-amber-800">{new Date(startDate).toLocaleDateString()}</strong> at <strong className="text-amber-800">{preferredTime}</strong>.</>
+                            <>One-time order scheduled for <strong className="text-amber-800">{startDate ? new Date(startDate).toLocaleDateString() : '...'}</strong> at <strong className="text-amber-800">{preferredTime || '...'}</strong>.</>
                         ) : (
-                            <>First order on <strong className="text-amber-800">{new Date(startDate).toLocaleDateString()}</strong> at <strong className="text-amber-800">{preferredTime}</strong>, then repeats {frequency.toLowerCase()}.</>
+                            <>First order on <strong className="text-amber-800">{startDate ? new Date(startDate).toLocaleDateString() : '...'}</strong> at <strong className="text-amber-800">{preferredTime || '...'}</strong>, then repeats {frequency.toLowerCase()}.</>
                         )}
                     </div>
 
