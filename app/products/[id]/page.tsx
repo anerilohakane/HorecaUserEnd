@@ -317,6 +317,7 @@ function mapApiToProduct(raw: any, fallbackId?: string): Product {
 
   return {
     id: String(id),
+    _id: String(id),
     name: raw.name ?? raw.title ?? raw.productName ?? "Unnamed product",
     description: raw.description ?? raw.desc ?? "",
     price: Number(raw.price ?? 0),
