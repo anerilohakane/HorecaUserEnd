@@ -754,6 +754,7 @@ const ProfilePage = () => {
             });
             const data = await res.json();
             if (data.success) {
+                console.log("Subscriptions Data:", data.data);
                 setSubscriptions(data.data);
             }
         } catch (err) {
@@ -1573,7 +1574,7 @@ const ProfilePage = () => {
                                         {!subsLoading && subscriptions.length > 0 && (
                                             <div className="grid gap-4">
                                                 {subscriptions.map(sub => (
-                                                    <div key={sub._id} className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col md:flex-row gap-4 items-center hover:shadow-md transition-shadow">
+                                                    <div key={sub._id} className="p-4 rounded-xl border border-gray-200 bg-white shadow-sm flex flex-col md:flex-row gap-4 items-center hover:shadow-md transition-shadow relative">
                                                         <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0 border border-gray-100">
                                                             {sub.productImage ? (
                                                                 <Image src={sub.productImage} alt={sub.productName || "Product"} width={64} height={64} className="object-cover w-full h-full" unoptimized />
@@ -1582,7 +1583,15 @@ const ProfilePage = () => {
                                                             )}
                                                         </div>
                                                         <div className="flex-1 text-center md:text-left">
-                                                            <h4 className="font-semibold text-gray-900 text-lg">{sub.productName || "Unknown Product"}</h4>
+                                                            <div className="flex items-center gap-2 justify-center md:justify-start">
+                                                                <h4 className="font-semibold text-gray-900 text-lg">{sub.productName || "Unknown Product"}</h4>
+                                                                {/* Out of Stock Tag */}
+                                                                {sub.product?.stockQuantity <= 0 && (
+                                                                    <span className="bg-red-100 text-red-700 text-[10px] font-bold px-2 py-0.5 rounded-full border border-red-200">
+                                                                        Out of Stock
+                                                                    </span>
+                                                                )}
+                                                            </div>
                                                             <div className="flex flex-wrap items-center justify-center md:justify-start gap-x-4 gap-y-1 mt-1 text-sm text-gray-600">
                                                                 <span className="flex items-center gap-1">
                                                                     <RotateCw size={14} className="text-amber-600" />
