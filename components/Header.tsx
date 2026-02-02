@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, Heart, ShoppingCart, User, Linkedin, Instagram, Facebook, Phone, Mail, X } from 'lucide-react';
+import { Search, Heart, ShoppingCart, User, Linkedin, Instagram, Facebook, Phone, Mail, X, Bell } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
@@ -37,11 +37,34 @@ export default function Header() {
   }, []);
 
   // Fetch wishlist count when user is authenticated
+  const [notificationCount, setNotificationCount] = useState(0);
+
+  const fetchNotificationCount = async () => {
+    if (!user?.id) return;
+    try {
+      const token = localStorage.getItem("unifoods_token");
+      const res = await fetch(`${API_BASE}/api/notifications?userId=${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        // Count unread
+        const unread = data.data.filter((n: any) => !n.isRead).length;
+        setNotificationCount(unread);
+      }
+    } catch (error) {
+      console.error("Failed to fetch notifications", error);
+    }
+  };
+
+  // Fetch wishlist and notifications when auth updates
   useEffect(() => {
     if (mounted && isAuthenticated && user?.id) {
       fetchWishlistCount();
+      fetchNotificationCount();
     } else {
       setWishlistCount(0);
+      setNotificationCount(0);
     }
   }, [mounted, isAuthenticated, user?.id]);
 
@@ -413,6 +436,20 @@ export default function Header() {
 
                   {/* Cart Button */}
                   <CartButton />
+
+                  {/* Notification Button */}
+                  {isAuthenticated && (
+                    <Link href="/notifications">
+                      <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
+                        <Bell size={20} />
+                        {notificationCount > 0 && (
+                          <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                            {notificationCount > 9 ? '9+' : notificationCount}
+                          </span>
+                        )}
+                      </button>
+                    </Link>
+                  )}
 
                   {/* User Authentication Section - Only in Desktop if search hidden */}
                   <div className="hidden lg:block">
