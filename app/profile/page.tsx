@@ -1604,7 +1604,7 @@ const ProfilePage = () => {
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-3">
-                                                            {sub.status === 'Paused' && sub.lockedPrice && sub.product?.price >= sub.lockedPrice + 1 ? (
+                                                            {sub.status === 'Paused' && sub.lockedPrice && Math.abs(sub.product?.price - sub.lockedPrice) >= 1 ? (
                                                                 <div className="flex flex-col items-end gap-1">
                                                                     <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">
                                                                         Price Changed
