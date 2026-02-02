@@ -1604,10 +1604,51 @@ const ProfilePage = () => {
                                                             </div>
                                                         </div>
                                                         <div className="flex items-center gap-3">
-                                                            <span className={`px-3 py-1 text-xs font-semibold rounded-full ${sub.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
-                                                                }`}>
-                                                                {sub.status}
-                                                            </span>
+                                                            {sub.status === 'Paused' && sub.lockedPrice && sub.product?.price >= sub.lockedPrice + 1 ? (
+                                                                <div className="flex flex-col items-end gap-1">
+                                                                    <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full border border-amber-200">
+                                                                        Price Changed
+                                                                    </span>
+                                                                    <button
+                                                                        onClick={async () => {
+                                                                            if (!confirm(`Price changed from ₹${sub.lockedPrice} to ₹${sub.product.price}. Approve new price?`)) return;
+                                                                            try {
+                                                                                const res = await fetch(`${API_BASE}/api/subscriptions`, {
+                                                                                    method: 'PATCH',
+                                                                                    headers: {
+                                                                                        'Content-Type': 'application/json',
+                                                                                        'Authorization': `Bearer ${token}`
+                                                                                    },
+                                                                                    body: JSON.stringify({
+                                                                                        subscriptionId: sub._id,
+                                                                                        status: 'Active',
+                                                                                        lockedPrice: sub.product.price // Update to new price
+                                                                                    })
+                                                                                });
+                                                                                const data = await res.json();
+                                                                                if (data.success) {
+                                                                                    setToast({ show: true, message: "Price approved! Subscription active.", type: "success" });
+                                                                                    fetchSubscriptions();
+                                                                                } else {
+                                                                                    alert(data.error || "Failed");
+                                                                                }
+                                                                            } catch (e) {
+                                                                                console.error(e);
+                                                                                alert("Failed to update");
+                                                                            }
+                                                                        }}
+                                                                        className="px-3 py-1 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition"
+                                                                    >
+                                                                        Approve ₹{sub.product?.price}
+                                                                    </button>
+                                                                </div>
+                                                            ) : (
+                                                                <span className={`px-3 py-1 text-xs font-semibold rounded-full ${sub.status === 'Active' ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'
+                                                                    }`}>
+                                                                    {sub.status}
+                                                                </span>
+                                                            )}
+
                                                             {sub.status === 'Active' && (
                                                                 <button
                                                                     onClick={() => handleCancelSubscription(sub._id)}
