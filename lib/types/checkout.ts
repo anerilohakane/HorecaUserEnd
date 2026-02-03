@@ -9,6 +9,8 @@ export interface ShippingAddress {
   state: string;
   pincode: string;
   country: string;
+  lat?: number;
+  lng?: number;
 }
 
 // Payment Method Type

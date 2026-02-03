@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ShippingAddress } from "@/lib/types/checkout";
 import { MapPin, Plus, User, Mail, Phone } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
+import AddressMap from "@/components/ui/AddressMap";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -21,6 +22,7 @@ export default function ShippingAddressSelector({ onSubmit, initialData }: Props
   const [hasPriorOrders, setHasPriorOrders] = useState(false);
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [showMap, setShowMap] = useState(false);
 
   const primary = "#D97706";
 
@@ -224,10 +226,47 @@ export default function ShippingAddressSelector({ onSubmit, initialData }: Props
 
       {/* NEW ADDRESS FORM */}
       {(!savedAddress || selectedType === "new") && (
-        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <h3 className="font-bold text-lg mb-4 flex items-center gap-2 text-[#D97706]">
-            <MapPin className="text-[#D97706]" /> Add New Address
+        <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <h3 className="font-bold text-lg mb-4 flex items-center justify-between gap-2 text-[#D97706]">
+            <span className="flex items-center gap-2"><MapPin className="text-[#D97706]" /> Add New Address</span>
+
+            <button
+              type="button"
+              onClick={() => setShowMap(!showMap)}
+              className="text-xs font-semibold bg-[#D97706]/10 text-[#D97706] px-3 py-1.5 rounded-full hover:bg-[#D97706]/20 transition flex items-center gap-1"
+            >
+              {showMap ? 'Hide Map' : '📍 Pick on Map'}
+            </button>
           </h3>
+
+          {/* MAP INTEGRATION */}
+          {showMap && (
+            <div className="mb-6 animate-in zoom-in-95 duration-300">
+              <AddressMap
+                onLocationSelect={(loc: any) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    addressLine1: loc.addressLine1 || prev.addressLine1,
+                    city: loc.city || prev.city,
+                    state: loc.state || prev.state,
+                    country: loc.country || prev.country,
+                    pincode: loc.pincode || prev.pincode,
+                    lat: loc.lat,
+                    lng: loc.lng,
+                    // Don't overwrite basic info if already typed
+                  }));
+                  // Clear errors for auto-filled fields
+                  setErrors(prev => ({
+                    ...prev,
+                    addressLine1: '',
+                    city: '',
+                    state: '',
+                    pincode: ''
+                  }));
+                }}
+              />
+            </div>
+          )}
 
           <div className="grid md:grid-cols-2 gap-5">
             <InputField label="Full Name" name="fullName" icon={<User size={18} />} value={formData.fullName} onChange={handleChange} error={errors.fullName} />
