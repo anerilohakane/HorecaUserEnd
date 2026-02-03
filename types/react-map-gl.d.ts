@@ -25,6 +25,7 @@ declare module 'react-map-gl/mapbox' {
         style?: React.CSSProperties;
         children?: React.ReactNode;
         maxPitch?: number;
+        ref?: React.Ref<MapRef>;
     }
 
     const Map: React.FC<MapProps>;
@@ -32,6 +33,15 @@ declare module 'react-map-gl/mapbox' {
     export const Marker: React.FC<any>;
     export const NavigationControl: React.FC<any>;
     export const GeolocateControl: React.FC<any>;
+
+    // Added for OrderTrackingMap
+    export const Source: React.FC<any>;
+    export const Layer: React.FC<any>;
+
+    export interface MapRef {
+        getMap: () => MapboxGL.Map;
+        flyTo: (options: any) => void;
+    }
 
     export default Map;
 }

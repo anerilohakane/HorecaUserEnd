@@ -1360,7 +1360,21 @@ const ProfilePage = () => {
                                                                     </span>
 
                                                                     {/* Return Order Button - Visible if Delivered and Not already returned */}
+                                                                    {/* Return Order Button - Visible if Delivered and Not already returned */}
                                                                     {/* Removed from header */}
+
+                                                                    {['out_for_delivery', 'shipped', 'confirmed', 'processing'].includes(ord.status?.toLowerCase()) && (
+                                                                        <button
+                                                                            onClick={(e) => {
+                                                                                e.stopPropagation();
+                                                                                // Use window.location or router if available, but safe to assume router from context
+                                                                                window.location.href = `/orders/${ord.id || ord._id || ord.orderId}`;
+                                                                            }}
+                                                                            className="ml-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition shadow-sm flex items-center gap-2"
+                                                                        >
+                                                                            <MapPin size={16} /> Track
+                                                                        </button>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </div>
