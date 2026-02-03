@@ -3,11 +3,42 @@ import { Search, ArrowRight, MapPin } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function Hero() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [location, setLocation] = useState('Mumbai');
+  const [loadingLocation, setLoadingLocation] = useState(false);
+
+  useEffect(() => {
+    if ("geolocation" in navigator) {
+      setLoadingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          try {
+            const { latitude, longitude } = position.coords;
+            // Use OpenStreetMap Nominatim for free reverse geocoding
+            const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+            const data = await res.json();
+
+            // Extract city/town/village
+            const city = data.address.city || data.address.town || data.address.village || data.address.suburb || 'Mumbai';
+            setLocation(city);
+          } catch (error) {
+            console.error("Failed to fetch location name", error);
+            // Fallback remains Mumbai
+          } finally {
+            setLoadingLocation(false);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          setLoadingLocation(false);
+        }
+      );
+    }
+  }, []);
 
   const handleSearch = () => {
     if (!searchQuery.trim()) return;
@@ -34,9 +65,11 @@ export default function Hero() {
             <div className="bg-white p-2 rounded-full shadow-xl border border-gray-100 flex items-center max-w-xl mx-auto lg:mx-0 transform transition-all hover:scale-[1.01]">
 
               {/* Location Mockup */}
-              <div className="hidden sm:flex items-center gap-2 pl-6 pr-4 border-r border-gray-100 text-sm font-medium text-gray-600">
+              <div className="hidden sm:flex items-center gap-2 pl-6 pr-4 border-r border-gray-100 text-sm font-medium text-gray-600 min-w-[100px]">
                 <MapPin size={18} className="text-[#D97706]" />
-                <span>Mumbai</span>
+                <span className={loadingLocation ? "animate-pulse" : ""}>
+                  {loadingLocation ? "Locating..." : location}
+                </span>
               </div>
 
               <div className="pl-4 text-gray-400">
