@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Product } from '@/lib/types/product';
 import ProductImageGallery from './ProductImageGallery';
 import ProductReviews from './ProductReviews';
@@ -434,7 +435,12 @@ export default function ProductDetailClient({
 
 
     return (
-        <div className="min-h-screen bg-[#FAFAF7]">
+        <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="min-h-screen bg-[#FAFAF7]"
+        >
             {/* Breadcrumb */}
             <div className="bg-white border-b border-gray-100">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
@@ -456,16 +462,25 @@ export default function ProductDetailClient({
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 <div className="grid lg:grid-cols-2 gap-12 mb-12">
                     {/* Left: Image Gallery */}
-                    <div>
+                    <motion.div
+                        initial={{ opacity: 0, x: -50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, ease: "easeOut" }}
+                    >
                         <ProductImageGallery
                             productName={product.name}
                             mainImage={product.image}
                             images={[product.image, product.image, product.image]}
                         />
-                    </div>
+                    </motion.div>
 
                     {/* Right: Product Info */}
-                    <div className="space-y-6">
+                    <motion.div
+                        className="space-y-6"
+                        initial={{ opacity: 0, x: 50 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+                    >
                         {/* Category & Badge */}
                         <div className="flex items-center gap-3">
                             <span className="text-sm text-gray-600">{product.category}</span>
@@ -666,11 +681,17 @@ export default function ProductDetailClient({
                                 </div>
                             </div>
                         </div>
-                    </div>
+                    </motion.div>
                 </div>
 
                 {/* Tabs Section */}
-                <div className="bg-white rounded-2xl soft-shadow mb-12">
+                <motion.div
+                    className="bg-white rounded-2xl soft-shadow mb-12"
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.6 }}
+                >
                     {/* Tab Headers */}
                     <div className="border-b border-gray-200">
                         <div className="flex gap-8 px-8">
@@ -680,7 +701,7 @@ export default function ProductDetailClient({
                                     }`}
                             >
                                 Description
-                                {activeTab === 'description' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
+                                {activeTab === 'description' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
                             </button>
                             <button
                                 onClick={() => setActiveTab('specifications')}
@@ -688,7 +709,7 @@ export default function ProductDetailClient({
                                     }`}
                             >
                                 Specifications
-                                {activeTab === 'specifications' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
+                                {activeTab === 'specifications' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
                             </button>
                             <button
                                 onClick={() => setActiveTab('reviews')}
@@ -696,7 +717,7 @@ export default function ProductDetailClient({
                                     }`}
                             >
                                 Reviews ({reviews.length})
-                                {activeTab === 'reviews' && <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
+                                {activeTab === 'reviews' && <motion.div layoutId="activeTab" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#D97706]" />}
                             </button>
                         </div>
                     </div>
@@ -704,7 +725,7 @@ export default function ProductDetailClient({
                     {/* Tab Content */}
                     <div className="p-8">
                         {activeTab === 'description' && (
-                            <div className="prose max-w-none">
+                            <div className="prose max-w-none animate-in fade-in duration-300">
                                 <h3 className="text-xl font-medium text-[#111827] mb-4">Product Description</h3>
                                 <p className="text-gray-700 leading-relaxed mb-4">{product.description}</p>
                                 <h4 className="text-lg font-medium text-[#111827] mb-3">Features:</h4>
@@ -719,7 +740,7 @@ export default function ProductDetailClient({
                         )}
 
                         {activeTab === 'specifications' && (
-                            <div>
+                            <div className="animate-in fade-in duration-300">
                                 <h3 className="text-xl font-medium text-[#111827] mb-6">Product Specifications</h3>
                                 <div className="grid md:grid-cols-2 gap-x-12 gap-y-4">
                                     {(product?.specifications || [
@@ -743,16 +764,18 @@ export default function ProductDetailClient({
                         )}
 
                         {activeTab === 'reviews' && (
-                            <ProductReviews
-                                reviews={reviews}
-                                averageRating={averageRating}
-                                totalReviews={reviews.length}
-                                onWriteReview={() => setIsReviewFormOpen(true)}
-                            />
+                            <div className="animate-in fade-in duration-300">
+                                <ProductReviews
+                                    reviews={reviews}
+                                    averageRating={averageRating}
+                                    totalReviews={reviews.length}
+                                    onWriteReview={() => setIsReviewFormOpen(true)}
+                                />
+                            </div>
 
                         )}
                     </div>
-                </div>
+                </motion.div>
 
                 {/* Related Products */}
                 {/* <RelatedProducts products={relatedProducts} /> */}
@@ -764,6 +787,6 @@ export default function ProductDetailClient({
                     productName={product.name}
                 />
             </div>
-        </div>
+        </motion.div>
     );
 }

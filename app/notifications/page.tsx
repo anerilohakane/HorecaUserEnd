@@ -8,6 +8,7 @@ import Footer from '@/components/Footer';
 import { Bell, Check, Trash2, AlertTriangle, Info, CheckCircle, XCircle, Filter, Calendar } from 'lucide-react';
 import Link from 'next/link';
 import { format, isToday, isYesterday } from 'date-fns';
+import PageTransition from '@/components/ui/PageTransition';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
 
@@ -232,8 +233,8 @@ export default function NotificationsPage() {
                                                         exit={{ opacity: 0, height: 0, marginBottom: 0 }}
                                                         layout
                                                         className={`group relative overflow-hidden rounded-2xl border transition-all duration-300 ${notif.isRead
-                                                                ? 'bg-white border-gray-100 hover:border-gray-200'
-                                                                : 'bg-[#FFFCF5] border-[#D97706]/20 shadow-sm'
+                                                            ? 'bg-white border-gray-100 hover:border-gray-200'
+                                                            : 'bg-[#FFFCF5] border-[#D97706]/20 shadow-sm'
                                                             }`}
                                                     >
                                                         {/* Unread Indicator Bar */}

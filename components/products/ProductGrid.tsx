@@ -439,6 +439,7 @@ import ProductCard from './ProductCard';
 import type { Product, SortOption } from '@/lib/types/product';
 import { sortOptions } from '@/lib/productsData';
 import { LayoutGrid, List, SlidersHorizontal, ChevronDown } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface ProductGridProps {
   initialProducts?: Product[];
@@ -451,21 +452,7 @@ const buildApiUrl = (path: string) => {
   return raw.replace(/([^:]\/)\/+/g, '$1');
 };
 
-// Skeleton Card Component
-const SkeletonCard = () => (
-  <div className="group bg-white rounded-xl overflow-hidden shadow-sm animate-pulse">
-    <div className="relative aspect-[4/3] bg-gray-200" />
-    <div className="p-3 space-y-3">
-      <div className="h-3 bg-gray-200 rounded w-24" />
-      <div className="h-5 bg-gray-300 rounded w-full" />
-      <div className="h-4 bg-gray-200 rounded w-16" />
-      <div className="flex items-center justify-between mt-4">
-        <div className="h-6 bg-gray-300 rounded w-20" />
-        <div className="h-8 bg-gray-200 rounded w-20" />
-      </div>
-    </div>
-  </div>
-);
+import SkeletonCard from './SkeletonCard';
 
 export default function ProductGrid({ initialProducts = [] }: ProductGridProps) {
   const [products, setProducts] = useState<Product[]>(initialProducts);
@@ -584,6 +571,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   // Safe Accessors
   const getPrice = (p: any): number => Number(p.price ?? p.price?.amount ?? p.discountedPrice ?? 0);
   const getRating = (p: any): number => Number(p.rating ?? p.averageRating ?? 0);
+  const getStableId = (p: any): string => p._id || p.id || p.sku || String(p.name);
 
   // Filter & Sort
   const processedProducts = useMemo(() => {
@@ -721,14 +709,37 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {processedProducts.map((product) => (
-                <ProductCard
-                  key={product.id || Math.random()}
-                  product={product}
-                />
-              ))}
-            </div>
+            <motion.div
+              layout
+              className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"
+              initial="hidden"
+              animate="visible"
+              variants={{
+                hidden: { opacity: 0 },
+                visible: {
+                  opacity: 1,
+                  transition: { staggerChildren: 0.05 }
+                }
+              }}
+            >
+              <AnimatePresence mode="popLayout">
+                {processedProducts.map((product, index) => {
+                  const stableId = getStableId(product) || `product-${index}`;
+                  return (
+                    <motion.div
+                      key={stableId}
+                      layout
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ProductCard product={product} />
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </motion.div>
           )}
         </section>
       </div>

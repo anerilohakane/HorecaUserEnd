@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from 'react';
 import ProductCard from './ProductCard';
+import SkeletonCard from './SkeletonCard';
 import { Product } from '@/lib/types/product';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Sparkles, Loader } from 'lucide-react';
@@ -43,7 +44,8 @@ export default function FrequentlyBought() {
         fetchFrequentItems();
     }, [user?.id, isAuthenticated]);
 
-    if (!isAuthenticated || (!loading && products.length === 0)) return null;
+    if (!isAuthenticated) return null;
+    if (!loading && products.length === 0) return null;
 
     return (
         <div className="mb-8 animate-in fade-in slide-in-from-top-4 duration-500">
@@ -52,19 +54,27 @@ export default function FrequentlyBought() {
                     <Sparkles size={20} />
                 </div>
                 <h2 className="text-xl font-bold text-gray-900">Your Regulars</h2>
-                {loading && <Loader size={16} className="animate-spin text-gray-400" />}
             </div>
 
             <p className="text-sm text-gray-500 mb-4 -mt-2">Items you buy frequently. Subscribe to save time!</p>
 
-            {/* Horizontal Scroll Container */}
-            <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
-                {products.map(product => (
-                    <div key={product._id} className="min-w-[200px] w-[200px] snap-start">
-                        <ProductCard product={product} />
-                    </div>
-                ))}
-            </div>
+            {loading ? (
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+                    {Array.from({ length: 4 }).map((_, i) => (
+                        <div key={i} className="min-w-[200px] w-[200px] snap-start">
+                            <SkeletonCard />
+                        </div>
+                    ))}
+                </div>
+            ) : products.length === 0 ? null : (
+                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
+                    {products.map(product => (
+                        <div key={product._id} className="min-w-[200px] w-[200px] snap-start">
+                            <ProductCard product={product} />
+                        </div>
+                    ))}
+                </div>
+            )}
         </div>
     );
 }

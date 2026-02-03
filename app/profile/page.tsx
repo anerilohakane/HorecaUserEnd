@@ -26,7 +26,9 @@ import {
     Settings,
     LogOut,
     Clock,
+    Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud
 } from 'lucide-react';
+import PageTransition from "@/components/ui/PageTransition";
 import Header from '@/components/Header';
 import { useAuth } from '@/lib/context/AuthContext';
 import ShippingAddressSelector from '@/components/checkout/ShippingForm';
@@ -37,6 +39,7 @@ import CancelOrderModal from '@/components/orders/CancelOrderModal';
 import OrderSubscriptionModal from '@/components/orders/OrderSubscriptionModal';
 import CancelSubscriptionModal from '@/components/orders/CancelSubscriptionModal';
 import { RotateCw } from 'lucide-react';
+import Footer from '@/components/Footer';
 
 const formatToIST = (dateString: string | Date) => {
     if (!dateString) return '';
@@ -848,17 +851,7 @@ const ProfilePage = () => {
        UI RENDER: KEEP EVERYTHING SAME
     ------------------------------------------------------------- */
 
-    if (loading) {
-        console.log("⏳ Loading profile...");
-        return (
-            <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-                <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-amber-600 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-                    <p className="text-gray-600 font-medium">Loading your profile...</p>
-                </div>
-            </div>
-        );
-    }
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-gray-50"><Loader2 className="w-8 h-8 animate-spin text-orange-500" /></div>;
 
     if (!user) {
         console.log("❌ No user returned from backend");
@@ -870,30 +863,30 @@ const ProfilePage = () => {
     }
 
     return (
-        <>
-            <Header />
+        <PageTransition>
+            <div className="min-h-screen flex flex-col bg-gray-50">
+                <Header />
 
-            {/* Toasts — SAME */}
-            {toast.show && (
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -20 }}
-                    className="fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-xl border border-gray-200"
-                >
-                    <CheckCircle className="w-5 h-5 text-green-600" />
-                    <span className="font-medium text-gray-800">{toast.message}</span>
-                    <button
-                        onClick={() => setToast({ ...toast, show: false })}
-                        className="ml-2 text-gray-400 hover:text-gray-600"
+                {/* Toasts — SAME */}
+                {toast.show && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-xl border border-gray-200"
                     >
-                        <XCircle className="w-5 h-5" />
-                    </button>
-                </motion.div>
-            )}
+                        <CheckCircle className="w-5 h-5 text-green-600" />
+                        <span className="font-medium text-gray-800">{toast.message}</span>
+                        <button
+                            onClick={() => setToast({ ...toast, show: false })}
+                            className="ml-2 text-gray-400 hover:text-gray-600"
+                        >
+                            <XCircle className="w-5 h-5" />
+                        </button>
+                    </motion.div>
+                )}
 
-            {/* UI BELOW UNCHANGED — ONLY ORDERS LIST ITEMS UPDATED TO SHOW IMAGE */}
-            <div className="min-h-screen bg-gray-50/50">
+                {/* UI BELOW UNCHANGED — ONLY ORDERS LIST ITEMS UPDATED TO SHOW IMAGE */}
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
                     {/* PROFILE HEADER (same) */}
@@ -1706,6 +1699,7 @@ const ProfilePage = () => {
                     </div>
 
                 </div>
+                <Footer />
             </div>
 
             {/* Review Modal */}
@@ -1746,7 +1740,7 @@ const ProfilePage = () => {
                 onSubmit={handleCancelSubscriptionSubmit}
                 subscriptionId={cancelSubId || ''}
             />
-        </>
+        </PageTransition>
     );
 };
 

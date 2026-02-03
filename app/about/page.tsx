@@ -1,28 +1,49 @@
+'use client';
+
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { Award, Users, Truck, ShieldCheck, Store } from "lucide-react";
+import PageTransition from '@/components/ui/PageTransition';
+import { motion } from 'framer-motion';
+
+const fadeInUp = {
+  hidden: { opacity: 0, y: 30 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.6 } }
+};
 
 export default function AboutPage() {
   return (
-    <>
+    <PageTransition>
       <Header />
 
       <main className="bg-[#FAFAF7]">
         {/* HERO SECTION */}
         <section className="bg-white border-b border-gray-200">
           <div className="max-w-7xl mx-auto px-6 py-16 text-center">
-            <h1 className="text-4xl md:text-5xl font-light text-[#111827] mb-4">
-              About <span className="text-[#D97706]">Unifoods</span>
-            </h1>
-            <p className="max-w-3xl mx-auto text-gray-600 text-lg">
-              India’s trusted B2B marketplace connecting bakeries, restaurants,
-              and food businesses with premium-quality ingredients and reliable suppliers.
-            </p>
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+            >
+              <h1 className="text-4xl md:text-5xl font-light text-[#111827] mb-4">
+                About <span className="text-[#D97706]">Unifoods</span>
+              </h1>
+              <p className="max-w-3xl mx-auto text-gray-600 text-lg">
+                India’s trusted B2B marketplace connecting bakeries, restaurants,
+                and food businesses with premium-quality ingredients and reliable suppliers.
+              </p>
+            </motion.div>
           </div>
         </section>
 
         {/* WHO WE ARE */}
-        <section className="max-w-7xl mx-auto px-6 py-16">
+        <motion.section
+          className="max-w-7xl mx-auto px-6 py-16"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-100px" }}
+          variants={fadeInUp}
+        >
           <div className="grid md:grid-cols-2 gap-12 items-center">
             <div>
               <h2 className="text-3xl font-semibold text-[#111827] mb-4">
@@ -40,7 +61,7 @@ export default function AboutPage() {
               </p>
             </div>
 
-            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm">
+            <div className="bg-white rounded-2xl border border-gray-200 p-8 shadow-sm hover:shadow-md transition-shadow duration-300">
               <ul className="space-y-4 text-gray-700">
                 <li className="flex items-start gap-3">
                   <ShieldCheck className="w-5 h-5 text-[#D97706] mt-1" />
@@ -57,10 +78,16 @@ export default function AboutPage() {
               </ul>
             </div>
           </div>
-        </section>
+        </motion.section>
 
         {/* OUR MISSION */}
-        <section className="bg-white border-y border-gray-200">
+        <motion.section
+          className="bg-white border-y border-gray-200"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          variants={fadeInUp}
+        >
           <div className="max-w-7xl mx-auto px-6 py-16 text-center">
             <h2 className="text-3xl font-semibold text-[#111827] mb-4">
               Our Mission
@@ -71,10 +98,16 @@ export default function AboutPage() {
               without worrying about sourcing, quality, or availability.
             </p>
           </div>
-        </section>
+        </motion.section>
 
         {/* WHY CHOOSE US */}
-        <section className="max-w-7xl mx-auto px-6 py-16">
+        <motion.section
+          className="max-w-7xl mx-auto px-6 py-16"
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, margin: "-50px" }}
+          variants={fadeInUp}
+        >
           <h2 className="text-3xl font-semibold text-[#111827] text-center mb-12">
             Why Choose Unifoods
           </h2>
@@ -102,9 +135,10 @@ export default function AboutPage() {
                 desc: "Clear pricing, verified sellers, and secure transactions.",
               },
             ].map((item, i) => (
-              <div
+              <motion.div
                 key={i}
-                className="bg-white rounded-2xl border border-gray-200 p-6 text-center shadow-sm hover:shadow-md transition"
+                whileHover={{ y: -5 }}
+                className="bg-white rounded-2xl border border-gray-200 p-6 text-center shadow-sm hover:shadow-lg transition-all duration-300"
               >
                 <div className="w-12 h-12 mx-auto mb-4 rounded-full bg-amber-50 flex items-center justify-center">
                   <item.icon className="w-6 h-6 text-[#D97706]" />
@@ -113,13 +147,19 @@ export default function AboutPage() {
                   {item.title}
                 </h3>
                 <p className="text-sm text-gray-600">{item.desc}</p>
-              </div>
+              </motion.div>
             ))}
           </div>
-        </section>
+        </motion.section>
 
         {/* CTA */}
-        <section className="bg-[#D97706]">
+        <motion.section
+          className="bg-[#D97706]"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.8 }}
+        >
           <div className="max-w-7xl mx-auto px-6 py-16 text-center">
             <h2 className="text-3xl font-semibold text-white mb-4">
               Partner with Unifoods
@@ -128,17 +168,19 @@ export default function AboutPage() {
               Join thousands of food businesses who trust Unifoods
               for consistent quality and seamless sourcing.
             </p>
-            <a
+            <motion.a
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
               href="/products"
-              className="inline-block bg-white text-[#D97706] px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition"
+              className="inline-block bg-white text-[#D97706] px-8 py-3 rounded-full font-semibold hover:bg-gray-100 transition shadow-lg"
             >
               Start Shopping
-            </a>
+            </motion.a>
           </div>
-        </section>
+        </motion.section>
       </main>
 
       <Footer />
-    </>
+    </PageTransition>
   );
 }

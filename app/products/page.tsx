@@ -54,32 +54,41 @@ async function getInitialProducts() {
   }
 }
 
+import PageTransition from "@/components/ui/PageTransition";
+
+import { Suspense } from 'react';
+import Loading from './loading';
+
 export default async function ProductsPage() {
   const { products, error } = await getInitialProducts();
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <PageTransition>
+      <div className="min-h-screen flex flex-col">
+        <Header />
 
-      <main className="flex-grow bg-gray-50">
-        <div className="max-w-[1920px] mx-auto px-4 md:px-6 py-6">
-          <FrequentlyBought />
-        </div>
-
-        {/* Pass data directly — ProductGrid will show skeletons only if needed */}
-        <ProductGrid initialProducts={products} />
-
-        {/* Optional: Show server-side error (rare) */}
-        {error && products.length === 0 && (
-          <div className="max-w-7xl mx-auto px-4 py-16 text-center">
-            <p className="text-red-600 bg-red-50 inline-block px-6 py-4 rounded-lg">
-              {error}
-            </p>
+        <main className="flex-grow bg-gray-50">
+          <div className="max-w-[1920px] mx-auto px-4 md:px-6 py-6">
+            <FrequentlyBought />
           </div>
-        )}
-      </main>
 
-      <Footer />
-    </div>
+          {/* Pass data directly — ProductGrid will show skeletons only if needed */}
+          <Suspense fallback={<Loading />}>
+            <ProductGrid initialProducts={products} />
+          </Suspense>
+
+          {/* Optional: Show server-side error (rare) */}
+          {error && products.length === 0 && (
+            <div className="max-w-7xl mx-auto px-4 py-16 text-center">
+              <p className="text-red-600 bg-red-50 inline-block px-6 py-4 rounded-lg">
+                {error}
+              </p>
+            </div>
+          )}
+        </main>
+
+        <Footer />
+      </div>
+    </PageTransition>
   );
 }

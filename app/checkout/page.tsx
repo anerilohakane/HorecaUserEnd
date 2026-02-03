@@ -13,6 +13,7 @@ import { Check } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/context/AuthContext';
+import PageTransition from "@/components/ui/PageTransition";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -119,113 +120,114 @@ export default function CheckoutPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col">
-      <Header />
+    <PageTransition>
+      <div className="min-h-screen flex flex-col">
+        <Header />
 
-      <main className="flex-grow bg-[#FAFAF7] py-8">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          {/* Breadcrumb */}
-          <div className="mb-6">
-            <nav className="flex items-center gap-2 text-sm text-gray-600">
-              <Link href="/" className="hover:text-[#D97706] transition-colors">Home</Link>
-              <span>/</span>
-              <a href="/cart" className="hover:text-[#D97706] transition-colors">Cart</a>
-              <span>/</span>
-              <span className="text-[#111827] font-medium">Checkout</span>
-            </nav>
-          </div>
+        <main className="flex-grow bg-[#FAFAF7] py-8">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Breadcrumb */}
+            <div className="mb-6">
+              <nav className="flex items-center gap-2 text-sm text-gray-600">
+                <Link href="/" className="hover:text-[#D97706] transition-colors">Home</Link>
+                <span>/</span>
+                <a href="/cart" className="hover:text-[#D97706] transition-colors">Cart</a>
+                <span>/</span>
+                <span className="text-[#111827] font-medium">Checkout</span>
+              </nav>
+            </div>
 
-          {/* Page Header */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-light text-[#111827] mb-2">
-              Checkout
-            </h1>
-            <p className="text-gray-600">
-              Complete your order in just a few steps
-            </p>
-          </div>
+            {/* Page Header */}
+            <div className="mb-8">
+              <h1 className="text-4xl font-light text-[#111827] mb-2">
+                Checkout
+              </h1>
+              <p className="text-gray-600">
+                Complete your order in just a few steps
+              </p>
+            </div>
 
-          {/* Step Indicator */}
-          <div className="mb-8">
-            <div className="bg-white rounded-2xl soft-shadow p-6">
-              <div className="flex items-center justify-between">
-                {steps.map((step, index) => {
-                  const isCompleted = index < currentStepIndex;
-                  const isCurrent = step.id === currentStep;
+            {/* Step Indicator */}
+            <div className="mb-8">
+              <div className="bg-white rounded-2xl soft-shadow p-6">
+                <div className="flex items-center justify-between">
+                  {steps.map((step, index) => {
+                    const isCompleted = index < currentStepIndex;
+                    const isCurrent = step.id === currentStep;
 
-                  return (
-                    <div key={step.id} className="flex items-center flex-1">
-                      {/* Step Circle */}
-                      <div className="flex flex-col items-center">
-                        <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold transition-all ${isCompleted
-                            ? 'bg-[#D97706] text-white'
-                            : isCurrent
-                              ? 'bg-[#D97706] text-white ring-4 ring-[#D97706]/20'
-                              : 'bg-gray-200 text-gray-500'
-                            }`}
-                        >
-                          {isCompleted ? (
-                            <Check size={24} strokeWidth={3} />
-                          ) : (
-                            step.number
-                          )}
+                    return (
+                      <div key={step.id} className="flex items-center flex-1">
+                        {/* Step Circle */}
+                        <div className="flex flex-col items-center">
+                          <div
+                            className={`w-12 h-12 rounded-full flex items-center justify-center font-semibold transition-all ${isCompleted
+                              ? 'bg-[#D97706] text-white'
+                              : isCurrent
+                                ? 'bg-[#D97706] text-white ring-4 ring-[#D97706]/20'
+                                : 'bg-gray-200 text-gray-500'
+                              }`}
+                          >
+                            {isCompleted ? (
+                              <Check size={24} strokeWidth={3} />
+                            ) : (
+                              step.number
+                            )}
+                          </div>
+                          <span
+                            className={`mt-2 text-sm font-medium ${isCurrent ? 'text-[#D97706]' : 'text-gray-600'
+                              }`}
+                          >
+                            {step.label}
+                          </span>
                         </div>
-                        <span
-                          className={`mt-2 text-sm font-medium ${isCurrent ? 'text-[#D97706]' : 'text-gray-600'
-                            }`}
-                        >
-                          {step.label}
-                        </span>
-                      </div>
 
-                      {/* Connector Line */}
-                      {index < steps.length - 1 && (
-                        <div
-                          className={`flex-1 h-1 mx-4 rounded transition-all ${index < currentStepIndex ? 'bg-[#D97706]' : 'bg-gray-200'
-                            }`}
-                        />
-                      )}
-                    </div>
-                  );
-                })}
+                        {/* Connector Line */}
+                        {index < steps.length - 1 && (
+                          <div
+                            className={`flex-1 h-1 mx-4 rounded transition-all ${index < currentStepIndex ? 'bg-[#D97706]' : 'bg-gray-200'
+                              }`}
+                          />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Step Content */}
-          <div>
-            {currentStep === 'shipping' && (
-              <ShippingForm
-                onSubmit={handleShippingSubmit}
-                initialData={shippingAddress || undefined}
-              />
-            )}
-
-            {currentStep === 'payment' && (
-              <div className="space-y-4">
-                <button
-                  onClick={() => setCurrentStep('shipping')}
-                  className="text-[#D97706] hover:text-[#B45309] font-medium text-sm"
-                >
-                  ← Back to Shipping
-                </button>
-                <PaymentMethod
-                  onSubmit={handlePaymentSubmit}
-                  initialMethod={paymentMethod}
+            {/* Step Content */}
+            <div>
+              {currentStep === 'shipping' && (
+                <ShippingForm
+                  onSubmit={handleShippingSubmit}
+                  initialData={shippingAddress || undefined}
                 />
-              </div>
-            )}
+              )}
 
-            {currentStep === 'review' && shippingAddress && (
-              <div className="space-y-4">
-                <button
-                  onClick={() => setCurrentStep('payment')}
-                  className="text-[#D97706] hover:text-[#B45309] font-medium text-sm"
-                >
-                  ← Back to Payment
-                </button>
-                {/* <OrderReview
+              {currentStep === 'payment' && (
+                <div className="space-y-4">
+                  <button
+                    onClick={() => setCurrentStep('shipping')}
+                    className="text-[#D97706] hover:text-[#B45309] font-medium text-sm"
+                  >
+                    ← Back to Shipping
+                  </button>
+                  <PaymentMethod
+                    onSubmit={handlePaymentSubmit}
+                    initialMethod={paymentMethod}
+                  />
+                </div>
+              )}
+
+              {currentStep === 'review' && shippingAddress && (
+                <div className="space-y-4">
+                  <button
+                    onClick={() => setCurrentStep('payment')}
+                    className="text-[#D97706] hover:text-[#B45309] font-medium text-sm"
+                  >
+                    ← Back to Payment
+                  </button>
+                  {/* <OrderReview
                   shippingAddress={shippingAddress}
                   paymentMethod={paymentMethod}
                   items={items}
@@ -240,27 +242,28 @@ export default function CheckoutPage() {
                   isPlacingOrder={isPlacingOrder}
                 /> */}
 
-                <OrderReview
-                  shippingAddress={shippingAddress}
-                  paymentMethod={paymentMethod}
-                  items={items}
-                  subtotal={subtotal}
-                  discount={discount}
-                  tax={tax}
-                  shipping={shipping}
-                  total={total}
-                  onEditShipping={() => setCurrentStep('shipping')}
-                  onEditPayment={() => setCurrentStep('payment')}
-                  platformFee={platformFee}
-                />
+                  <OrderReview
+                    shippingAddress={shippingAddress}
+                    paymentMethod={paymentMethod}
+                    items={items}
+                    subtotal={subtotal}
+                    discount={discount}
+                    tax={tax}
+                    shipping={shipping}
+                    total={total}
+                    onEditShipping={() => setCurrentStep('shipping')}
+                    onEditPayment={() => setCurrentStep('payment')}
+                    platformFee={platformFee}
+                  />
 
-              </div>
-            )}
+                </div>
+              )}
+            </div>
           </div>
-        </div>
-      </main>
+        </main>
 
-      <Footer />
-    </div>
+        <Footer />
+      </div>
+    </PageTransition>
   );
 }

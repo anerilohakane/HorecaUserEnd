@@ -9,6 +9,8 @@ import Footer from '@/components/Footer';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProductCard from '@/components/products/ProductCard';
 import { Product } from '@/lib/types/product';
+import SkeletonCard from '@/components/products/SkeletonCard';
+import PageTransition from '@/components/ui/PageTransition';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
@@ -135,69 +137,89 @@ export default function WishlistPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
-            <Header />
+        <PageTransition>
+            <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+                <Header />
 
-            {/* Hero Section */}
-            <div className="py-12">
-                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
-                    <h1 className="text-3xl md:text-4xl font-serif font-bold text-[#111827] flex items-center gap-3">
-                        <Heart className="text-[#D97706] fill-[#D97706]" size={32} />
-                        My Wishlist
-                    </h1>
-                    <Link
-                        href="/products"
-                        className="inline-flex items-center gap-2 text-[#D97706] font-medium hover:text-[#B45309] transition-colors"
-                    >
-                        <ArrowLeft size={16} /> Continue Shopping
-                    </Link>
-                </div>
-            </div>
-
-            {/* Main Content */}
-            <main className="flex-grow py-8 bg-[#FAFAF7]">
-                <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
-                    {loading ? (
-                        <div className="flex flex-col items-center justify-center py-20">
-                            <Loader2 className="w-12 h-12 text-[#D97706] animate-spin mb-4" />
-                            <p className="text-gray-500">Loading your favorites...</p>
-                        </div>
-                    ) : wishlistItems.length === 0 ? (
-                        <div className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm max-w-2xl mx-auto">
-                            <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                <Heart size={40} className="text-gray-300" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Your wishlist is empty</h2>
-                            <p className="text-gray-500 mb-8 max-w-sm mx-auto">Looks like you haven't saved any items yet. Browse our products to find your essentials.</p>
-                            <Link
-                                href="/products"
-                                className="inline-flex items-center gap-2 bg-[#D97706] text-white px-8 py-3 rounded-full font-medium hover:bg-[#B45309] transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                            >
-                                Browse Products <ArrowRight size={18} />
-                            </Link>
-                        </div>
-                    ) : (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="flex overflow-x-auto pb-8 gap-4 px-1 snap-x scrollbar-hide"
+                {/* Hero Section */}
+                <div className="py-12">
+                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-4">
+                        <motion.h1
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            className="text-3xl md:text-4xl font-serif font-bold text-[#111827] flex items-center gap-3"
                         >
-                            <AnimatePresence>
-                                {wishlistItems.map((item) => (
-                                    <div key={item.id} className="min-w-[260px] md:min-w-[280px] snap-start">
-                                        <ProductCard
-                                            product={item}
-                                            initialWishlistState={true}
-                                            onRemove={(id) => setWishlistItems(prev => prev.filter(p => p.id !== id))}
-                                        />
+                            <Heart className="text-[#D97706] fill-[#D97706]" size={32} />
+                            My Wishlist
+                        </motion.h1>
+                        <Link
+                            href="/products"
+                            className="inline-flex items-center gap-2 text-[#D97706] font-medium hover:text-[#B45309] transition-colors"
+                        >
+                            <ArrowLeft size={16} /> Continue Shopping
+                        </Link>
+                    </div>
+                </div>
+
+                {/* Main Content */}
+                <main className="flex-grow py-8 bg-[#FAFAF7]">
+                    <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+                        {loading ? (
+                            <div className="flex overflow-x-auto pb-8 gap-4 px-1 snap-x scrollbar-hide">
+                                {Array.from({ length: 4 }).map((_, i) => (
+                                    <div key={i} className="min-w-[260px] md:min-w-[280px]">
+                                        <SkeletonCard />
                                     </div>
                                 ))}
-                            </AnimatePresence>
-                        </motion.div>
-                    )}
-                </div>
-            </main>
-            <Footer />
-        </div>
+                            </div>
+                        ) : wishlistItems.length === 0 ? (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                className="text-center py-20 bg-white rounded-3xl border border-gray-100 shadow-sm max-w-2xl mx-auto"
+                            >
+                                <div className="w-20 h-20 bg-gray-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                                    <Heart size={40} className="text-gray-300" />
+                                </div>
+                                <h2 className="text-2xl font-bold text-gray-900 mb-2">Your wishlist is empty</h2>
+                                <p className="text-gray-500 mb-8 max-w-sm mx-auto">Looks like you haven't saved any items yet. Browse our products to find your essentials.</p>
+                                <Link
+                                    href="/products"
+                                    className="inline-flex items-center gap-2 bg-[#D97706] text-white px-8 py-3 rounded-full font-medium hover:bg-[#B45309] transition-all shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                                >
+                                    Browse Products <ArrowRight size={18} />
+                                </Link>
+                            </motion.div>
+                        ) : (
+                            <motion.div
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                className="flex overflow-x-auto pb-8 gap-4 px-1 snap-x scrollbar-hide"
+                            >
+                                <AnimatePresence>
+                                    {wishlistItems.map((item) => (
+                                        <motion.div
+                                            layout
+                                            initial={{ opacity: 0, scale: 0.9 }}
+                                            animate={{ opacity: 1, scale: 1 }}
+                                            exit={{ opacity: 0, scale: 0, transition: { duration: 0.2 } }}
+                                            key={item.id}
+                                            className="min-w-[260px] md:min-w-[280px] snap-start"
+                                        >
+                                            <ProductCard
+                                                product={item}
+                                                initialWishlistState={true}
+                                                onRemove={(id) => setWishlistItems(prev => prev.filter(p => p.id !== id))}
+                                            />
+                                        </motion.div>
+                                    ))}
+                                </AnimatePresence>
+                            </motion.div>
+                        )}
+                    </div>
+                </main>
+                <Footer />
+            </div>
+        </PageTransition>
     );
 }
