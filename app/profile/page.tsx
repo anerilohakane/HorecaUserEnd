@@ -887,7 +887,7 @@ const ProfilePage = () => {
                 )}
 
                 {/* UI BELOW UNCHANGED — ONLY ORDERS LIST ITEMS UPDATED TO SHOW IMAGE */}
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+                <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
                     {/* PROFILE HEADER (same) */}
                     <motion.div
@@ -980,7 +980,7 @@ const ProfilePage = () => {
                     <div className="flex flex-col lg:flex-row gap-8">
 
                         {/* SIDEBAR (same) */}
-                        <aside className="lg:w-80">
+                        <aside className="lg:w-80 flex-shrink-0">
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden sticky top-8">
                                 <div className="px-6 py-5 border-b border-gray-200">
                                     <h3 className="text-lg font-semibold text-gray-900">Account Settings</h3>
@@ -1027,7 +1027,7 @@ const ProfilePage = () => {
                         </aside>
 
                         {/* MAIN CONTENT */}
-                        <main className="flex-1">
+                        <main className="flex-1 min-w-0">
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
 
                                 {/* PERSONAL INFO (same) */}
