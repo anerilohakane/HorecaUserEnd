@@ -24,16 +24,14 @@ export default function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
-  const [fuse, setFuse] = useState<Fuse<any> | null>(null);
+  const [isSearching, setIsSearching] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
   // Ensure component is mounted to avoid hydration issues
   useEffect(() => {
     setMounted(true);
-    // Fetch products for search index in background
-    fetchsearchProducts();
   }, []);
 
   // Fetch wishlist count when user is authenticated
@@ -78,88 +76,46 @@ export default function Header() {
     return () => window.removeEventListener('wishlist-updated', handleWishlistUpdate);
   }, [user?.id]);
 
-  useEffect(() => {
-    // Focus input when search opens
-    if (isSearchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+  const performSearch = async (query: string) => {
+    if (!query.trim()) {
+      setSearchResults([]);
+      setIsSearching(false);
+      return;
     }
-  }, [isSearchOpen]);
 
-  // Click outside to close search
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
-        setIsSearchOpen(false);
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-
-  const fetchsearchProducts = async () => {
+    setIsSearching(true);
     try {
-      const url = `${API_BASE || 'https://horeca-backend-six.vercel.app'}/api/products?limit=1000`;
-      console.log("🔍 Fetching search products from:", url);
+      const url = `${API_BASE || 'https://horeca-backend-six.vercel.app'}/api/products?q=${encodeURIComponent(query)}&limit=5`;
       const res = await fetch(url);
-      if (!res.ok) {
-        console.error("❌ Search fetch failed:", res.status);
-        return;
-      }
       const data = await res.json();
-      console.log("📦 Search API Response (Keys):", Object.keys(data));
 
-      // Robust extraction: validation similar to CartPage
-      let items = data.products || data.data?.items || data.data || [];
-      if (!Array.isArray(items)) {
-        // If it's still not an array (e.g. data.data was an object but not items), default strictly
-        console.warn("⚠️ Search data is not an array:", items);
-        items = [];
+      if (data.success && Array.isArray(data.data?.items)) {
+        setSearchResults(data.data.items);
+      } else {
+        setSearchResults([]);
       }
-
-      console.log("✅ Search Products Loaded:", items.length);
-
-      if (items.length > 0) {
-        console.log("First product sample:", items[0]);
-        console.log("Sample Keys:", Object.keys(items[0]));
-      }
-
-      setAllProducts(items);
-
-      // Initialize Fuse
-      const fuseInstance = new Fuse(items, {
-        // Include 'title' if 'name' is missing, etc.
-        keys: ['name', 'title', 'category.name', 'description', 'category'],
-        threshold: 0.4, // Fuzzy match threshold (0.0 = perfect, 1.0 = anything)
-        distance: 100,
-        ignoreLocation: true, // Find matches anywhere in the string
-      });
-      setFuse(fuseInstance);
-      console.log("🚀 Fuse initialized");
-
-    } catch (e) {
-      console.error("Failed to build search index", e);
+    } catch (error) {
+      console.error("Search failed:", error);
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
     }
-  }
+  };
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
+
+    if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (!query.trim()) {
       setSearchResults([]);
       return;
     }
 
-    if (fuse) {
-      const results = fuse.search(query);
-      console.log(`🔎 Searching for "${query}":`, results.length, "matches");
-      if (results.length > 0) console.log("Top match:", results[0].item.name);
-      setSearchResults(results.slice(0, 5).map(r => r.item));
-    } else {
-      console.warn("⚠️ Fuse not initialized yet");
-    }
+    debounceRef.current = setTimeout(() => {
+      performSearch(query);
+    }, 300); // 300ms debounce
   };
 
   const fetchWishlistCount = async () => {

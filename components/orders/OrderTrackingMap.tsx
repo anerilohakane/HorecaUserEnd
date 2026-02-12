@@ -28,25 +28,48 @@ const OrderTrackingMap: React.FC<OrderTrackingMapProps> = ({ destination, status
         lng: destination.lng - 0.015
     };
 
+    // State for bearing (rotation)
+    const [driverBearing, setDriverBearing] = useState<number>(0);
+
+    // Poll for driver location every 4 seconds
     useEffect(() => {
-        if ((status === 'out_for_delivery' || status === 'shipped') && mapLoaded) {
-            setDriverLoc(startPoint);
-
-            const controls = animate(0, 0.9, {
-                duration: 60,
-                ease: "linear",
-                onUpdate: (latest) => {
-                    const newLat = startPoint.lat + (destination.lat - startPoint.lat) * latest;
-                    const newLng = startPoint.lng + (destination.lng - startPoint.lng) * latest;
-                    setDriverLoc({ lat: newLat, lng: newLng });
-                }
-            });
-
-            return () => controls.stop();
-        } else {
+        if (!['out_for_delivery', 'shipped'].includes(status)) {
             setDriverLoc(null);
+            return;
         }
-    }, [status, mapLoaded]);
+
+        const pollLocation = async () => {
+            try {
+                // Get Order ID from URL
+                const pathParts = window.location.pathname.split('/');
+                const orderId = pathParts[pathParts.length - 1]; // /orders/[id]
+
+                if (!orderId) return;
+
+                // Use environment variable for production
+                const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
+                const res = await fetch(`${backendUrl}/api/order?id=${orderId}`);
+                const data = await res.json();
+
+                if (data.success && data.order?.driverLocation) {
+                    const loc = data.order.driverLocation;
+                    if (loc.lat && loc.lng) {
+                        setDriverLoc({ lat: loc.lat, lng: loc.lng });
+                        if (loc.bearing !== undefined) setDriverBearing(loc.bearing);
+                    }
+                }
+            } catch (err) {
+                console.error("Polling Error:", err);
+            }
+        };
+
+        // Initial fetch
+        pollLocation();
+
+        const interval = setInterval(pollLocation, 4000); // 4 seconds
+
+        return () => clearInterval(interval);
+    }, [status]);
 
     // Determine simplified bounds when map loads or status changes
     useEffect(() => {
@@ -124,15 +147,21 @@ const OrderTrackingMap: React.FC<OrderTrackingMapProps> = ({ destination, status
                     </div>
                 </Marker>
 
-                {/* Driver Marker */}
+                {/* Driver Marker - Real-time */}
                 {driverLoc && (
-                    <Marker latitude={driverLoc.lat} longitude={driverLoc.lng} anchor="center">
+                    <Marker
+                        latitude={driverLoc.lat}
+                        longitude={driverLoc.lng}
+                        anchor="bottom"
+                        rotation={driverBearing - 90} // Adjusting for Right-facing default image
+                        rotationAlignment="map"
+                        pitchAlignment="map"
+                    >
                         <div className="relative">
                             <img
                                 src="/Truck.png"
                                 alt="Driver"
-                                className="w-16 h-16 object-contain drop-shadow-2xl transition-transform duration-500"
-                                style={{ transform: 'scaleX(-1)' }} // Flip if needed based on direction
+                                className="w-20 h-20 object-contain drop-shadow-2xl" // Slightly larger
                             />
                         </div>
                     </Marker>
