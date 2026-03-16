@@ -15,7 +15,7 @@ import PageTransition from '@/components/ui/PageTransition';
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
 
 export default function WishlistPage() {
-    const { user, isAuthenticated } = useAuth();
+    const { user, token, isAuthenticated } = useAuth();
     const userId = user?.id;
 
     const [wishlistItems, setWishlistItems] = useState<Product[]>([]);
@@ -36,7 +36,6 @@ export default function WishlistPage() {
         if (!user?.id) return;
         setLoading(true);
         try {
-            const token = localStorage.getItem("unifoods_token");
             if (!token) {
                 setLoading(false);
                 return;

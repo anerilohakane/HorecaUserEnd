@@ -63,7 +63,7 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
   const [productState, setProductState] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, token } = useAuth();
 
   // Helper function defined early
   const looksPartial = (p: Partial<Product> | null | undefined) =>
@@ -135,10 +135,9 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
     if (!effectiveProduct?.id || !user?.id) return;
 
     const checkWishlistStatus = async () => {
-      try {
-        const token = localStorage.getItem("unifoods_token");
-        if (!token) return;
+      if (!token) return;
 
+      try {
         const response = await fetch(`https://horeca-backend-six.vercel.app/api/wishlist/check/${effectiveProduct.id}`, {
           method: "GET",
           headers: {
@@ -182,7 +181,6 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
 
     try {
 
-      const token = localStorage.getItem("unifoods_token");
       if (!token) {
         throw new Error("Please log in to add items to your cart.");
       }
@@ -233,7 +231,6 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
     setWishlistSuccess(false);
 
     try {
-      const token = localStorage.getItem("unifoods_token");
       if (!token) {
         throw new Error("Please log in to manage your wishlist.");
       }

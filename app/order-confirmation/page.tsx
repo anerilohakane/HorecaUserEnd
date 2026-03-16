@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { generateInvoice } from '@/lib/utils/invoice-generator';
 import { motion, AnimatePresence } from 'framer-motion';
+import { getOrderSession } from '@/app/actions/session';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 type PaymentMethodKey = 'cod' | 'upi' | 'card' | 'netbanking';
@@ -37,20 +38,24 @@ const OrderConfirmationPage = () => {
   // ----------------------------------------------------------------------
   useEffect(() => {
     async function loadOrder() {
-      const localOrder = localStorage.getItem("lastOrder");
-      if (localOrder) {
-        setOrder(JSON.parse(localOrder));
-        setLoading(false);
-        return;
-      }
       try {
-        const storedOrderId = localStorage.getItem("lastOrderId");
-        const storedUserId = localStorage.getItem("userId");
-        if (!storedOrderId || !storedUserId) {
+        const { lastOrderId, lastOrder } = await getOrderSession();
+        
+        if (lastOrder) {
+          setOrder(lastOrder);
           setLoading(false);
           return;
         }
-        const apiUrl = `${API_BASE}/api/order?id=${storedOrderId}&userId=${storedUserId}`;
+
+        const storedUserId = localStorage.getItem("userId"); // Could potentially move this to AuthSession too if needed, but lastOrderId is the main part. Let's just use it or auth fetch if available.
+        if (!lastOrderId) {
+          setLoading(false);
+          return;
+        }
+
+        // If we have an ID but no full order object, fetch it
+        // We will just use the API if needed.
+        const apiUrl = `${API_BASE}/api/order?id=${lastOrderId}${storedUserId ? `&userId=${storedUserId}` : ''}`;
         const response = await fetch(apiUrl);
         const data = await response.json();
         if (data?.success && data.order) {

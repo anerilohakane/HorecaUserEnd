@@ -40,6 +40,7 @@ import OrderSubscriptionModal from '@/components/orders/OrderSubscriptionModal';
 import CancelSubscriptionModal from '@/components/orders/CancelSubscriptionModal';
 import { RotateCw } from 'lucide-react';
 import Footer from '@/components/Footer';
+import { clearOrderSession } from '@/app/actions/session';
 
 const formatToIST = (dateString: string | Date) => {
     if (!dateString) return '';
@@ -837,12 +838,11 @@ const ProfilePage = () => {
 
     const router = useRouter();
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
         logout(); // 🔥 clears auth state
 
         // optional cleanup
-        localStorage.removeItem("lastOrder");
-        localStorage.removeItem("lastOrderId");
+        await clearOrderSession();
 
         router.push("/"); // or "/" if you prefer home
     };

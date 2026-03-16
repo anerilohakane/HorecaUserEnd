@@ -45,7 +45,7 @@ export default function ProductDetailClient({
     const [isWishlisting, setIsWishlisting] = useState(false);
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [wishlistError, setWishlistError] = useState<string | null>(null);
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const [shareMessage, setShareMessage] = useState<string | null>(null);
 
     // Reviews State
@@ -98,10 +98,9 @@ export default function ProductDetailClient({
         if (!product?.id) return;
 
         const checkWishlist = async () => {
-            try {
-                const token = localStorage.getItem("unifoods_token");
-                if (!token) return;
+            if (!token) return;
 
+            try {
                 const base =
                     (process.env.NEXT_PUBLIC_API_BASE_URL ||
                         "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
@@ -136,7 +135,6 @@ export default function ProductDetailClient({
         setWishlistError(null);
 
         try {
-            const token = localStorage.getItem("unifoods_token");
             if (!token) {
                 throw new Error("Please log in to manage your wishlist.");
             }
@@ -367,7 +365,6 @@ export default function ProductDetailClient({
         if (!product?.id) return;
 
         // Check auth
-        const token = localStorage.getItem("unifoods_token");
         if (!token) {
             // You might want to show a toast or alert here
             alert("Please log in to submit a review.");

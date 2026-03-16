@@ -16,7 +16,7 @@ export default function Header() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [wishlistLoading, setWishlistLoading] = useState(false);
-  const { user, logout, isAuthenticated, isLoading } = useAuth();
+  const { user, token, logout, isAuthenticated, isLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
@@ -38,9 +38,8 @@ export default function Header() {
   const [notificationCount, setNotificationCount] = useState(0);
 
   const fetchNotificationCount = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !token) return;
     try {
-      const token = localStorage.getItem("unifoods_token");
       const res = await fetch(`${API_BASE}/api/notifications?userId=${user.id}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
@@ -119,13 +118,10 @@ export default function Header() {
   };
 
   const fetchWishlistCount = async () => {
-    if (!user?.id) return;
+    if (!user?.id || !token) return;
 
     setWishlistLoading(true);
     try {
-      const token = localStorage.getItem("unifoods_token");
-      if (!token) return;
-
       const url = `${API_BASE}/api/wishlist?userId=${user.id}`;
 
       const response = await fetch(url, {

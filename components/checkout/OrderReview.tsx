@@ -259,6 +259,7 @@ import { useAuth } from "@/lib/context/AuthContext";
 import OrderSuccessModal from "./OrderSuccessModal";
 import { generateInvoice } from "@/lib/utils/invoice-generator";
 import { useRouter } from "next/navigation";
+import { setOrderSession } from "@/app/actions/session";
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -367,6 +368,9 @@ export default function OrderReview({
       }
 
       // Success! Show modal
+      // Save order to server session
+      await setOrderSession(data.order._id || data.order.orderNumber, data.order);
+
       setSuccessOrder(data.order);
       setShowSuccessModal(true);
       await clearCart();

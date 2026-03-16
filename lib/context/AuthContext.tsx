@@ -3,6 +3,7 @@
 
 
     import React, { createContext, useContext, useState, useEffect } from "react";
+    import { getAuthSession, setAuthSession, clearAuthSession } from "@/app/actions/session";
 
     const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -31,13 +32,20 @@
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
-        const u = localStorage.getItem("unifoods_user");
-        const t = localStorage.getItem("unifoods_token");
-        if (u && t) {
-        setUser(JSON.parse(u));
-        setToken(t);
+        async function loadSession() {
+            try {
+                const { token, user } = await getAuthSession();
+                if (token && user) {
+                    setUser(user);
+                    setToken(token);
+                }
+            } catch (err) {
+                console.error("Failed to load session", err);
+            } finally {
+                setIsLoading(false);
+            }
         }
-        setIsLoading(false);
+        loadSession();
     }, []);
 
     // STEP 1 — SEND OTP
@@ -83,11 +91,8 @@ const normalizedUser = {
   email: user.email ?? null,
 };
 
-localStorage.setItem("unifoods_user", JSON.stringify(normalizedUser));
-  // 🔥🔥🔥 STORE AUTH DATA (CRITICAL FIX)
-//   localStorage.setItem("userId", user.id);
-//   localStorage.setItem("unifoods_user", JSON.stringify(user));
-  localStorage.setItem("unifoods_token", token);
+// Call Server Action to persist session
+await setAuthSession(token, normalizedUser);
 
   // 2️⃣ SET AUTH STATE
   setUser(normalizedUser);
@@ -99,8 +104,7 @@ localStorage.setItem("unifoods_user", JSON.stringify(normalizedUser));
     const logout = () => {
         setUser(null);
         setToken(null);
-        localStorage.removeItem("unifoods_token");
-        localStorage.removeItem("unifoods_user");
+        clearAuthSession();
     };
 
     return (
