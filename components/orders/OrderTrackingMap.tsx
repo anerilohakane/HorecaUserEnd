@@ -3,7 +3,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import Map, { Marker, Source, Layer, MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
-import { MapPin } from 'lucide-react';
+import { MapPin, Truck } from 'lucide-react';
 import { animate } from 'framer-motion';
 
 const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtZWVyMjcyOSIsImEiOiJjbWswdWtmMGMwMDdmM2Zxc3ludjF2eTZkIn0._DvjqPsOzDNAlUIPs4xJlQ";
@@ -147,22 +147,26 @@ const OrderTrackingMap: React.FC<OrderTrackingMapProps> = ({ destination, status
                     </div>
                 </Marker>
 
-                {/* Driver Marker - Real-time */}
+                {/* Driver Marker - Real-time Modern UI */}
                 {driverLoc && (
                     <Marker
                         latitude={driverLoc.lat}
                         longitude={driverLoc.lng}
                         anchor="bottom"
-                        rotation={driverBearing - 90} // Adjusting for Right-facing default image
-                        rotationAlignment="map"
-                        pitchAlignment="map"
                     >
-                        <div className="relative">
-                            <img
-                                src="/Truck.png"
-                                alt="Driver"
-                                className="w-20 h-20 object-contain drop-shadow-2xl" // Slightly larger
-                            />
+                        <div className="relative flex flex-col items-center group cursor-pointer z-20">
+                            {/* Outer Glow / Ping for active movement */}
+                            <div className="w-12 h-12 bg-blue-500 rounded-full animate-ping absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 duration-1000"></div>
+                            
+                            {/* Pin Circle */}
+                            <div className="bg-[#111827] p-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.3)] border-4 border-white z-10 transform transition-transform duration-300 group-hover:scale-110">
+                                <Truck className="text-white relative z-10" size={20} />
+                            </div>
+                            
+                            {/* Floating Label */}
+                            <div className="bg-white/95 backdrop-blur-md text-[#111827] px-3 py-1 mt-2 rounded-full text-[11px] font-bold shadow-lg border border-gray-200 transform transition-all duration-300 group-hover:-translate-y-1 whitespace-nowrap">
+                                Arriving Soon
+                            </div>
                         </div>
                     </Marker>
                 )}
