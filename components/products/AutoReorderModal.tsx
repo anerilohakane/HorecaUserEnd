@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Clock, RotateCw } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface AutoReorderModalProps {
     product: {
@@ -34,7 +34,7 @@ export default function AutoReorderModal({ product, isOpen, onClose }: AutoReord
         e.preventDefault();
 
         if (!token) {
-            toast.error("Please login to enable auto-reorder");
+            sileo.error({ title: "Please login to enable auto-reorder" });
             return;
         }
 
@@ -65,14 +65,14 @@ export default function AutoReorderModal({ product, isOpen, onClose }: AutoReord
             const json = await res.json();
 
             if (json.success) {
-                toast.success("Auto-reorder enabled successfully!");
+                sileo.success({ title: "Auto-reorder enabled successfully!" });
                 onClose();
             } else {
-                toast.error(json.error || "Failed to enable auto-reorder");
+                sileo.error({ title: json.error || "Failed to enable auto-reorder" });
             }
 
         } catch (err: any) {
-            toast.error(err.message || "Something went wrong");
+            sileo.error({ title: err.message || "Something went wrong" });
         } finally {
             setIsSubmitting(false);
         }

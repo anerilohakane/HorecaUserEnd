@@ -39,6 +39,7 @@ import CancelOrderModal from '@/components/orders/CancelOrderModal';
 import OrderSubscriptionModal from '@/components/orders/OrderSubscriptionModal';
 import CancelSubscriptionModal from '@/components/orders/CancelSubscriptionModal';
 import { RotateCw } from 'lucide-react';
+import { sileo } from 'sileo';
 import Footer from '@/components/Footer';
 import { clearOrderSession } from '@/app/actions/session';
 
@@ -69,7 +70,13 @@ const ProfilePage = () => {
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('personal');
     const [loading, setLoading] = useState(true);
-    const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+    const setToast = (t: any) => {
+        if (!t.show) return;
+        if (t.type === 'success') sileo.success({ title: t.message });
+        else if (t.type === 'error') sileo.error({ title: t.message });
+        else sileo.info({ title: t.message });
+    };
+    const toast = { show: false, message: '', type: 'success' };
     const [savedItemsCount, setSavedItemsCount] = useState(0);
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [addresses, setAddresses] = useState<any[]>([]);
@@ -867,24 +874,7 @@ const ProfilePage = () => {
             <div className="min-h-screen flex flex-col bg-gray-50">
                 <Header />
 
-                {/* Toasts — SAME */}
-                {toast.show && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="fixed top-6 right-6 z-50 flex items-center gap-3 px-5 py-3 bg-white rounded-xl shadow-xl border border-gray-200"
-                    >
-                        <CheckCircle className="w-5 h-5 text-green-600" />
-                        <span className="font-medium text-gray-800">{toast.message}</span>
-                        <button
-                            onClick={() => setToast({ ...toast, show: false })}
-                            className="ml-2 text-gray-400 hover:text-gray-600"
-                        >
-                            <XCircle className="w-5 h-5" />
-                        </button>
-                    </motion.div>
-                )}
+
 
                 {/* UI BELOW UNCHANGED — ONLY ORDERS LIST ITEMS UPDATED TO SHOW IMAGE */}
                 <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -1420,7 +1410,7 @@ const ProfilePage = () => {
                                                                         <div className="relative w-16 h-16 rounded-lg overflow-hidden bg-gradient-to-br from-gray-50 to-gray-100">
                                                                             <Image
                                                                                 src={item?.image || "/images/placeholder.png"}
-                                                                                alt={item?.name}
+                                                                                alt={item?.name || "Product image"}
                                                                                 width={64}
                                                                                 height={64}
                                                                                 className="object-cover w-full h-full"
@@ -1433,14 +1423,14 @@ const ProfilePage = () => {
 
                                                                         <div className="flex-1 min-w-0">
                                                                             <p className="font-medium text-gray-900 truncate">
-                                                                                {item.productName}
+                                                                                {item.productName || item.name}
                                                                             </p>
-                                                                            <div className="flex items-center gap-4 mt-1">
+                                                                            <div className="flex flex-col gap-1 mt-1">
                                                                                 <p className="text-sm text-gray-600">
-                                                                                    Unit Price: <span className="font-medium">₹{item.unitPrice.toLocaleString('en-IN')}</span>
+                                                                                    Unit Price: <span className="font-medium">₹{(item.unitPrice || 0).toLocaleString('en-IN')}</span>
                                                                                 </p>
                                                                                 <p className="text-sm text-gray-600">
-                                                                                    Total: <span className="font-medium">₹{(item.quantity * item.unitPrice).toLocaleString('en-IN')}</span>
+                                                                                    Item Total: <span className="font-medium">₹{((item.quantity || 1) * (item.unitPrice || 0)).toLocaleString('en-IN')}</span>
                                                                                 </p>
                                                                             </div>
                                                                         </div>
@@ -1460,6 +1450,34 @@ const ProfilePage = () => {
                                                                         </div>
                                                                     </div>
                                                                 ))}
+                                                            </div>
+                                                        </div>
+
+                                                        {/* Order Summary Breakdown */}
+                                                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                                                            <div className="space-y-2 text-sm">
+                                                                <div className="flex justify-between text-gray-600">
+                                                                    <span>Subtotal</span>
+                                                                    <span className="font-medium text-gray-900">₹{(ord.subtotal || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                                <div className="flex justify-between text-gray-600">
+                                                                    <span>Tax (18% GST)</span>
+                                                                    <span className="font-medium text-gray-900">₹{(ord.tax || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                                <div className="flex justify-between text-gray-600">
+                                                                    <span>Shipping & Platform Fee</span>
+                                                                    <span className="font-medium text-gray-900">₹{(ord.shippingCharges || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                                </div>
+                                                                {ord.discounts > 0 && (
+                                                                    <div className="flex justify-between text-green-600">
+                                                                        <span>Discount</span>
+                                                                        <span className="font-medium">-₹{ord.discounts.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                                    </div>
+                                                                )}
+                                                                <div className="pt-2 mt-2 border-t border-gray-200 flex justify-between items-center">
+                                                                    <span className="font-bold text-gray-900">Total Amount</span>
+                                                                    <span className="text-lg font-bold text-amber-600">₹{(ord.total || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                                </div>
                                                             </div>
                                                         </div>
 

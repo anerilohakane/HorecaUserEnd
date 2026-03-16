@@ -343,9 +343,13 @@ export default function OrderReview({
         },
         items: formattedItems,
         tax,
-        shippingCharges: shipping,
+        // WORKAROUND: The deployed backend currently ignores 'platformFee' when calculating the final total.
+        // We add it to 'shippingCharges' here so the final total calculates correctly.
+        // Once the updated backend is deployed to Vercel, this can be separated again.
+        shippingCharges: shipping + platformFee,
         discounts: discount,
-    total,
+        platformFee,
+        total,
         paymentMethod,
         transactionId: null,
       };

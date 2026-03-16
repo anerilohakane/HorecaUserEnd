@@ -42,7 +42,7 @@ import { Inter, Poppins } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { CartProvider } from "@/lib/context/CartContext";
-import { Toaster } from "sonner";
+import { Toaster } from "sileo";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -72,7 +72,7 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             {children}
-            <Toaster richColors position="top-center" />
+            <Toaster position="top-center" />
           </CartProvider>
         </AuthProvider>
       </body>

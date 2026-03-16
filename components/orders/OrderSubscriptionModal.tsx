@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { X, Calendar, Clock, RotateCw, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 interface Item {
     product: any; // Can be string ID or object
@@ -42,12 +42,12 @@ export default function OrderSubscriptionModal({ orderId, items, isOpen, onClose
         const userId = user?.id || (user as any)?._id;
 
         if (!token || !userId) {
-            toast.error("Please login to enable auto-reorder");
+            sileo.error({ title: "Please login to enable auto-reorder" });
             return;
         }
 
         if (!startDate || !preferredTime) {
-            toast.error("Please select both a start date and time.");
+            sileo.error({ title: "Please select both a start date and time." });
             return;
         }
 
@@ -113,17 +113,17 @@ export default function OrderSubscriptionModal({ orderId, items, isOpen, onClose
             }
 
             if (successCount === totalItems) {
-                toast.success(`Generated ${successCount} subscriptions successfully!`);
+                sileo.success({ title: `Generated ${successCount} subscriptions successfully!` });
                 onClose();
             } else if (successCount > 0) {
-                toast.warning(`Created ${successCount} of ${totalItems} subscriptions.`);
+                sileo.warning({ title: `Created ${successCount} of ${totalItems} subscriptions.` });
                 onClose();
             } else {
-                toast.error("Failed to create subscriptions. Check console for details.");
+                sileo.error({ title: "Failed to create subscriptions. Check console for details." });
             }
 
         } catch (err: any) {
-            toast.error(err.message || "Something went wrong");
+            sileo.error({ title: err.message || "Something went wrong" });
         } finally {
             setIsSubmitting(false);
         }

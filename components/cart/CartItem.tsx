@@ -551,7 +551,7 @@ import { CartItem as CartItemType } from '@/lib/types/cart';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { toast } from 'sonner';
+import { sileo } from 'sileo';
 
 // interface CartItemProps {
 //   item: CartItemType;
@@ -727,13 +727,13 @@ export default function CartItem({
   const confirmRemove = () => {
     onRemove(productId);
     setShowDeleteConfirm(false);
-    toast.success(`Removed ${product.name} from cart`);
+    sileo.success({ title: `Removed ${product.name} from cart` });
   };
 
   const confirmRemoveFromMinOrder = () => {
     onRemove(productId);
     setShowMinOrderModal(false);
-    toast.success(`Removed ${product.name} from cart`);
+    sileo.success({ title: `Removed ${product.name} from cart` });
   };
 
   const cancelRemove = () => {
@@ -744,7 +744,7 @@ export default function CartItem({
   // Quick remove without confirmation
   const handleQuickRemove = () => {
     onRemove(productId);
-    toast.success(`Removed ${product.name} from cart`);
+    sileo.success({ title: `Removed ${product.name} from cart` });
   };
 
   return (
