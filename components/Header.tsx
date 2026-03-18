@@ -290,10 +290,10 @@ export default function Header() {
               </nav>
 
               {/* Right Icons */}
-              <div className="flex items-center gap-5">
+              <div className="flex items-center gap-2 sm:gap-4 lg:gap-5">
 
                 {/* Search Container */}
-                <div ref={searchContainerRef} className={`absolute right-4 left-4 md:left-auto md:relative flex items-center justify-end transition-all duration-300 ${isSearchOpen ? 'md:w-[400px] w-[calc(100%-32px)]' : 'w-auto'}`}>
+                <div ref={searchContainerRef} className={`${isSearchOpen ? 'absolute right-4 left-4 z-50 top-1/2 -translate-y-1/2 md:translate-y-0 md:top-auto bg-white/95 backdrop-blur-sm md:bg-transparent py-4 md:py-0' : 'relative'} md:left-auto md:relative flex items-center justify-end transition-all duration-300 ${isSearchOpen ? 'md:w-[400px] w-[calc(100%-32px)]' : 'w-auto'}`}>
                   {isSearchOpen ? (
                     <div className="relative w-full">
                       <input
@@ -359,7 +359,7 @@ export default function Header() {
                 </div>
 
                 {/* Hide other icons when search is open on mobile */}
-                <div className={`flex items-center gap-5 transition-opacity duration-200 ${isSearchOpen ? 'hidden md:flex opacity-50' : 'flex'}`}>
+                <div className={`flex items-center gap-2 sm:gap-4 lg:gap-5 transition-opacity duration-200 ${isSearchOpen ? 'hidden md:flex opacity-50' : 'flex'}`}>
                   {/* Wishlist Button */}
                   {isAuthenticated ? (
                     <Link href="/wishlist">

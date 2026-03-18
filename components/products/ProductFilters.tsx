@@ -508,7 +508,7 @@ interface ProductFiltersProps {
   selectedCategory: string;
   selectedPriceRange: string;
   selectedRating: number;
-  onCategoryChange: (category: string) => void;
+  onCategoryChange: (categoryId: string) => void;
   onPriceRangeChange: (range: string) => void;
   onRatingChange: (rating: number) => void;
   onClearFilters: () => void;
@@ -683,7 +683,16 @@ export default function ProductFilters({
                   }`}>
                   <div
                     className="flex-1 flex items-center gap-2"
-                    onClick={() => onCategoryChange(cat.id)}
+                    onClick={() => {
+                      // 1. Filter by this parent category and its children
+                      const allIds = [cat.id];
+                      if (cat.children) {
+                        cat.children.forEach(c => allIds.push(c.id));
+                      }
+                      onCategoryChange(allIds.join(','));
+                      // 2. Auto-expand subcategories so user can drill down
+                      setExpandedParents(prev => ({ ...prev, [cat.id]: true }));
+                    }}
                   >
                     <span className={`font-medium ${selectedCategory === cat.id ? 'text-[#D97706]' : 'text-gray-700 group-hover:text-gray-900'}`}>
                       {cat.name}

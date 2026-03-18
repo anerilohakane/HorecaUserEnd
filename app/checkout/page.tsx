@@ -198,9 +198,10 @@ export default function CheckoutPage() {
             {/* Step Content */}
             <div>
               {currentStep === 'shipping' && (
-                <ShippingForm
+              <ShippingForm
                   onSubmit={handleShippingSubmit}
                   initialData={shippingAddress || undefined}
+                  onCancel={() => router.push('/products')}
                 />
               )}
 

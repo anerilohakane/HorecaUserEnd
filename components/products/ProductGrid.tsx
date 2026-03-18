@@ -487,7 +487,11 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
 
         // Category
         if (selectedCategory && selectedCategory !== 'all') {
-          url.searchParams.set('categoryId', selectedCategory);
+          // If we have multiple IDs (parent category), skip passing to backend
+          // so it fetches all items, then we filter locally
+          if (!selectedCategory.includes(',')) {
+            url.searchParams.set('categoryId', selectedCategory);
+          }
         }
 
         // Price Range
@@ -559,7 +563,9 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   }, [selectedCategory, selectedPriceRange, selectedRating, initialProducts]);
 
   // Handlers
-  const onCategoryChange = (categoryId: string) => setSelectedCategory(categoryId);
+  const onCategoryChange = (categoryId: string) => {
+    setSelectedCategory(categoryId);
+  };
   const onPriceRangeChange = (range: string) => setSelectedPriceRange(range);
   const onRatingChange = (rating: number) => setSelectedRating(rating);
   const onClearFilters = () => {
@@ -573,10 +579,30 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   const getRating = (p: any): number => Number(p.rating ?? p.averageRating ?? 0);
   const getStableId = (p: any): string => p._id || p.id || p.sku || String(p.name);
 
+  const getCategoryId = (p: any): string => {
+    if (!p) return '';
+    if (typeof p.category === 'string') return p.category;
+    if (p.category?._id) return String(p.category._id);
+    if (p.category?.id) return String(p.category.id);
+    if (p.category?.name) return String(p.category.name);
+    if (p.categoryId) return String(p.categoryId);
+    return '';
+  };
+
   // Filter & Sort
   const processedProducts = useMemo(() => {
     // 1. Filter
     let result = products.filter((p: any) => {
+      // Category filter
+      if (selectedCategory && selectedCategory !== 'all') {
+        const catId = getCategoryId(p).toLowerCase();
+        const validIds = selectedCategory.toLowerCase().split(',');
+        // If product category ID is not in our list of valid IDs
+        if (!validIds.includes(catId)) {
+          return false;
+        }
+      }
+
       if (selectedRating > 0 && getRating(p) < selectedRating) return false;
 
       if (selectedPriceRange !== 'all') {
@@ -607,7 +633,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
     });
 
     return result;
-  }, [products, selectedPriceRange, selectedRating, sortBy]);
+  }, [products, selectedCategory, selectedPriceRange, selectedRating, sortBy]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 sm:px-4 py-4">
