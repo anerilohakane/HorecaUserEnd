@@ -9,10 +9,6 @@ import {
     Phone,
     MapPin,
     Calendar,
-    Shield,
-    Bell,
-    Lock,
-    CreditCard,
     Package,
     Star,
     Edit2,
@@ -23,7 +19,6 @@ import {
     ShoppingBag,
     Heart,
     MessageSquare,
-    Settings,
     LogOut,
     Clock,
     Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud
@@ -981,8 +976,6 @@ const ProfilePage = () => {
                                         { id: "orders", label: "My Orders", icon: Package },
                                         { id: "subscriptions", label: "My Subscriptions", icon: RotateCw },
                                         { id: "addresses", label: "Addresses", icon: MapPin },
-                                        { id: "security", label: "Security", icon: Shield },
-                                        { id: "preferences", label: "Preferences", icon: Settings },
                                     ].map((tab) => {
                                         const Icon = tab.icon;
                                         const isActive = activeTab === tab.id;
@@ -1231,38 +1224,7 @@ const ProfilePage = () => {
                                     </div>
                                 )}
 
-                                {/* SECURITY (same) */}
-                                {activeTab === "security" && (
-                                    <div className="space-y-6">
-                                        <h2 className="text-xl font-semibold text-gray-900">Security Settings</h2>
 
-                                        <div className="space-y-4">
-                                            {[
-                                                { icon: Lock, title: "Password", desc: "Last changed 30 days ago", action: "Change" },
-                                                { icon: CreditCard, title: "Payment Methods", desc: "Manage saved cards & UPI", action: "Manage" },
-                                                { icon: Bell, title: "Notifications", desc: "Order updates & promotions", action: "Configure" },
-                                            ].map((item, i) => (
-                                                <div
-                                                    key={i}
-                                                    className="flex items-center justify-between p-5 rounded-xl border border-gray-200 hover:border-amber-200 transition"
-                                                >
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
-                                                            <item.icon className="w-5 h-5 text-amber-600" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="font-medium text-gray-900">{item.title}</p>
-                                                            <p className="text-sm text-gray-600">{item.desc}</p>
-                                                        </div>
-                                                    </div>
-                                                    <button className="text-amber-600 hover:text-amber-700 font-medium text-sm">
-                                                        {item.action} →
-                                                    </button>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
 
                                 {/* ---------------------------- ORDERS TAB (NOW WITH IMAGES) ---------------------------- */}
                                 {activeTab === "orders" && (
@@ -1691,26 +1653,7 @@ const ProfilePage = () => {
                                     </div>
                                 )}
 
-                                {/* PREFERENCES (unchanged) */}
-                                {activeTab === "preferences" && (
-                                    <div className="text-center py-16">
-                                        <div className="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6">
-                                            <Settings className="w-10 h-10 text-amber-600" />
-                                        </div>
 
-                                        <h3 className="text-2xl font-semibold text-gray-900 mb-3">
-                                            Preferences
-                                        </h3>
-
-                                        <p className="text-gray-600 max-w-md mx-auto mb-8">
-                                            Customize notifications, language, and shopping preferences
-                                        </p>
-
-                                        <button className="bg-amber-600 text-white px-8 py-3 rounded-xl font-medium hover:bg-amber-700 transition">
-                                            Manage Preferences
-                                        </button>
-                                    </div>
-                                )}
 
                             </div>
                         </main>

@@ -4,7 +4,7 @@ import { Search, Heart, ShoppingCart, User, Linkedin, Instagram, Facebook, Phone
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import CartButton from '@/components/cart/CartButton';
 import LoginModal from '@/components/auth/LoginModal';
 import { useAuth } from '@/lib/context/AuthContext';
@@ -19,6 +19,7 @@ export default function Header() {
   const { user, token, logout, isAuthenticated, isLoading } = useAuth();
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
+  const pathname = usePathname();
 
   // Search State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -267,26 +268,25 @@ export default function Header() {
 
               {/* Navigation Menu */}
               <nav className={`hidden md:flex items-center gap-10 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-200`}>
-                <Link href="/" className="text-sm font-medium text-[#111827] hover:text-[#D97706] transition-colors relative group">
-                  Home
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#D97706] group-hover:w-full transition-all"></span>
-                </Link>
-                <Link href="/products" className="text-sm font-medium text-[#111827] hover:text-[#D97706] transition-colors relative group">
-                  Shop
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#D97706] group-hover:w-full transition-all"></span>
-                </Link>
-                <Link href="/categories" className="text-sm font-medium text-[#111827] hover:text-[#D97706] transition-colors relative group">
-                  Categories
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#D97706] group-hover:w-full transition-all"></span>
-                </Link>
-                <Link href="/about" className="text-sm font-medium text-[#111827] hover:text-[#D97706] transition-colors relative group">
-                  About Us
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#D97706] group-hover:w-full transition-all"></span>
-                </Link>
-                <Link href="/contact" className="text-sm font-medium text-[#111827] hover:text-[#D97706] transition-colors relative group">
-                  Contact
-                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-[#D97706] group-hover:w-full transition-all"></span>
-                </Link>
+                {[
+                  { name: 'Home', path: '/' },
+                  { name: 'Shop', path: '/products' },
+                  { name: 'Categories', path: '/categories' },
+                  { name: 'About Us', path: '/about' },
+                  { name: 'Contact', path: '/contact' }
+                ].map((link) => {
+                  const isActive = pathname === link.path || (link.path !== '/' && pathname?.startsWith(link.path));
+                  return (
+                    <Link 
+                      key={link.name} 
+                      href={link.path} 
+                      className={`text-sm font-medium transition-colors relative group ${isActive ? 'text-[#D97706]' : 'text-[#111827] hover:text-[#D97706]'}`}
+                    >
+                      {link.name}
+                      <span className={`absolute -bottom-1 left-0 h-0.5 bg-[#D97706] transition-all ${isActive ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
+                    </Link>
+                  );
+                })}
               </nav>
 
               {/* Right Icons */}

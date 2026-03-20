@@ -579,15 +579,24 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   };
 
   // Safe Accessors
-  const getPrice = (p: any): number => Number(p.price ?? p.price?.amount ?? p.discountedPrice ?? 0);
-  const getRating = (p: any): number => Number(p.rating ?? p.averageRating ?? 0);
+  const getPrice = (p: any): number => {
+    const regularPrice = Number(p.price ?? 0);
+    const discountedPrice = Number(p.discountedPrice ?? 0);
+    // If discountedPrice is valid and lower than regular price, use it for filtering/sorting
+    if (discountedPrice > 0 && (discountedPrice < regularPrice || regularPrice === 0)) {
+      return discountedPrice;
+    }
+    return regularPrice || discountedPrice || 0;
+  };
+
+  const getRating = (p: any): number => Number(p.averageRating ?? p.rating ?? 0);
   const getStableId = (p: any): string => p._id || p.id || p.sku || String(p.name);
 
   const getCategoryId = (p: any): string => {
     if (!p) return '';
-    if (typeof p.category === 'string') return p.category;
-    if (p.category?._id) return String(p.category._id);
     if (p.category?.id) return String(p.category.id);
+    if (p.category?._id) return String(p.category._id);
+    if (typeof p.category === 'string') return p.category;
     if (p.category?.name) return String(p.category.name);
     if (p.categoryId) return String(p.categoryId);
     return '';

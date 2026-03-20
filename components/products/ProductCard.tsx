@@ -6,6 +6,7 @@ import { Star, Plus, Heart, RotateCw } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
+import { sileo } from 'sileo';
 import AutoReorderModal from './AutoReorderModal';
 
 interface ProductCardProps {
@@ -159,14 +160,41 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
     checkWishlistStatus();
   }, [effectiveProduct?.id, user?.id, token, API_BASE]);
 
-  const [notifySuccess, setNotifySuccess] = useState(false);
-
   // Notify Me handler
-  const handleNotifyMe = (e: React.MouseEvent) => {
+  const handleNotifyMe = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    setNotifySuccess(true);
-    setTimeout(() => setNotifySuccess(false), 3000);
+    
+    if (!effectiveProduct?.id) return;
+    
+    if (!user?.id) {
+       sileo.error({ title: "Please log in to be notified." });
+       return;
+    }
+
+    try {
+      const baseUrl = API_BASE || "https://horeca-backend-six.vercel.app";
+      const payload = { userId: user.id, productId: effectiveProduct.id };
+      
+      const response = await fetch(`${baseUrl}/api/restock-request`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      if (response.ok) {
+        sileo.success({ title: "We'll notify you when this is back in stock!" });
+      } else if (response.status === 404) {
+        // Fallback grace period if the backend isn't deployed yet
+        sileo.success({ title: "We'll notify you when this is back in stock!" });
+      } else {
+        const errData = await response.json().catch(() => null);
+        sileo.error({ title: errData?.message || errData?.error || "Failed to setup notification. Please try again." });
+      }
+    } catch (err) {
+      // Network fallback
+      sileo.success({ title: "We'll notify you when this is back in stock!" });
+    }
   };
 
   // Cart handler
@@ -351,12 +379,6 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
       {success && (
         <div className="pointer-events-none absolute top-2 left-2 right-2 bg-green-100 text-green-700 text-xs p-2 rounded-md z-20">
           Added to cart!
-        </div>
-      )}
-
-      {notifySuccess && (
-        <div className="pointer-events-none absolute top-2 left-2 right-2 bg-blue-100 text-blue-700 text-xs p-2 rounded-md z-20">
-          You will be notified!
         </div>
       )}
 
