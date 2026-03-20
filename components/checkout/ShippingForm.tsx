@@ -36,6 +36,16 @@ const CITY_STATE_MAP: Record<string, string> = {
   Raipur: "Chhattisgarh",
 };
 
+// --- Utils ---
+const parsePhoneNumber = (rawPhone: string) => {
+  if (!rawPhone) return { extension: '+91', phone: '' };
+  const cleaned = rawPhone.replace(/[^\d+]/g, '');
+  if (cleaned.startsWith('+91')) return { extension: '+91', phone: cleaned.slice(3).slice(-10) };
+  if (cleaned.startsWith('91') && cleaned.length === 12) return { extension: '+91', phone: cleaned.slice(2) };
+  if (cleaned.startsWith('0')) return { extension: '+91', phone: cleaned.slice(1).slice(-10) };
+  return { extension: '+91', phone: cleaned.slice(-10) };
+};
+
 export default function ShippingAddressSelector({ onSubmit, initialData, onCancel }: Props) {
   const [savedAddress, setSavedAddress] = useState<ShippingAddress | null>(null);
   const [selectedType, setSelectedType] = useState<"saved" | "new" | null>(null);
@@ -48,6 +58,7 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
     initialData ?? {
       fullName: '',
       email: '',
+      phoneExtension: '+91',
       phone: '',
       addressLine1: '',
       addressLine2: '',
@@ -81,9 +92,16 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
       if (hasOrders) {
         const lastOrder = orderJson.orders[0];
         if (lastOrder.shippingAddress?.addressLine1) {
-          setSavedAddress(lastOrder.shippingAddress);
+          const addr = lastOrder.shippingAddress;
+          const { extension: ext, phone: ph } = parsePhoneNumber(addr.phone || '');
+          const normalizedAddr = {
+            ...addr,
+            phoneExtension: addr.phoneExtension || ext,
+            phone: addr.phoneExtension ? addr.phone : ph,
+          };
+          setSavedAddress(normalizedAddr);
           setSelectedType("saved");
-          setFormData(lastOrder.shippingAddress);
+          setFormData(normalizedAddr);
           setLoading(false);
           return;
         }
@@ -94,15 +112,19 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
       if (data?.success && data.data) {
         const c = data.data;
         // Auto-fill name and email from profile
+        const { extension, phone } = parsePhoneNumber(c.phone || '');
         setFormData(prev => ({
           ...prev,
           fullName: prev.fullName || c.name || '',
           email: prev.email || c.email || '',
-          phone: prev.phone || c.phone || '',
+          phoneExtension: extension,
+          phone: prev.phone || phone || '',
         }));
         if (c.address && c.pincode) {
+          const { extension: savedExt, phone: savedPhone } = parsePhoneNumber(c.phone || '');
           setSavedAddress({
-            fullName: c.name || '', email: c.email || '', phone: c.phone || '',
+            fullName: c.name || '', email: c.email || '', 
+            phoneExtension: savedExt, phone: savedPhone,
             addressLine1: c.address || '', addressLine2: '',
             city: c.city || '', state: c.state || '', pincode: c.pincode || '', country: "India",
           });
@@ -159,7 +181,7 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
         break;
       case 'phone':
         if (!value.trim()) error = 'Phone is required';
-        else if (!/^[6-9]\d{9}$/.test(value)) error = 'Enter a valid 10-digit Indian mobile number';
+        else if (!/^[6-9]\d{9}$/.test(value)) error = 'Enter a valid 10-digit mobile number';
         break;
       case 'addressLine1':
         if (!value.trim()) error = 'Address Line 1 is required';
@@ -235,7 +257,7 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
               <p className="font-semibold text-base">{savedAddress.fullName}</p>
               <p>{savedAddress.addressLine1}</p>
               <p>{savedAddress.city}, {savedAddress.state} - {savedAddress.pincode}</p>
-              <p className="mt-1 text-gray-600">📞 {savedAddress.phone}</p>
+              <p className="mt-1 text-gray-600">📞 {savedAddress.phoneExtension} {savedAddress.phone}</p>
             </div>
           </label>
 
@@ -306,13 +328,31 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
               placeholder="e.g. ramesh@gmail.com" />
 
             {/* Phone */}
-            <Field label="Phone" name="phone" type="tel" required
-              value={formData.phone} onChange={(e: any) => {
-                const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                handleChange({ target: { name: 'phone', value: val } });
-              }}
-              onBlur={handleBlur} error={errors.phone}
-              placeholder="10-digit mobile number" />
+            <div className="">
+              <label className="block text-sm font-medium mb-1 text-gray-700">
+                Phone <span className="text-[#D97706]">*</span>
+              </label>
+              <div className="flex gap-2">
+                <div className="flex-shrink-0 px-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-sm text-gray-600 font-medium flex items-center justify-center min-w-[60px]">
+                  {formData.phoneExtension}
+                </div>
+                <input
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={(e: any) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                    handleChange({ target: { name: 'phone', value: val } });
+                  }}
+                  onBlur={handleBlur}
+                  placeholder="10-digit mobile number"
+                  className={`flex-grow px-4 py-3 text-sm rounded-lg border outline-none transition
+                    focus:ring-1 focus:ring-[#D97706]/30
+                    ${errors.phone ? 'border-red-400 bg-red-50 focus:border-red-400' : 'border-gray-300 focus:border-[#D97706]'}`}
+                />
+              </div>
+              {errors.phone && <p className="text-xs text-red-500 mt-1 flex items-center gap-1">⚠ {errors.phone}</p>}
+            </div>
 
             {/* Address Line 1 */}
             <Field label="Address Line 1" name="addressLine1" required full

@@ -73,7 +73,7 @@
 //             <span className="font-medium">Email:</span> {shippingAddress.email}
 //           </p>
 //           <p className="text-sm text-gray-700">
-//             <span className="font-medium">Phone:</span> +91 {shippingAddress.phone}
+//             <span className="font-medium">Phone:</span> {shippingAddress.phoneExtension} {shippingAddress.phone}
 //           </p>
 //         </div>
 //       </div>
@@ -333,7 +333,7 @@ export default function OrderReview({
         shippingAddress: {
           fullName: shippingAddress.fullName,
           email: shippingAddress.email,
-          phone: shippingAddress.phone,
+          phone: `${shippingAddress.phoneExtension}${shippingAddress.phone}`,
           addressLine1: shippingAddress.addressLine1,
           addressLine2: shippingAddress.addressLine2,
           city: shippingAddress.city,
@@ -420,7 +420,7 @@ export default function OrderReview({
             {shippingAddress.city}, {shippingAddress.state} {shippingAddress.pincode}
           </p>
           <p className="text-sm mt-2">Email: {shippingAddress.email}</p>
-          <p className="text-sm">Phone: +91 {shippingAddress.phone}</p>
+          <p className="text-sm">Phone: {shippingAddress.phoneExtension} {shippingAddress.phone}</p>
         </div>
       </div>
 
@@ -684,7 +684,7 @@ export default function OrderReview({
 //             {shippingAddress.city}, {shippingAddress.state} {shippingAddress.pincode}
 //           </p>
 //           <p className="text-sm mt-2">Email: {shippingAddress.email}</p>
-//           <p className="text-sm">Phone: +91 {shippingAddress.phone}</p>
+//           <p className="text-sm">Phone: {shippingAddress.phoneExtension} {shippingAddress.phone}</p>
 //         </div>
 //       </div>
 

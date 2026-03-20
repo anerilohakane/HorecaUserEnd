@@ -2,6 +2,7 @@
 export interface ShippingAddress {
   fullName: string;
   email: string;
+  phoneExtension: string;
   phone: string;
   addressLine1: string;
   addressLine2?: string;
