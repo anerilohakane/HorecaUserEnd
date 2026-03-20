@@ -13,6 +13,7 @@ interface ProductCardProps {
   product?: Partial<Product> | null;
   initialWishlistState?: boolean;
   onRemove?: (id: string) => void;
+  showReorder?: boolean;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -51,7 +52,12 @@ function mapRawToProduct(raw: any): Product | null {
   } as Product;
 }
 
-export default function ProductCard({ product: incoming, initialWishlistState = false, onRemove }: ProductCardProps) {
+export default function ProductCard({
+  product: incoming,
+  initialWishlistState = false,
+  onRemove,
+  showReorder = false
+}: ProductCardProps) {
   // All state declarations first
   const [isAdding, setIsAdding] = useState(false);
   const [isWishlisting, setIsWishlisting] = useState(false);
@@ -444,16 +450,18 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
               className={isInWishlist ? "fill-red-500 text-red-500" : ""}
             />
           </button>
-          <button
-            onClick={(e) => {
-              e.preventDefault();
-              setIsReorderModalOpen(true);
-            }}
-            className="p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-orange-600 transition-colors shadow-sm"
-            title="Auto Reorder"
-          >
-            <RotateCw size={18} />
-          </button>
+          {showReorder && (
+            <button
+              onClick={(e) => {
+                e.preventDefault();
+                setIsReorderModalOpen(true);
+              }}
+              className="p-1.5 rounded-full bg-white/80 hover:bg-white text-gray-400 hover:text-orange-600 transition-colors shadow-sm"
+              title="Auto Reorder"
+            >
+              <RotateCw size={18} />
+            </button>
+          )}
         </div>
       </div>
 
