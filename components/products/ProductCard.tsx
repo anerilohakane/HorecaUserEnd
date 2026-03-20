@@ -130,15 +130,14 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
     fetchReviews();
   }, [effectiveProduct.id, API_BASE]);
 
-  // Check wishlist status - NOW it can use effectiveProduct safely
+  // Check wishlist status
   useEffect(() => {
-    if (!effectiveProduct?.id || !user?.id) return;
+    if (!effectiveProduct?.id || !user?.id || !token) return;
 
     const checkWishlistStatus = async () => {
-      if (!token) return;
-
       try {
-        const response = await fetch(`https://horeca-backend-six.vercel.app/api/wishlist/check/${effectiveProduct.id}`, {
+        const baseUrl = API_BASE || "https://horeca-backend-six.vercel.app";
+        const response = await fetch(`${baseUrl}/api/wishlist?userId=${user.id}`, {
           method: "GET",
           headers: {
             "Authorization": `Bearer ${token}`,
@@ -147,8 +146,10 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
         });
 
         if (response.ok) {
-          const data = await response.json();
-          setIsInWishlist(data.isInWishlist || false);
+          const resData = await response.json();
+          const items = resData.data?.items || [];
+          const found = items.some((item: any) => String(item.productId) === String(effectiveProduct.id));
+          setIsInWishlist(found);
         }
       } catch (err) {
         console.error("Failed to check wishlist status:", err);
@@ -156,7 +157,7 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
     };
 
     checkWishlistStatus();
-  }, [effectiveProduct?.id, user?.id, "https://horeca-backend-six.vercel.app"]);
+  }, [effectiveProduct?.id, user?.id, token, API_BASE]);
 
   const [notifySuccess, setNotifySuccess] = useState(false);
 
@@ -191,7 +192,8 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
         quantity: effectiveProduct.minOrder,
       };
 
-      const response = await fetch(`https://horeca-backend-six.vercel.app/api/cart`, {
+      const baseUrl = API_BASE || "https://horeca-backend-six.vercel.app";
+      const response = await fetch(`${baseUrl}/api/cart`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -241,8 +243,8 @@ export default function ProductCard({ product: incoming, initialWishlistState = 
       };
 
       const method = isInWishlist ? "DELETE" : "POST";
-      // FIX: use base URL for DELETE too, as /:id path returns 405 Method Not Allowed
-      const endpoint = `https://horeca-backend-six.vercel.app/api/wishlist`;
+      const baseUrl = API_BASE || "https://horeca-backend-six.vercel.app";
+      const endpoint = `${baseUrl}/api/wishlist`;
 
       console.log(`💟 Wishlist Request: ${method} to ${endpoint}`);
       console.log("Payload:", payload);

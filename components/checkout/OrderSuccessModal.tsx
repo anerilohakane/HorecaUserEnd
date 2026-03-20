@@ -63,20 +63,20 @@ export default function OrderSuccessModal({ isOpen, onClose, orderId, onDownload
 
                                 {/* Actions */}
                                 <div className="space-y-3">
-                                    <button
-                                        onClick={onDownloadInvoice}
-                                        className="w-full flex items-center justify-center gap-2 bg-[#D97706] hover:bg-[#B45309] text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-orange-500/20 active:scale-95"
-                                    >
-                                        <Download size={20} />
-                                        Download Invoice
-                                    </button>
-
                                     <Link href="/products" onClick={onClose} className="block w-full">
-                                        <button className="w-full flex items-center justify-center gap-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold transition-all active:scale-95">
+                                        <button className="w-full flex items-center justify-center gap-2 bg-[#D97706] hover:bg-[#B45309] text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-orange-500/20 active:scale-95">
                                             <ShoppingBag size={20} />
                                             Continue Shopping
                                         </button>
                                     </Link>
+
+                                    <button
+                                        onClick={onDownloadInvoice}
+                                        className="w-full flex items-center justify-center gap-2 bg-gray-50 border border-gray-200 hover:bg-gray-100 text-gray-700 py-3.5 rounded-xl font-bold transition-all active:scale-95"
+                                    >
+                                        <Download size={20} />
+                                        Download Invoice
+                                    </button>
                                 </div>
                             </div>
 

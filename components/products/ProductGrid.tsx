@@ -434,6 +434,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import ProductFilters from './ProductFilters';
 import ProductCard from './ProductCard';
 import type { Product, SortOption } from '@/lib/types/product';
@@ -455,12 +456,15 @@ const buildApiUrl = (path: string) => {
 import SkeletonCard from './SkeletonCard';
 
 export default function ProductGrid({ initialProducts = [] }: ProductGridProps) {
+  const searchParams = useSearchParams();
+  const initCategory = searchParams?.get('category') || 'all';
+
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loading, setLoading] = useState<boolean>(initialProducts.length === 0);
   const [error, setError] = useState<string | null>(null);
 
   // Filters
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>(initCategory);
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
   const [selectedRating, setSelectedRating] = useState<number>(0);
   const [sortBy, setSortBy] = useState<SortOption>('popular');

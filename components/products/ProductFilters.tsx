@@ -604,6 +604,42 @@ export default function ProductFilters({
     };
   }, []);
 
+  // Sync URL parameter name to IDs
+  useEffect(() => {
+    if (categories.length > 0 && selectedCategory && selectedCategory !== 'all') {
+      if (selectedCategory.includes(',')) return; // Already processed multiple IDs
+      
+      const searchCat = selectedCategory.toLowerCase();
+
+      // Check if it's a parent category name
+      const matchedCat = categories.find(c => c.name.toLowerCase() === searchCat || c.id === selectedCategory);
+      if (matchedCat && (searchCat === matchedCat.name.toLowerCase() || selectedCategory === matchedCat.id)) {
+        if (searchCat === matchedCat.name.toLowerCase() && selectedCategory !== matchedCat.id) {
+          const allIds = [matchedCat.id];
+          if (matchedCat.children) {
+            matchedCat.children.forEach(c => allIds.push(c.id));
+          }
+          onCategoryChange(allIds.join(','));
+        }
+        setExpandedParents(prev => ({ ...prev, [matchedCat.id]: true }));
+        return;
+      }
+
+      // Check if it's a child category name
+      for (const parent of categories) {
+        if (!parent.children) continue;
+        const matchedChild = parent.children.find(c => c.name.toLowerCase() === searchCat || c.id === selectedCategory);
+        if (matchedChild && (searchCat === matchedChild.name.toLowerCase() || selectedCategory === matchedChild.id)) {
+          if (searchCat === matchedChild.name.toLowerCase() && selectedCategory !== matchedChild.id) {
+            onCategoryChange(matchedChild.id);
+          }
+          setExpandedParents(prev => ({ ...prev, [parent.id]: true }));
+          return;
+        }
+      }
+    }
+  }, [categories, selectedCategory, onCategoryChange]);
+
   const toggleSection = (s: keyof typeof openSections) => setOpenSections(prev => ({ ...prev, [s]: !prev[s] }));
   const toggleParent = (id: string) => setExpandedParents(prev => ({ ...prev, [id]: !prev[id] }));
 
@@ -679,7 +715,7 @@ export default function ProductFilters({
               </div>
             ) : categories.map(cat => (
               <div key={cat.id}>
-                <div className={`flex items-center justify-between p-2 rounded-lg transition-all text-sm group cursor-pointer ${selectedCategory === cat.id ? 'bg-[#D97706]/10' : 'hover:bg-gray-50'
+                <div className={`flex items-center justify-between p-2 rounded-lg transition-all text-sm group cursor-pointer ${(selectedCategory === cat.id || selectedCategory.split(',')[0] === cat.id) ? 'bg-[#D97706]/10' : 'hover:bg-gray-50'
                   }`}>
                   <div
                     className="flex-1 flex items-center gap-2"
@@ -694,7 +730,7 @@ export default function ProductFilters({
                       setExpandedParents(prev => ({ ...prev, [cat.id]: true }));
                     }}
                   >
-                    <span className={`font-medium ${selectedCategory === cat.id ? 'text-[#D97706]' : 'text-gray-700 group-hover:text-gray-900'}`}>
+                    <span className={`font-medium ${(selectedCategory === cat.id || selectedCategory.split(',')[0] === cat.id) ? 'text-[#D97706]' : 'text-gray-700 group-hover:text-gray-900'}`}>
                       {cat.name}
                     </span>
                     {cat.count !== undefined && (

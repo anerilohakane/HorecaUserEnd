@@ -32,6 +32,7 @@ type PaymentMethodKey = 'cod' | 'upi' | 'card' | 'netbanking';
 const OrderConfirmationPage = () => {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showSuccessAnim, setShowSuccessAnim] = useState(false);
 
   // ----------------------------------------------------------------------
   // 📥 Load Order Logic
@@ -44,6 +45,7 @@ const OrderConfirmationPage = () => {
         if (lastOrder) {
           setOrder(lastOrder);
           setLoading(false);
+          setShowSuccessAnim(true);
           return;
         }
 
@@ -60,6 +62,7 @@ const OrderConfirmationPage = () => {
         const data = await response.json();
         if (data?.success && data.order) {
           setOrder(data.order);
+          setShowSuccessAnim(true);
         }
       } catch (error) {
         console.error("Error loading order:", error);
@@ -69,6 +72,13 @@ const OrderConfirmationPage = () => {
     }
     loadOrder();
   }, []);
+
+  useEffect(() => {
+    if (showSuccessAnim) {
+      const timer = setTimeout(() => setShowSuccessAnim(false), 2200);
+      return () => clearTimeout(timer);
+    }
+  }, [showSuccessAnim]);
 
   // ----------------------------------------------------------------------
   // 🛠️ Helpers
@@ -135,6 +145,57 @@ const OrderConfirmationPage = () => {
   // ----------------------------------------------------------------------
   return (
     <div className="min-h-screen bg-[#F1F3F6] font-sans text-gray-900">
+      <AnimatePresence>
+        {showSuccessAnim && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, transition: { duration: 0.5 } }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-white/90 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ scale: 0.5, opacity: 0, y: 50 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              transition={{ type: "spring", damping: 12, stiffness: 100 }}
+              className="flex flex-col items-center gap-6"
+            >
+              <div className="relative">
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: [0, 1.2, 1] }}
+                  transition={{ delay: 0.2, duration: 0.5 }}
+                  className="w-28 h-28 bg-green-500 rounded-full flex items-center justify-center text-white shadow-2xl"
+                >
+                  <CheckCircle2 size={72} strokeWidth={2.5} />
+                </motion.div>
+                {/* Ping animation behind the circle */}
+                <motion.div
+                  initial={{ scale: 0.8, opacity: 1 }}
+                  animate={{ scale: 1.5, opacity: 0 }}
+                  transition={{ delay: 0.5, duration: 1, repeat: Infinity }}
+                  className="absolute inset-0 border-4 border-green-400 rounded-full"
+                />
+              </div>
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 }}
+                className="text-3xl font-extrabold text-gray-900 tracking-tight"
+              >
+                Order Successful!
+              </motion.h2>
+              <motion.p
+                initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.6 }}
+                className="text-gray-500 font-medium"
+              >
+                Thank you for shopping with us.
+              </motion.p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <Header />
 
       {/* 🟢 Status Strip (Amazon/Flipkart Style) */}
@@ -420,11 +481,18 @@ const OrderConfirmationPage = () => {
                   }</b></span>
                 </div>
 
+                <Link
+                  href="/products"
+                  className="w-full flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3.5 rounded-lg transition-all text-base shadow-sm hover:shadow-md mb-3"
+                >
+                  Continue Shopping
+                </Link>
+
                 <button
                   onClick={handleDownloadInvoice}
-                  className="w-full flex items-center justify-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-all text-sm mb-2"
+                  className="w-full flex items-center justify-center gap-2 bg-white border-2 border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-700 font-semibold py-3 rounded-lg transition-all text-sm mb-2"
                 >
-                  <Download size={16} />
+                  <Download size={18} />
                   Download Invoice
                 </button>
               </div>
