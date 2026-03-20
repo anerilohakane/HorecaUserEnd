@@ -229,11 +229,11 @@ export default function Header() {
                 </div>
               </div>
 
-              <div className="hidden md:block text-center">
+              {/* <div className="hidden md:block text-center">
                 <span className="text-[#D97706] font-medium">
                   Get 10% off your first wholesale order • Use code UNIFOODS10 at checkout!
                 </span>
-              </div>
+              </div> */}
 
               <div className="flex items-center gap-4 text-xs">
                 <a href="tel:+919324856780" className="flex items-center gap-1 text-gray-600 hover:text-[#D97706] transition-colors">
@@ -277,9 +277,9 @@ export default function Header() {
                 ].map((link) => {
                   const isActive = pathname === link.path || (link.path !== '/' && pathname?.startsWith(link.path));
                   return (
-                    <Link 
-                      key={link.name} 
-                      href={link.path} 
+                    <Link
+                      key={link.name}
+                      href={link.path}
                       className={`text-sm font-medium transition-colors relative group ${isActive ? 'text-[#D97706]' : 'text-[#111827] hover:text-[#D97706]'}`}
                     >
                       {link.name}

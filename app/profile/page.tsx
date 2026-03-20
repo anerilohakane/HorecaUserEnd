@@ -438,11 +438,12 @@ const ProfilePage = () => {
    🔥 FETCH SAVED ITEMS COUNT (WISHLIST)
 ------------------------------------------------------------- */
     const fetchSavedItemsCount = async () => {
-        if (!authUser?.id || !token) return;
+        const userId = authUser?.id || (authUser as any)?._id;
+        if (!userId || !token) return;
 
         try {
             const res = await fetch(
-                `${API_BASE}/api/wishlist?userId=${authUser.id}`,
+                `${API_BASE}/api/wishlist?userId=${userId}`,
                 {
                     method: "GET",
                     headers: {
@@ -474,23 +475,22 @@ const ProfilePage = () => {
     ------------------------------------------------------------- */
     useEffect(() => {
         const loadProfile = async () => {
-            console.log("🔵 ProfilePage MOUNTED");
+            if (!isAuthenticated || !authUser) return;
 
-            if (!isAuthenticated || !authUser?.id) {
-                console.log("❌ Not authenticated or missing userId");
-                setLoading(false);
-                return;
-            }
-
-            fetchReviewsCount();
-
-            const userId = authUser.id;
+            const userId = authUser.id || (authUser as any)._id;
             const API_URL = `${API_BASE}/api/customers/${userId}`;
 
             console.log("🌍 Fetching customer:", API_URL);
             setLoading(true);
 
             try {
+                // Call stats fetching functions
+                fetchReviewsCount();
+                fetchSavedItemsCount();
+                fetchOrders();
+                fetchAddresses();
+                if (activeTab === 'subscriptions') fetchSubscriptions();
+
                 const res = await fetch(API_URL, {
                     method: "GET",
                     headers: {
@@ -499,12 +499,7 @@ const ProfilePage = () => {
                     },
                 });
 
-                console.log("📥 RAW FETCH RESPONSE:", res);
-                console.log("📊 Status:", res.status);
-
                 const text = await res.text();
-                console.log("📄 RAW RESPONSE TEXT:", text);
-
                 let json;
                 try {
                     json = JSON.parse(text);
@@ -514,15 +509,8 @@ const ProfilePage = () => {
                     return;
                 }
 
-                console.log("✅ Parsed JSON:", json);
-
                 if (json?.success && json.data) {
-                    console.log("🟢 Setting user:", json.data);
-
-                    // 1️⃣ Set user
                     setUser(json.data);
-
-                    // 2️⃣ Initialize edit form
                     setProfileForm({
                         name: json.data.name || "",
                         email: json.data.email || "",
@@ -531,23 +519,15 @@ const ProfilePage = () => {
                         state: json.data.state || "",
                         pincode: json.data.pincode || "",
                     });
-
-                    // 3️⃣ Load wishlist count
-                    await fetchSavedItemsCount();
-                } else {
-                    console.error("❌ Unexpected format:", json);
                 }
-
             } catch (error) {
                 console.error("🔥 Error fetching customer:", error);
             }
-
             setLoading(false);
         };
 
         loadProfile();
-
-    }, [isAuthenticated, authUser?.id, token]);
+    }, [isAuthenticated, authUser, token, activeTab]);
 
     const updateCustomerProfile = async () => {
         if (!authUser?.id) return;
@@ -627,12 +607,13 @@ const ProfilePage = () => {
     const fetchOrders = async () => {
         console.log("📦 fetchOrders() CALLED");
 
-        if (!authUser?.id) {
+        const userId = authUser?.id || (authUser as any)?._id;
+        if (!userId) {
             console.log("❌ Missing userId for fetching orders");
             return;
         }
 
-        const API_URL = `${API_BASE}/api/order?userId=${authUser.id}`;
+        const API_URL = `${API_BASE}/api/order?userId=${userId}`;
         console.log("🌍 Fetching Orders:", API_URL);
 
         setOrdersLoading(true);
@@ -780,13 +761,14 @@ const ProfilePage = () => {
 
 
     const fetchAddresses = async () => {
-        if (!authUser?.id) return;
+        const userId = authUser?.id || (authUser as any)?._id;
+        if (!userId) return;
 
         setAddressesLoading(true);
 
         try {
             const res = await fetch(
-                `${API_BASE}/api/order?userId=${authUser.id}`,
+                `${API_BASE}/api/order?userId=${userId}`,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -902,22 +884,13 @@ const ProfilePage = () => {
                                                 {user.email}
                                             </p>
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <span className="px-4 py-2 bg-amber-100 text-amber-800 font-semibold text-sm rounded-full border border-amber-200">
-                                                Gold Member
-                                            </span>
-                                        </div>
                                     </div>
 
                                     {/* Stats */}
-                                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-6 text-center">
+                                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-6 text-center">
                                         <div>
                                             <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
                                             <p className="text-sm text-gray-600">Orders</p>
-                                        </div>
-                                        <div>
-                                            <p className="text-2xl font-bold text-gray-900">1250</p>
-                                            <p className="text-sm text-gray-600">Loyalty Points</p>
                                         </div>
                                         <div>
                                             <p className="text-2xl font-bold text-gray-900">
@@ -937,29 +910,7 @@ const ProfilePage = () => {
                         </div>
                     </motion.div>
 
-                    {/* QUICK STATS (same) */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mb-10">
-                        {[
-                            { icon: ShoppingBag, label: "Recent Orders", value: orders.length },
-                            { icon: Heart, label: "Saved Items", value: savedItemsCount },
-                            { icon: Star, label: "Reviews Given", value: reviewsCount },
-                            { icon: MessageSquare, label: "Coupon", value: 0 },
-                        ].map((stat, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: i * 0.1 }}
-                                className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 text-center hover:shadow-md transition-shadow"
-                            >
-                                <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-3">
-                                    <stat.icon className="w-6 h-6 text-amber-600" />
-                                </div>
-                                <p className="text-2xl font-bold text-gray-900">{stat.value}</p>
-                                <p className="text-sm text-gray-600 mt-1">{stat.label}</p>
-                            </motion.div>
-                        ))}
-                    </div>
+
 
                     {/* SIDEBAR + CONTENT */}
                     <div className="flex flex-col lg:flex-row gap-8">
@@ -1130,15 +1081,6 @@ const ProfilePage = () => {
                                                         </div>
                                                     </div>
 
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="w-11 h-11 bg-amber-50 rounded-lg flex items-center justify-center">
-                                                            <Star className="w-5 h-5 text-amber-600" />
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-sm text-gray-500">Loyalty Points</p>
-                                                            <p className="font-medium text-gray-900">1250</p>
-                                                        </div>
-                                                    </div>
                                                 </div>
                                             </div>
                                         )}
