@@ -55,20 +55,12 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/shop" className="text-sm text-gray-600 hover:text-[#D97706] transition-colors">
+                <Link href="/products" className="text-sm text-gray-600 hover:text-[#D97706] transition-colors">
                   Shop
                 </Link>
               </li>
-              <li>
-                <Link href="/suppliers" className="text-sm text-gray-600 hover:text-[#D97706] transition-colors">
-                  Suppliers
-                </Link>
-              </li>
-              <li>
-                <Link href="/blog" className="text-sm text-gray-600 hover:text-[#D97706] transition-colors">
-                  Blog
-                </Link>
-              </li>
+
+
               <li>
                 <Link href="/contact" className="text-sm text-gray-600 hover:text-[#D97706] transition-colors">
                   Contact
@@ -150,7 +142,7 @@ export default function Footer() {
               <Link href="/terms" className="hover:text-[#D97706] transition-colors">
                 Terms
               </Link>
-              <Link href="/cookies" className="hover:text-[#D97706] transition-colors">
+              <Link href="#" className="hover:text-[#D97706] transition-colors">
                 Cookies
               </Link>
             </div>
