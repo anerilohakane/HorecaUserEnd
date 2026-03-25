@@ -210,6 +210,15 @@ export default function ProductCard({
 
     if (!effectiveProduct?.id || isAdding) return;
 
+    // INSUFFICIENT STOCK CHECK
+    if (effectiveProduct.stockQuantity !== undefined && effectiveProduct.minOrder > effectiveProduct.stockQuantity) {
+        sileo.error({ 
+            title: "Insufficient Stock", 
+            description: `Required quantity (${effectiveProduct.minOrder}) exceeds available stock (${effectiveProduct.stockQuantity}).` 
+        });
+        return;
+    }
+
     setIsAdding(true);
     setError(null);
     setSuccess(false);
@@ -217,12 +226,13 @@ export default function ProductCard({
     try {
 
       if (!token) {
-        throw new Error("Please log in to add items to your cart.");
+        sileo.error({ title: "Authorization Required", description: "Please log in to add items to your cart." });
+        return;
       }
 
       const payload = {
-        userId: user?.id,                 // ✅ BACKEND EXPECTS THIS
-        productId: effectiveProduct.id,   // ✅ BACKEND EXPECTS THIS
+        userId: user?.id,
+        productId: effectiveProduct.id,
         quantity: effectiveProduct.minOrder,
       };
 
@@ -238,17 +248,21 @@ export default function ProductCard({
 
       if (!response.ok) {
         const err = await response.json().catch(() => null);
-        console.error("🔴 FULL BACKEND ERROR:", err);
         throw new Error(err?.message || err?.error || "Failed to add to cart");
       }
 
       const result = await response.json();
       window.dispatchEvent(new Event("cart-updated"));
+      
+      sileo.success({ 
+          title: "Added to Cart", 
+          description: `"${effectiveProduct.name}" added successfully.` 
+      });
       setSuccess(true);
 
     } catch (err: any) {
+      sileo.error({ title: "Cart Error", description: err?.message || "Failed to add to cart." });
       setError(err?.message || "Failed to add to cart.");
-      setTimeout(() => setError(null), 4000);
     } finally {
       setIsAdding(false);
       setTimeout(() => setSuccess(false), 2000);

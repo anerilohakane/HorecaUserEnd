@@ -24,6 +24,7 @@ import Link from 'next/link';
 import { useCart } from '@/lib/context/CartContext';
 import { useAuth } from '@/lib/context/AuthContext';
 import { useMemo } from 'react';
+import { sileo } from 'sileo';
 
 interface ProductDetailClientProps {
     product?: Product; // made optional so the component can fetch when not provided
@@ -399,8 +400,33 @@ export default function ProductDetailClient({
 
     const handleAddToCart = () => {
         if (!product) return;
+
+        // OUT OF STOCK CHECK
+        if (!product.inStock || (product.stockQuantity !== undefined && product.stockQuantity <= 0)) {
+            sileo.error({ 
+                title: "Out of Stock", 
+                description: `Sorry, "${product.name}" is currently out of stock.` 
+            });
+            return;
+        }
+
+        // INSUFFICIENT STOCK CHECK
+        if (product.stockQuantity !== undefined && quantity > product.stockQuantity) {
+            sileo.error({ 
+                title: "Insufficient Stock", 
+                description: `Only ${product.stockQuantity} units are available for "${product.name}".` 
+            });
+            return;
+        }
+
         setIsAdding(true);
         addItem(product, quantity);
+        
+        sileo.success({ 
+            title: "Added to Cart", 
+            description: `${quantity} ${product.unit}(s) of "${product.name}" added successfully.` 
+        });
+
         setTimeout(() => {
             setIsAdding(false);
         }, 1000);
@@ -604,9 +630,12 @@ export default function ProductDetailClient({
                                     {isAdding ? 'Adding...' : 'Add to Cart'}
                                 </button>
                             ) : (
-                                <div className="flex-1 py-4 px-6 rounded-xl border-2 border-gray-200 bg-gray-50 text-red-500 font-bold uppercase tracking-wide flex items-center justify-center cursor-not-allowed">
+                                <button
+                                    onClick={() => sileo.error({ title: "Out of Stock", description: `Sorry, "${product.name}" is currently out of stock.` })}
+                                    className="flex-1 py-4 px-6 rounded-xl border-2 border-gray-200 bg-gray-50 text-red-500 font-bold uppercase tracking-wide flex items-center justify-center cursor-not-allowed hover:bg-gray-100 transition-colors"
+                                >
                                     Out of Stock
-                                </div>
+                                </button>
                             )}
 
                             <button
