@@ -562,7 +562,7 @@ import { sileo } from 'sileo';
 
 interface CartItemProps {
   item: CartItemType;
-  onUpdateQuantity: (productId: string, quantity: number) => Promise<void>;
+  onUpdateQuantity: (productId: string, quantity: number) => Promise<{ success: boolean; message?: string }>;
   onRemove: (productId: string) => Promise<void>;
   useUnoptimizedImages?: boolean;
 }
@@ -649,6 +649,7 @@ export default function CartItem({
     unit: safeString((rawProduct as any)?.unit || (rawProduct as any)?.uom || 'unit'),
     minOrder: Math.max(1, safeNumber((rawProduct as any)?.minOrder || (rawProduct as any)?.minimumOrder, 1)),
     category: safeString((rawProduct as any)?.category || (rawProduct as any)?.type, ''),
+    stockQuantity: (rawProduct as any)?.stockQuantity !== undefined ? safeNumber((rawProduct as any).stockQuantity) : undefined,
   };
 
 
@@ -701,18 +702,29 @@ export default function CartItem({
   const itemTotal = price * quantity;
 
   // Event handlers
-  const handleIncrement = (productId:any) => {
-    console.log('Incrementing quantity for product ID:', productId);
-    
-    // onUpdateQuantity(productId, quantity + 1);
+  const handleIncrement = async (productId: any) => {
+    // Proactive stock check
+    if (product.stockQuantity !== undefined && quantity + 1 > product.stockQuantity) {
+      sileo.error({ 
+        title: "Max Stock Reached", 
+        description: `Only ${product.stockQuantity} units of "${product.name}" are available.` 
+      });
+      return;
+    }
 
-    onUpdateQuantity(productId, quantity + 1);
+    const res = await onUpdateQuantity(productId, quantity + 1);
+    if (!res.success) {
+      sileo.error({ title: "Quantity Error", description: res.message || "Could not update quantity." });
+    }
   };
 
-  const handleDecrement = () => {
+  const handleDecrement = async () => {
     const newQuantity = quantity - 1;
     if (newQuantity >= product.minOrder) {
-      onUpdateQuantity(productId, newQuantity);
+      const res = await onUpdateQuantity(productId, newQuantity);
+      if (!res.success) {
+        sileo.error({ title: "Quantity Error", description: res.message || "Could not update quantity." });
+      }
     } else if (newQuantity < product.minOrder && newQuantity > 0) {
       // Quantity below minimum - show custom modal to remove
       setShowMinOrderModal(true);

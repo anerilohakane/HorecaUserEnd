@@ -4,6 +4,7 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { Product } from '@/lib/types/product';
 import { CartItem } from '@/lib/types/cart';
 import { useAuth } from '@/lib/context/AuthContext';
+import { sileo } from 'sileo';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -11,9 +12,9 @@ interface CartContextType {
   items: CartItem[];
   itemCount: number;
   subtotal: number;
-  addItem: (product: Product, quantity: number) => Promise<void>;
+  addItem: (product: Product, quantity: number) => Promise<{ success: boolean; message?: string }>;
   removeItem: (productId: string) => Promise<void>;
-  updateQuantity: (productId: string, quantity: number) => Promise<void>;
+  updateQuantity: (productId: string, quantity: number) => Promise<{ success: boolean; message?: string }>;
   clearCart: () => Promise<void>;
 }
 
@@ -92,74 +93,77 @@ useEffect(() => {
   // ------------------------------------------
   // ADD ITEM
   // ------------------------------------------
-  const addItem = async (product: Product, quantity: number = 1) => {
+  const addItem = async (product: Product, quantity: number = 1): Promise<{ success: boolean; message?: string }> => {
     if (!token || !userId) {
-      alert("Please login first!");
-      return;
+      sileo.error({ title: "Login Required", description: "Please login to add items to your cart." });
+      return { success: false, message: "Login required" };
     }
 
-    const body = {
-      userId,
-      productId: product.id,
-      quantity,
-    };
+    try {
+      const body = {
+        userId,
+        productId: product.id,
+        quantity,
+      };
 
-    // console.log("📤 ADD TO CART BODY:", body);
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
+      const json = await res.json();
 
-    const json = await res.json();
-    // console.log("📤 ADD TO CART RESPONSE:", json);
-
-    if (json.success) {
-      // console.log("🟩 Add success — fetching cart again");
-      fetchCart();
-    } else {
-      console.error("🟥 Add failed:", json.error);
+      if (json.success) {
+        fetchCart();
+        return { success: true };
+      } else {
+        console.error("🟥 Add failed:", json.error);
+        return { success: false, message: json.error || "Failed to add to cart" };
+      }
+    } catch (err: any) {
+      console.error("ADD ITEM ERROR:", err);
+      return { success: false, message: err.message || "Network error" };
     }
   };
 
   // ------------------------------------------
   // UPDATE QUANTITY
   // ------------------------------------------
-  const updateQuantity = async (productId: string, quantity: number) => {
-    if (!token || !userId) return;
+  const updateQuantity = async (productId: string, quantity: number): Promise<{ success: boolean; message?: string }> => {
+    if (!token || !userId) return { success: false, message: "Login required" };
 
-    console.log("productId", productId);
-    
-    const body = {
-      userId,
-      productId,
-      quantity,
-    };
+    try {
+      const body = {
+        userId,
+        productId,
+        quantity,
+      };
 
-    // console.log("📤 UPDATE CART BODY:", body);
+      const res = await fetch(API_URL, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
+      });
 
-    const res = await fetch(API_URL, {
-      method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(body),
-    });
+      const json = await res.json();
 
-    const json = await res.json();
-
-    // console.log("📤 UPDATE CART RESPONSE:", json);
-
-    if (json.success) {
-      // console.log("🟩 Update success — refreshing cart");
-      fetchCart();
-    } else {
-      console.error("🟥 Update failed:", json.error);
+      if (json.success) {
+        fetchCart();
+        return { success: true };
+      } else {
+        console.error("🟥 Update failed:", json.error);
+        return { success: false, message: json.error || "Failed to update quantity" };
+      }
+    } catch (err: any) {
+      console.error("UPDATE QUANTITY ERROR:", err);
+      return { success: false, message: err.message || "Network error" };
     }
   };
 

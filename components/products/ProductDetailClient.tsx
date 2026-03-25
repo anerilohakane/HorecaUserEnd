@@ -398,38 +398,51 @@ export default function ProductDetailClient({
         fetchReviews();
     };
 
-    const handleAddToCart = () => {
+    const handleAddToCart = async () => {
         if (!product) return;
 
-        // OUT OF STOCK CHECK
+        // 1) CLIENT-SIDE STOCK CHECK
         if (!product.inStock || (product.stockQuantity !== undefined && product.stockQuantity <= 0)) {
-            sileo.error({ 
-                title: "Out of Stock", 
-                description: `Sorry, "${product.name}" is currently out of stock.` 
+            sileo.error({
+                title: "Out of Stock",
+                description: `Sorry, "${product.name}" is currently out of stock.`
             });
             return;
         }
 
-        // INSUFFICIENT STOCK CHECK
         if (product.stockQuantity !== undefined && quantity > product.stockQuantity) {
-            sileo.error({ 
-                title: "Insufficient Stock", 
-                description: `Only ${product.stockQuantity} units are available for "${product.name}".` 
+            sileo.error({
+                title: "Insufficient Stock",
+                description: `Only ${product.stockQuantity} units are available for "${product.name}".`
             });
             return;
         }
 
         setIsAdding(true);
-        addItem(product, quantity);
-        
-        sileo.success({ 
-            title: "Added to Cart", 
-            description: `${quantity} ${product.unit}(s) of "${product.name}" added successfully.` 
-        });
 
-        setTimeout(() => {
+        try {
+            // 2) ATTEMPT ADDITION & AWAIT
+            const result = await addItem(product, quantity);
+
+            if (result.success) {
+                sileo.success({
+                    title: "Added to Cart",
+                    description: `${quantity} ${product.unit}(s) of "${product.name}" added successfully.`
+                });
+            } else {
+                sileo.error({
+                    title: "Cart Error",
+                    description: result.message || "Failed to add to cart"
+                });
+            }
+        } catch (err: any) {
+            sileo.error({
+                title: "Error",
+                description: "An unexpected error occurred."
+            });
+        } finally {
             setIsAdding(false);
-        }, 1000);
+        }
     };
 
     const incrementQuantity = () => setQuantity((prev) => prev + 1);
