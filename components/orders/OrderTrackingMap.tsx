@@ -4,7 +4,7 @@ import React, { useEffect, useState, useRef } from 'react';
 import Map, { Marker, Source, Layer, MapRef } from 'react-map-gl/mapbox';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { MapPin, Truck } from 'lucide-react';
-import { animate } from 'framer-motion';
+import { animate, motion } from 'framer-motion';
 
 const MAPBOX_TOKEN = "pk.eyJ1Ijoic2FtZWVyMjcyOSIsImEiOiJjbWswdWtmMGMwMDdmM2Zxc3ludjF2eTZkIn0._DvjqPsOzDNAlUIPs4xJlQ";
 
@@ -50,13 +50,17 @@ const OrderTrackingMap: React.FC<OrderTrackingMapProps> = ({ destination, status
                 const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
                 const res = await fetch(`${backendUrl}/api/order?id=${orderId}`);
                 const data = await res.json();
-
+                
                 if (data.success && data.order?.driverLocation) {
                     const loc = data.order.driverLocation;
                     if (loc.lat && loc.lng) {
                         setDriverLoc({ lat: loc.lat, lng: loc.lng });
                         if (loc.bearing !== undefined) setDriverBearing(loc.bearing);
                     }
+                } else if (!driverLoc && ['out_for_delivery', 'shipped'].includes(status)) {
+                    // Fallback: Use simulated start point if no location in DB but out for delivery
+                    setDriverLoc(startPoint);
+                    setDriverBearing(45); // Point towards destination-ish
                 }
             } catch (err) {
                 console.error("Polling Error:", err);
@@ -137,36 +141,57 @@ const OrderTrackingMap: React.FC<OrderTrackingMapProps> = ({ destination, status
                 {/* Destination Marker */}
                 <Marker latitude={destination.lat} longitude={destination.lng} anchor="bottom">
                     <div className="relative flex flex-col items-center group">
-                        <div className="w-4 h-4 bg-orange-500 rounded-full animate-ping absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20"></div>
-                        <div className="bg-white p-2.5 rounded-full shadow-xl border-2 border-orange-500 z-10">
-                            <MapPin className="text-orange-600 fill-orange-100" size={24} />
-                        </div>
-                        <div className="bg-white/90 backdrop-blur-md px-3 py-1 mt-2 rounded-full text-xs font-bold shadow-lg border border-gray-100 transform transition-all group-hover:scale-110">
+                        {/* Floating Label - Moved to top so MapPin is at the bottom anchor */}
+                        <div className="bg-white/95 backdrop-blur-md px-3 py-1 mb-2 rounded-full text-xs font-black shadow-lg border border-gray-100 transform transition-all group-hover:scale-110 uppercase tracking-wider">
                             Delivery Location
+                        </div>
+                        <div className="w-4 h-4 bg-orange-500 rounded-full animate-ping absolute bottom-4 opacity-20"></div>
+                        <div className="bg-white p-2.5 rounded-full shadow-xl border-2 border-orange-500 z-10 relative">
+                            <MapPin className="text-orange-600 fill-orange-100" size={24} />
                         </div>
                     </div>
                 </Marker>
 
-                {/* Driver Marker - Real-time Modern UI */}
+                {/* Driver Marker - Premium Navigation UI */}
                 {driverLoc && (
                     <Marker
                         latitude={driverLoc.lat}
                         longitude={driverLoc.lng}
-                        anchor="bottom"
+                        anchor="center"
                     >
-                        <div className="relative flex flex-col items-center group cursor-pointer z-20">
-                            {/* Outer Glow / Ping for active movement */}
-                            <div className="w-12 h-12 bg-blue-500 rounded-full animate-ping absolute top-[40%] left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-20 duration-1000"></div>
+                        <div className="relative flex items-center justify-center cursor-pointer z-[100] group w-12 h-12">
                             
-                            {/* Pin Circle */}
-                            <div className="bg-[#111827] p-3 rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.3)] border-4 border-white z-10 transform transition-transform duration-300 group-hover:scale-110">
-                                <Truck className="text-white relative z-10" size={20} />
+                            {/* In-built Status Beacon (Pulsing Halo) */}
+                            <div className="absolute w-14 h-14 bg-orange-500/20 rounded-full animate-pulse blur-lg -z-10" />
+                            <div className="absolute w-10 h-10 border-[1.5px] border-orange-500/40 rounded-full animate-ping -z-10 duration-1000" />
+
+                            {/* Floating Label - Absolute positioned to not shift the icon's center */}
+                            <div className="absolute -top-12 bg-white/95 backdrop-blur-md text-slate-800 px-3 py-1.5 rounded-xl text-[9px] font-black shadow-lg border border-white/50 whitespace-nowrap uppercase tracking-[0.15em] transition-all group-hover:-translate-y-1">
+                                <div className="flex items-center gap-2">
+                                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                                    Live Tracking
+                                </div>
                             </div>
-                            
-                            {/* Floating Label */}
-                            <div className="bg-white/95 backdrop-blur-md text-[#111827] px-3 py-1 mt-2 rounded-full text-[11px] font-bold shadow-lg border border-gray-200 transform transition-all duration-300 group-hover:-translate-y-1 whitespace-nowrap">
-                                Arriving Soon
-                            </div>
+
+                            {/* Navigation Directional Container */}
+                            <motion.div 
+                                style={{ rotate: driverBearing }}
+                                className="relative flex items-center justify-center transition-all duration-700 ease-in-out"
+                            >
+                                {/* Directional Heading Cone */}
+                                <div className="absolute -top-10 w-12 h-20 bg-gradient-to-t from-orange-500/30 to-transparent opacity-60" 
+                                     style={{ clipPath: 'polygon(50% 0%, 15% 100%, 85% 100%)', filter: 'blur(1.5px)' }} 
+                                />
+
+                                {/* Orange-Themed Vehicle Marker (Matches Brand Colors) */}
+                                <div className="bg-[#F97316] w-12 h-12 rounded-full shadow-[0_15px_35px_rgb(249,115,22,0.35)] border-[3px] border-white flex items-center justify-center relative z-10">
+                                    {/* -rotate-90 to make truck face UP by default (matching the indicator) */}
+                                    <Truck className="text-white fill-white/20 transform -rotate-90" size={24} />
+                                    
+                                    {/* Direction Indicator */}
+                                    <div className="absolute -top-1.5 w-3 h-3 bg-white rotate-45 border-2 border-[#F97316] rounded-sm shadow-sm" />
+                                </div>
+                            </motion.div>
                         </div>
                     </Marker>
                 )}
