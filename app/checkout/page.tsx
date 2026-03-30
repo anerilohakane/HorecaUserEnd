@@ -45,7 +45,19 @@ export default function CheckoutPage() {
   // Calculate order totals (same as cart)
   const discount = 0; // Would come from applied coupon
   const subtotalAfterDiscount = subtotal - discount;
-  const tax = subtotalAfterDiscount * 0.18;
+
+  // Dynamic GST calculation based on item-level rates
+  const totalTaxRaw = items.reduce((acc, item) => {
+    const itemPrice = item.product.price;
+    const qty = item.quantity;
+    const gstRate = item.product.gst || 0;
+    return acc + (itemPrice * qty * (gstRate / 100));
+  }, 0);
+
+  // Apply discount proportionally to the tax if a coupon is used
+  const discountRatio = subtotal > 0 ? subtotalAfterDiscount / subtotal : 1;
+  const tax = totalTaxRaw * discountRatio;
+
   const shipping = subtotal >= 500 ? 0 : 20;
   const platformFee = 5;
   const total = subtotalAfterDiscount + tax + shipping + platformFee;

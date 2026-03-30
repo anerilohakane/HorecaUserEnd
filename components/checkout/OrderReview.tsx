@@ -495,7 +495,12 @@ export default function OrderReview({
             <span>Subtotal</span> <span>₹{subtotal.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
-            <span>Tax</span> <span>₹{tax.toFixed(2)}</span>
+            {(() => {
+              const distinctRates = Array.from(new Set(items.map(item => item.product.gst || 0)));
+              const rateLabel = distinctRates.length === 1 ? `${distinctRates[0]}%` : distinctRates.map(r => `${r}%`).join(', ');
+              return <span>GST ({rateLabel})</span>;
+            })()}
+            <span>₹{tax.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span>Shipping</span>

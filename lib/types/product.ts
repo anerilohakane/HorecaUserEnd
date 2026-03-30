@@ -16,6 +16,7 @@ export interface Product {
   minOrder: number;
   stockQuantity?: number;
   discount?: number;
+  gst?: number;
   tags: string[];
   // Dynamic fields
   specifications?: { name: string; value: string }[];

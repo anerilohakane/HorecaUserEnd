@@ -415,12 +415,21 @@ const OrderConfirmationPage = () => {
                     // 3. Discount (from DB)
                     const discountVal = order.discount || (order as any).discounts || 0;
 
-                    // 4. Tax (18% of Taxable Value)
+                    // 4. Tax (Dynamic calculation per item)
+                    const calculatedTax = order.items.reduce((acc, item) => {
+                      const price = item.price ?? (item as any).unitPrice ?? (item as any).product?.price ?? 0;
+                      const qty = item.quantity || (item as any).qty || 1;
+                      const gstRate = (item as any).gst ?? 0;
+                      return acc + (price * qty * (gstRate / 100));
+                    }, 0);
+
+                    // If discount exists, decrease tax proportionally
                     const taxableAmount = Math.max(0, calculatedSubtotal - discountVal);
-                    const calculatedTax = taxableAmount * 0.18;
+                    const discountRatio = calculatedSubtotal > 0 ? taxableAmount / calculatedSubtotal : 1;
+                    const finalTax = calculatedTax * discountRatio;
 
                     // 5. Final Total
-                    const calculatedTotal = calculatedSubtotal - discountVal + calculatedTax + calculatedShipping + platformFee;
+                    const calculatedTotal = calculatedSubtotal - discountVal + finalTax + calculatedShipping + platformFee;
 
                     return (
                       <>
@@ -445,8 +454,12 @@ const OrderConfirmationPage = () => {
                           </span>
                         </div>
                         <div className="flex justify-between text-sm text-gray-600">
-                          <span>Tax (18% GST)</span>
-                          <span>₹{calculatedTax.toFixed(2)}</span>
+                          {(() => {
+                            const distinctRates = Array.from(new Set(order.items.map((item: any) => (item.gst || (item as any).product?.gst || 0))));
+                            const rateLabel = distinctRates.length === 1 ? `${distinctRates[0]}%` : distinctRates.map(r => `${r}%`).join(', ');
+                            return <span>GST ({rateLabel})</span>;
+                          })()}
+                          <span>₹{finalTax.toFixed(2)}</span>
                         </div>
 
                         <div className="p-5 pt-0 -mx-5 pb-0"> {/* Negative margin to break out of padding then re-add */}

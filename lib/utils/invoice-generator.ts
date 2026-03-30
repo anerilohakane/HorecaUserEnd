@@ -166,15 +166,24 @@ export const generateInvoice = (order: any) => {
     // 3. Discount
     const discountVal = order.discount || (order as any).discounts || 0;
 
-    // 4. Tax (18%)
+    // 4. Tax (Dynamic calculation per item)
+    const totalTaxRaw = (order.items || []).reduce((acc: number, item: any) => {
+        const price = typeof item.price === 'number' ? item.price : (typeof item.unitPrice === 'number' ? item.unitPrice : 0);
+        const qty = item.quantity || 1;
+        const gstRate = item.gst ?? 0;
+        return acc + (price * qty * (gstRate / 100));
+    }, 0);
+
+    // Apply discount proportionally to the tax
     const taxableAmount = Math.max(0, calculatedSubtotal - discountVal);
-    const calculatedTax = taxableAmount * 0.18;
+    const discountRatio = calculatedSubtotal > 0 ? taxableAmount / calculatedSubtotal : 1;
+    const finalTax = totalTaxRaw * discountRatio;
 
     // 5. Platform Fee
     const platformFee = 5;
 
     // 6. Total
-    const calculatedTotal = calculatedSubtotal - discountVal + calculatedTax + calculatedShipping + platformFee;
+    const calculatedTotal = calculatedSubtotal - discountVal + finalTax + calculatedShipping + platformFee;
 
 
     printTotal("Subtotal:", `Rs. ${calculatedSubtotal.toFixed(2)}`);
@@ -183,7 +192,10 @@ export const generateInvoice = (order: any) => {
     }
     printTotal("Platform Fee:", `Rs. ${platformFee.toFixed(2)}`);
     printTotal("Delivery Charges:", calculatedShipping === 0 ? "FREE" : `Rs. ${calculatedShipping.toFixed(2)}`);
-    printTotal("Tax (GST 18%):", `Rs. ${calculatedTax.toFixed(2)}`);
+    const distinctRates = Array.from(new Set((order.items || []).map((item: any) => (item.gst || (item as any).product?.gst || 0))));
+    const rateLabel = distinctRates.length === 1 ? `${distinctRates[0]}%` : distinctRates.map(r => `${r}%`).join(', ');
+    
+    printTotal(`GST (${rateLabel || '0%'}):`, `Rs. ${finalTax.toFixed(2)}`);
 
     doc.setDrawColor(220);
     doc.line(130, finalY - 3, 196, finalY - 3);

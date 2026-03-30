@@ -4,12 +4,15 @@ import { useState } from 'react';
 import { Tag, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
+import { CartItem } from '@/lib/types/cart';
+
 interface CartSummaryProps {
   subtotal: number;
   itemCount: number;
+  items: CartItem[];
 }
 
-export default function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
+export default function CartSummary({ subtotal, itemCount, items }: CartSummaryProps) {
   const [couponCode, setCouponCode] = useState('');
   const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponError, setCouponError] = useState('');
@@ -51,7 +54,18 @@ export default function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
   // Calculations
   const discount = appliedCoupon ? (subtotal * appliedCoupon.discount) / 100 : 0;
   const subtotalAfterDiscount = subtotal - discount;
-  const tax = subtotalAfterDiscount * 0.18; // 18% GST
+
+  // Dynamic GST calculation based on item-level rates
+  const totalTaxRaw = items.reduce((acc, item) => {
+    const itemPrice = item.product.price;
+    const qty = item.quantity;
+    const gstRate = item.product.gst || 0;
+    return acc + (itemPrice * qty * (gstRate / 100));
+  }, 0);
+
+  // Apply discount proportionally to the tax if a coupon is used
+  const discountRatio = subtotal > 0 ? subtotalAfterDiscount / subtotal : 1;
+  const tax = totalTaxRaw * discountRatio;
   const shipping = subtotal >= 500 ? 0 : 20; // Free shipping above ₹500
   const platformFee = 5;
   const total = subtotalAfterDiscount + tax + shipping + platformFee;
@@ -80,12 +94,19 @@ export default function CartSummary({ subtotal, itemCount }: CartSummaryProps) {
           </div>
         )}
 
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Tax (GST 18%)</span>
-          <span className="font-semibold text-[#111827]">
-            ₹{tax.toFixed(2)}
-          </span>
-        </div>
+        {(() => {
+          const distinctRates = Array.from(new Set(items.map(item => item.product.gst || 0)));
+          const rateLabel = distinctRates.length === 1 ? `${distinctRates[0]}%` : distinctRates.map(r => `${r}%`).join(', ');
+          
+          return (
+            <div className="flex justify-between text-sm">
+              <span className="text-gray-600">GST ({rateLabel})</span>
+              <span className="font-semibold text-[#111827]">
+                ₹{tax.toFixed(2)}
+              </span>
+            </div>
+          );
+        })()}
 
         <div className="flex justify-between text-sm">
           <span className="text-gray-600">Shipping</span>

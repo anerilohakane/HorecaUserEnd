@@ -230,14 +230,14 @@ export default function CartPage() {
 
                     {/* Mobile Summary */}
                     <div className="lg:hidden mt-6">
-                      <CartSummary subtotal={subtotal} itemCount={itemCount} />
+                      <CartSummary subtotal={subtotal} itemCount={itemCount} items={items} />
                     </div>
                   </div>
 
                   {/* Desktop Summary */}
                   <div className="hidden lg:block">
                     <div className="sticky top-24">
-                      <CartSummary subtotal={subtotal} itemCount={itemCount} />
+                      <CartSummary subtotal={subtotal} itemCount={itemCount} items={items} />
                     </div>
                   </div>
                 </div>
