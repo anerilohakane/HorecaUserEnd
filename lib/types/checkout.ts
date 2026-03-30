@@ -34,7 +34,8 @@ export interface Order {
   }[];
   subtotal: number;
   discount: number;
-  tax: number;
+  gst: number;
+  gstAmount: number;
   shipping: number;
   platformFee: number;
   total: number;

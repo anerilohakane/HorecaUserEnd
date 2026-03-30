@@ -56,11 +56,11 @@ export default function CheckoutPage() {
 
   // Apply discount proportionally to the tax if a coupon is used
   const discountRatio = subtotal > 0 ? subtotalAfterDiscount / subtotal : 1;
-  const tax = totalTaxRaw * discountRatio;
-
+  const gstAmount = totalTaxRaw * discountRatio;
+  const gst = items.length > 0 ? (gstAmount / subtotal) * 100 : 0;
   const shipping = subtotal >= 500 ? 0 : 20;
   const platformFee = 5;
-  const total = subtotalAfterDiscount + tax + shipping + platformFee;
+  const total = subtotalAfterDiscount + gstAmount + shipping + platformFee;
 
   const steps = [
     { id: 'shipping' as CheckoutStep, label: 'Shipping', number: 1 },
@@ -110,7 +110,8 @@ export default function CheckoutPage() {
       })),
       subtotal,
       discount,
-      tax,
+      gst,
+      gstAmount,
       shipping,
       platformFee,
       total,
@@ -261,7 +262,8 @@ export default function CheckoutPage() {
                     items={items}
                     subtotal={subtotal}
                     discount={discount}
-                    tax={tax}
+                    gst={gst}
+                    gstAmount={gstAmount}
                     shipping={shipping}
                     total={total}
                     onEditShipping={() => setCurrentStep('shipping')}

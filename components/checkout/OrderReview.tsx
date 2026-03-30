@@ -269,7 +269,8 @@ interface OrderReviewProps {
   items: CartItem[];
   subtotal: number;
   discount: number;
-  tax: number;
+  gst: number;
+  gstAmount: number;
   shipping: number;
   total: number;
   couponCode?: string;
@@ -284,7 +285,8 @@ export default function OrderReview({
   items,
   subtotal,
   discount,
-  tax,
+  gst,
+  gstAmount,
   shipping,
   total,
   platformFee = 5,
@@ -342,7 +344,8 @@ export default function OrderReview({
           country: shippingAddress.country,
         },
         items: formattedItems,
-        tax,
+        gst,
+        gstAmount,
         // WORKAROUND: The deployed backend currently ignores 'platformFee' when calculating the final total.
         // We add it to 'shippingCharges' here so the final total calculates correctly.
         // Once the updated backend is deployed to Vercel, this can be separated again.
@@ -500,7 +503,7 @@ export default function OrderReview({
               const rateLabel = distinctRates.length === 1 ? `${distinctRates[0]}%` : distinctRates.map(r => `${r}%`).join(', ');
               return <span>GST ({rateLabel})</span>;
             })()}
-            <span>₹{tax.toFixed(2)}</span>
+            <span>₹{gstAmount.toFixed(2)}</span>
           </div>
           <div className="flex justify-between">
             <span>Shipping</span>
