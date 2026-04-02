@@ -1340,17 +1340,19 @@ const ProfilePage = () => {
                                                                         </div>
 
                                                                         <div className="flex gap-2">
-                                                                            {/* Write Review Button */}
-                                                                            <button
-                                                                                onClick={() => {
-                                                                                    // robustly find product ID
-                                                                                    const pId = item.product?._id || item.product?.id || item.productId || (typeof item.product === 'string' ? item.product : null);
-                                                                                    handleWriteReview(ord.id || ord._id, { id: pId, name: item.productName || item.name });
-                                                                                }}
-                                                                                className="px-4 py-2 text-sm font-medium text-white bg-[#D97706] rounded-full hover:bg-[#B45309] transition-colors shadow-sm"
-                                                                            >
-                                                                                Write Review
-                                                                            </button>
+                                                                            {/* Write Review Button - Only if Delivered or Return Requested */}
+                                                                            {['delivered', 'return_requested'].includes(ord.status?.toLowerCase()) && (
+                                                                                <button
+                                                                                    onClick={() => {
+                                                                                        // robustly find product ID
+                                                                                        const pId = item.product?._id || item.product?.id || item.productId || (typeof item.product === 'string' ? item.product : null);
+                                                                                        handleWriteReview(ord.id || ord._id, { id: pId, name: item.productName || item.name });
+                                                                                    }}
+                                                                                    className="px-4 py-2 text-sm font-medium text-white bg-[#D97706] rounded-full hover:bg-[#B45309] transition-colors shadow-sm"
+                                                                                >
+                                                                                    Write Review
+                                                                                </button>
+                                                                            )}
                                                                         </div>
                                                                     </div>
                                                                 ))}
