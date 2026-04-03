@@ -166,7 +166,14 @@ export default function ProductDetailClient({
                 throw new Error(err?.message || "Wishlist update failed");
             }
 
+            const currentlyInWishlist = isInWishlist;
             setIsInWishlist((prev) => !prev);
+            
+            sileo.success({
+                title: currentlyInWishlist ? "Removed from Wishlist" : "Added to Wishlist",
+                description: `"${product.name}" has been ${currentlyInWishlist ? "removed from" : "added to"} your wishlist.`
+            });
+
             // Notify Header
             window.dispatchEvent(new Event("wishlist-updated"));
         } catch (err: any) {
@@ -367,8 +374,10 @@ export default function ProductDetailClient({
 
         // Check auth
         if (!token) {
-            // You might want to show a toast or alert here
-            alert("Please log in to submit a review.");
+            sileo.warning({
+                title: "Log In Required",
+                description: "Please log in to submit a product review."
+            });
             return;
         }
 

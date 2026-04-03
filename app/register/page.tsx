@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ArrowLeft, Upload, CheckCircle } from 'lucide-react';
 import Image from 'next/image';
 import Header from '@/components/Header';
+import { sileo } from 'sileo';
 
 export default function BusinessRegistration() {
   const [step, setStep] = useState(1);
@@ -31,7 +32,10 @@ export default function BusinessRegistration() {
     e.preventDefault();
     // Add your registration API call here
     console.log('Business Registration:', formData);
-    alert('Registration successful! Redirecting to login...');
+    sileo.success({
+      title: "Registration Success",
+      description: "Business registered successfully! Redirecting to login..."
+    });
     // router.push('/login');
   };
 

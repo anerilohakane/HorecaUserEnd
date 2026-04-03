@@ -9,6 +9,7 @@ import { Bell, Check, Trash2, AlertTriangle, Info, CheckCircle, XCircle, Filter,
 import Link from 'next/link';
 import { format, isToday, isYesterday } from 'date-fns';
 import PageTransition from '@/components/ui/PageTransition';
+import { sileo } from 'sileo';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
 
@@ -86,17 +87,33 @@ export default function NotificationsPage() {
     };
 
     const clearAll = async () => {
-        if (!confirm("Are you sure you want to clear all notifications?")) return;
-        try {
-            const userId = (user as any)?.id || (user as any)?._id;
-            await fetch(`${API_BASE}/api/notifications?userId=${userId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            setNotifications([]);
-        } catch (error) {
-            console.error(error);
-        }
+        sileo.action({
+            title: "Clear All Notifications?",
+            description: "Are you sure you want to clear all notifications? This action cannot be undone.",
+            fill: "#171717",
+            styles: {
+                title: "text-white!",
+                description: "text-white/70!",
+                button: "bg-red-600! hover:bg-red-700! text-white!",
+            },
+            button: {
+                title: "Clear All",
+                onClick: async () => {
+                    try {
+                        const userId = (user as any)?.id || (user as any)?._id;
+                        await fetch(`${API_BASE}/api/notifications?userId=${userId}`, {
+                            method: 'DELETE',
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        setNotifications([]);
+                        sileo.success({ title: "Notifications cleared" });
+                    } catch (error) {
+                        console.error(error);
+                        sileo.error({ title: "Failed to clear notifications" });
+                    }
+                }
+            }
+        });
     };
 
     const getIcon = (type: string) => {

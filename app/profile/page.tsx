@@ -65,13 +65,6 @@ const ProfilePage = () => {
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('personal');
     const [loading, setLoading] = useState(true);
-    const setToast = (t: any) => {
-        if (!t.show) return;
-        if (t.type === 'success') sileo.success({ title: t.message });
-        else if (t.type === 'error') sileo.error({ title: t.message });
-        else sileo.info({ title: t.message });
-    };
-    const toast = { show: false, message: '', type: 'success' };
     const [savedItemsCount, setSavedItemsCount] = useState(0);
     const [showAddressForm, setShowAddressForm] = useState(false);
     const [addresses, setAddresses] = useState<any[]>([]);
@@ -142,12 +135,12 @@ const ProfilePage = () => {
                 }
             }
 
-            setToast({ show: true, message: "Review submitted successfully!", type: "success" });
+            sileo.success({ title: "Review Submitted", description: "Your review has been submitted successfully!" });
             setIsReviewModalOpen(false);
 
         } catch (error: any) {
             console.error("Review submission failed:", error);
-            alert(error.message || "Failed to submit review");
+            sileo.error({ title: "Submission Failed", description: error.message || "Failed to submit review" });
         }
     };
 
@@ -196,7 +189,7 @@ const ProfilePage = () => {
 
             const json = await res.json();
             if (json.success) {
-                setToast({ show: true, message: "Subscription cancelled successfully", type: "success" });
+                sileo.success({ title: "Subscription Cancelled", description: "Your subscription has been cancelled successfully." });
                 // Refresh subscriptions
                 fetchSubscriptions();
             } else {
@@ -204,7 +197,7 @@ const ProfilePage = () => {
             }
         } catch (error: any) {
             console.error(error);
-            setToast({ show: true, message: error.message, type: "error" });
+            sileo.error({ title: "Cancellation Failed", description: error.message });
         }
     };
 
@@ -324,7 +317,7 @@ const ProfilePage = () => {
                 throw new Error(json.message || json.error || "Failed to submit return request");
             }
 
-            setToast({ show: true, message: "Return request submitted successfully!", type: "success" });
+            sileo.success({ title: "Return Request Submitted", description: "Your return request has been submitted successfully!" });
             setIsReturnModalOpen(false);
 
             // Refresh orders to show updated status
@@ -332,7 +325,7 @@ const ProfilePage = () => {
 
         } catch (error: any) {
             console.error("Return submission failed:", error);
-            alert(error.message || "Failed to submit return request");
+            sileo.error({ title: "Submission Failed", description: error.message || "Failed to submit return request" });
             throw error; // Re-throw to show error in modal
         }
     };
@@ -368,12 +361,13 @@ const ProfilePage = () => {
                 throw new Error(resData.message || resData.error || "Failed to cancel order");
             }
 
-            setToast({ show: true, message: "Order cancelled successfully", type: "success" });
+            sileo.success({ title: "Order Cancelled", description: "Your order has been cancelled successfully." });
             fetchOrders();
             setIsCancelModalOpen(false);
 
         } catch (error: any) {
             console.error("Cancel order failed:", error);
+            sileo.error({ title: "Cancellation Failed", description: error.message || "Failed to cancel order" });
             throw error; // Propagate to modal to show error
         }
     };
@@ -563,16 +557,14 @@ const ProfilePage = () => {
             setUser(data.data);
             setIsEditingProfile(false);
 
-            setToast({
-                show: true,
-                message: "Profile updated successfully",
-                type: "success",
+            sileo.success({
+                title: "Profile Updated",
+                description: "Your profile information has been saved successfully."
             });
         } catch (err: any) {
-            setToast({
-                show: true,
-                message: err.message || "Failed to update profile",
-                type: "error",
+            sileo.error({
+                title: "Update Failed",
+                description: err.message || "Failed to update profile"
             });
         } finally {
             setSavingProfile(false);
@@ -1150,10 +1142,9 @@ const ProfilePage = () => {
                                                     onSubmit={(address: any) => {
                                                         console.log("✅ Address received:", address);
 
-                                                        setToast({
-                                                            show: true,
-                                                            message: "Address added successfully",
-                                                            type: "success",
+                                                        sileo.success({
+                                                            title: "Address Added",
+                                                            description: "New shipping address has been saved successfully."
                                                         });
 
                                                         setShowAddressForm(false);
@@ -1535,31 +1526,45 @@ const ProfilePage = () => {
                                                                     </span>
                                                                     <button
                                                                         onClick={async () => {
-                                                                            if (!confirm(`Price changed from ₹${sub.lockedPrice} to ₹${sub.product.price}. Approve new price?`)) return;
-                                                                            try {
-                                                                                const res = await fetch(`${API_BASE}/api/subscriptions`, {
-                                                                                    method: 'PATCH',
-                                                                                    headers: {
-                                                                                        'Content-Type': 'application/json',
-                                                                                        'Authorization': `Bearer ${token}`
-                                                                                    },
-                                                                                    body: JSON.stringify({
-                                                                                        subscriptionId: sub._id,
-                                                                                        status: 'Active',
-                                                                                        lockedPrice: sub.product.price // Update to new price
-                                                                                    })
-                                                                                });
-                                                                                const data = await res.json();
-                                                                                if (data.success) {
-                                                                                    setToast({ show: true, message: "Price approved! Subscription active.", type: "success" });
-                                                                                    fetchSubscriptions();
-                                                                                } else {
-                                                                                    alert(data.error || "Failed");
+                                                                            sileo.action({
+                                                                                title: "Approve Price Change?",
+                                                                                description: `Price changed from ₹${sub.lockedPrice} to ₹${sub.product.price}. Approve new price for subscription?`,
+                                                                                fill: "#171717",
+                                                                                styles: {
+                                                                                    title: "text-white!",
+                                                                                    description: "text-white/70!",
+                                                                                    button: "bg-amber-600! hover:bg-amber-700! text-white!",
+                                                                                },
+                                                                                button: {
+                                                                                    title: "Approve",
+                                                                                    onClick: async () => {
+                                                                                        try {
+                                                                                            const res = await fetch(`${API_BASE}/api/subscriptions`, {
+                                                                                                method: 'PATCH',
+                                                                                                headers: {
+                                                                                                    'Content-Type': 'application/json',
+                                                                                                    'Authorization': `Bearer ${token}`
+                                                                                                },
+                                                                                                body: JSON.stringify({
+                                                                                                    subscriptionId: sub._id,
+                                                                                                    status: 'Active',
+                                                                                                    lockedPrice: sub.product.price // Update to new price
+                                                                                                })
+                                                                                            });
+                                                                                            const data = await res.json();
+                                                                                            if (data.success) {
+                                                                                                sileo.success({ title: "Price approved! Subscription active." });
+                                                                                                fetchSubscriptions();
+                                                                                            } else {
+                                                                                                sileo.error({ title: data.error || "Update Failed" });
+                                                                                            }
+                                                                                        } catch (e) {
+                                                                                            console.error(e);
+                                                                                            sileo.error({ title: "Failed to update" });
+                                                                                        }
+                                                                                    }
                                                                                 }
-                                                                            } catch (e) {
-                                                                                console.error(e);
-                                                                                alert("Failed to update");
-                                                                            }
+                                                                            });
                                                                         }}
                                                                         className="px-3 py-1 text-xs font-semibold text-white bg-amber-600 rounded-lg hover:bg-amber-700 transition"
                                                                     >

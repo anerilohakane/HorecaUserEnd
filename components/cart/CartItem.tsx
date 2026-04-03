@@ -583,10 +583,6 @@ export default function CartItem({
   const rawProduct = item.product;
   const rawQuantity = item.quantity;
 
-  // State for custom confirmation modal
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [showMinOrderModal, setShowMinOrderModal] = useState(false);
-
   // Safe value extraction
   const safeNumber = (value: any, fallback = 0): number => {
     if (typeof value === 'number' && !isNaN(value)) return value;
@@ -718,6 +714,26 @@ export default function CartItem({
     }
   };
 
+  const handleRemoveClick = () => {
+    sileo.action({
+      title: "Remove from Cart?",
+      description: `Are you sure you want to remove "${product.name}" from your cart?`,
+      fill: "#171717",
+      styles: {
+        title: "text-white!",
+        description: "text-white/70!",
+        button: "bg-red-600! hover:bg-red-700! text-white!",
+      },
+      button: {
+        title: "Remove Item",
+        onClick: () => {
+          onRemove(productId);
+          sileo.success({ title: "Product Removed", description: `"${product.name}" has been removed from your cart.` });
+        }
+      }
+    });
+  };
+
   const handleDecrement = async () => {
     const newQuantity = quantity - 1;
     if (newQuantity >= product.minOrder) {
@@ -726,31 +742,24 @@ export default function CartItem({
         sileo.error({ title: "Quantity Error", description: res.message || "Could not update quantity." });
       }
     } else if (newQuantity < product.minOrder && newQuantity > 0) {
-      // Quantity below minimum - show custom modal to remove
-      setShowMinOrderModal(true);
+      sileo.action({
+        title: "Minimum Order Required",
+        description: `This product requires a minimum order of ${product.minOrder} ${product.unit}. Would you like to remove it from your cart?`,
+        fill: "#171717",
+        styles: {
+          title: "text-white!",
+          description: "text-white/70!",
+          button: "bg-red-600! hover:bg-red-700! text-white!",
+        },
+        button: {
+          title: "Remove Item",
+          onClick: () => {
+            onRemove(productId);
+            sileo.success({ title: "Product Removed", description: `"${product.name}" has been removed from your cart.` });
+          }
+        }
+      });
     }
-  };
-
-  const handleRemoveClick = () => {
-    // Show custom confirmation modal
-    setShowDeleteConfirm(true);
-  };
-
-  const confirmRemove = () => {
-    onRemove(productId);
-    setShowDeleteConfirm(false);
-    sileo.success({ title: `Removed ${product.name} from cart` });
-  };
-
-  const confirmRemoveFromMinOrder = () => {
-    onRemove(productId);
-    setShowMinOrderModal(false);
-    sileo.success({ title: `Removed ${product.name} from cart` });
-  };
-
-  const cancelRemove = () => {
-    setShowDeleteConfirm(false);
-    setShowMinOrderModal(false);
   };
 
   // Quick remove without confirmation
@@ -760,188 +769,115 @@ export default function CartItem({
   };
 
   return (
-    <>
-      {/* Custom Confirmation Modal for Delete */}
-      {showDeleteConfirm && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
-                <Trash2 className="h-6 w-6 text-red-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Remove Item
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Are you sure to remove <span className="font-medium">"{product.name}"</span> from your cart?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={cancelRemove}
-                  className="flex-1 py-2.5 px-4 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmRemove}
-                  className="flex-1 py-2.5 px-4 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors font-medium"
-                >
-                  Remove
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+    <div className="bg-white rounded-2xl soft-shadow p-6 flex gap-6 relative group transform transition-all hover:scale-[1.01]">
+      {/* Product Image */}
+      <div className="relative w-32 h-32 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
+        <Link
+          href={`/products/${productId}`}
+          prefetch={false}
+          className="block w-full h-full"
+        >
+          <Image
+            src={imageSrc}
+            alt={product.name}
+            fill
+            className="object-cover hover:scale-105 transition-transform duration-300"
+            sizes="128px"
+            unoptimized={useUnoptimizedImages}
+            onError={() => setImageError(true)}
+            priority={false}
+          />
+        </Link>
+      </div>
 
-      {/* Custom Modal for Minimum Order */}
-      {showMinOrderModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 max-w-md w-full">
-            <div className="text-center">
-              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-yellow-100 mb-4">
-                <Minus className="h-6 w-6 text-yellow-600" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Minimum Order Quantity
-              </h3>
-              <p className="text-gray-600 mb-4">
-                The minimum order for <span className="font-medium">"{product.name}"</span> is {product.minOrder} {product.unit}.
-              </p>
-              <p className="text-gray-600 mb-6">
-                Would you like to remove this item from your cart?
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={cancelRemove}
-                  className="flex-1 py-2.5 px-4 border border-gray-300 rounded-full text-gray-700 hover:bg-gray-50 transition-colors font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={confirmRemoveFromMinOrder}
-                  className="flex-1 py-2.5 px-4 bg-red-600 text-white rounded-full hover:bg-red-700 transition-colors font-medium"
-                >
-                  Remove Item
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Cart Item */}
-      <div className="bg-white rounded-2xl soft-shadow p-6 flex gap-6">
-        {/* Product Image */}
-        <div className="relative w-32 h-32 bg-gray-100 rounded-xl overflow-hidden flex-shrink-0">
-          <Link
-            href={`/products/${productId}`}
-            prefetch={false}
-            className="block w-full h-full"
-          >
-            <Image
-              src={imageSrc}
-              alt={product.name}
-              fill
-              className="object-cover hover:scale-105 transition-transform duration-300"
-              sizes="128px"
-              unoptimized={useUnoptimizedImages}
-              onError={() => setImageError(true)}
-              priority={false}
-            />
-          </Link>
-        </div>
-
-        {/* Product Details */}
-        <div className="flex-1 flex flex-col justify-between">
-          <div>
-            <div className="mb-2">
-              {product.category && (
-                <p className="text-xs text-gray-500 mb-1">{product.category}</p>
-              )}
-              <Link
-                href={`/products/${product.id}`}
-                prefetch={false}
-                className="font-semibold text-[#111827] hover:text-[#D97706] transition-colors line-clamp-2"
-              >
-                {product.name}
-              </Link>
-            </div>
-
-            <div className="flex items-baseline gap-2 mb-3">
-              <span className="text-lg font-bold text-[#111827]">
-                ₹{price.toFixed(0)}
-              </span>
-              {product.discount > 0 && (
-                <>
-                  <span className="text-sm text-gray-400 line-through">
-                    ₹{product.price.toFixed(0)}
-                  </span>
-                  <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">
-                    -{product.discount}%
-                  </span>
-                </>
-              )}
-              <span className="text-sm text-gray-500">/ {product.unit}</span>
-            </div>
-
-            {quantity < product.minOrder && (
-              <p className="text-xs text-red-500 mb-2">
-                Minimum order: {product.minOrder} {product.unit}
-              </p>
+      {/* Product Details */}
+      <div className="flex-1 flex flex-col justify-between">
+        <div>
+          <div className="mb-2">
+            {product.category && (
+              <p className="text-xs text-gray-500 mb-1">{product.category}</p>
             )}
+            <Link
+              href={`/products/${product.id}`}
+              prefetch={false}
+              className="font-semibold text-[#111827] hover:text-[#D97706] transition-colors line-clamp-2"
+            >
+              {product.name}
+            </Link>
           </div>
 
-          <div className="flex items-center justify-between">
-            <div className="flex items-center border border-gray-300 rounded-full">
-              <button
-                type="button"
-                onClick={handleDecrement}
-                disabled={quantity <= product.minOrder}
-                className={`p-2 hover:bg-gray-100 transition-colors rounded-l-full ${quantity <= product.minOrder
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:text-red-500'
-                  }`}
-                aria-label="Decrease quantity"
-              >
-                <Minus size={16} />
-              </button>
-
-              <span className="px-4 font-semibold text-sm min-w-[40px] text-center">
-                {quantity}
-              </span>
-
-              <button
-                type="button"
-                onClick={() => handleIncrement(product.id)}
-                className="p-2 hover:bg-gray-100 hover:text-green-600 transition-colors rounded-r-full"
-                aria-label="Increase quantity"
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-
-            <div className="text-right">
-              <p className="text-lg font-bold text-[#111827]">
-                ₹{itemTotal.toFixed(0)}
-              </p>
-            </div>
+          <div className="flex items-baseline gap-2 mb-3">
+            <span className="text-lg font-bold text-[#111827]">
+              ₹{price.toFixed(0)}
+            </span>
+            {product.discount > 0 && (
+              <>
+                <span className="text-sm text-gray-400 line-through">
+                  ₹{product.price.toFixed(0)}
+                </span>
+                <span className="text-xs bg-red-500 text-white px-2 py-0.5 rounded-full">
+                  -{product.discount}%
+                </span>
+              </>
+            )}
+            <span className="text-sm text-gray-500">/ {product.unit}</span>
           </div>
+
+          {quantity < product.minOrder && (
+            <p className="text-xs text-red-500 mb-2">
+              Minimum order: {product.minOrder} {product.unit}
+            </p>
+          )}
         </div>
 
-        {/* Remove Button */}
-        <div className="flex-shrink-0">
-          <button
-            type="button"
-            onClick={handleRemoveClick} // With custom confirmation modal
-            // onClick={handleQuickRemove} // Without confirmation
-            className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all group"
-            aria-label={`Remove ${product.name} from cart`}
-          >
-            <Trash2 size={20} className="group-hover:scale-110 transition-transform" />
-          </button>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center border border-gray-300 rounded-full">
+            <button
+              type="button"
+              onClick={handleDecrement}
+              disabled={quantity <= product.minOrder}
+              className={`p-2 hover:bg-gray-100 transition-colors rounded-l-full ${quantity <= product.minOrder
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:text-red-500'
+                }`}
+              aria-label="Decrease quantity"
+            >
+              <Minus size={16} />
+            </button>
+
+            <span className="px-4 font-semibold text-sm min-w-[40px] text-center">
+              {quantity}
+            </span>
+
+            <button
+              type="button"
+              onClick={() => handleIncrement(product.id)}
+              className="p-2 hover:bg-gray-100 hover:text-green-600 transition-colors rounded-r-full"
+              aria-label="Increase quantity"
+            >
+              <Plus size={16} />
+            </button>
+          </div>
+
+          <div className="text-right">
+            <p className="text-lg font-bold text-[#111827]">
+              ₹{itemTotal.toFixed(0)}
+            </p>
+          </div>
         </div>
       </div>
-    </>
+
+      {/* Remove Button */}
+      <div className="flex-shrink-0">
+        <button
+          type="button"
+          onClick={handleRemoveClick}
+          className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-all group"
+          aria-label={`Remove ${product.name} from cart`}
+        >
+          <Trash2 size={20} className="group-hover:scale-110 transition-transform" />
+        </button>
+      </div>
+    </div>
   );
 }

@@ -260,6 +260,7 @@ import OrderSuccessModal from "./OrderSuccessModal";
 import { generateInvoice } from "@/lib/utils/invoice-generator";
 import { useRouter } from "next/navigation";
 import { setOrderSession } from "@/app/actions/session";
+import { sileo } from 'sileo';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
@@ -316,7 +317,7 @@ export default function OrderReview({
 
     try {
       if (!user?.id) {
-        alert("You are not logged in.");
+        sileo.warning({ title: "Logged Out", description: "Please log in to place an order." });
         setIsPlacingOrder(false);
         return;
       }
@@ -369,7 +370,7 @@ export default function OrderReview({
       console.log("📥 Order response:", data);
 
       if (!data.success) {
-        alert("Failed to place order!");
+        sileo.error({ title: "Order Failed", description: data.message || "Failed to place your order. Please try again." });
         setIsPlacingOrder(false);
         return;
       }
@@ -386,9 +387,9 @@ export default function OrderReview({
       // Removed redirect
       // window.location.href = `/order-confirmation?order=${data.order._id}`;
 
-    } catch (err) {
+    } catch (err: any) {
       console.error("🔥 Error placing order:", err);
-      alert("Something went wrong.");
+      sileo.error({ title: "Checkout Error", description: err.message || "Something went wrong while placing your order." });
     }
 
     setIsPlacingOrder(false);

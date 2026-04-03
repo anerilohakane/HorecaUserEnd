@@ -4,6 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useRef, useEffect } from 'react';
+import { sileo } from 'sileo';
 
 export default function Hero() {
   const router = useRouter();
@@ -82,7 +83,7 @@ export default function Hero() {
   // ... (location logic usually here) ...
   const handleLocationClick = () => {
     if (!navigator.geolocation) {
-      alert("Geolocation is not supported by your browser");
+      sileo.error({ title: "Geolocation Error", description: "Geolocation is not supported by your browser." });
       return;
     }
 
@@ -114,7 +115,7 @@ export default function Hero() {
       },
       (error) => {
         console.error("Error getting location:", error);
-        alert("Unable to retrieve your location");
+        sileo.error({ title: "Location Error", description: "Unable to retrieve your location. Please check your permissions." });
         setIsLocating(false);
       }
     );

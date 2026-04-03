@@ -38,7 +38,7 @@
 
 
 import type { Metadata } from "next";
-import { Inter, Poppins } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { CartProvider } from "@/lib/context/CartContext";
@@ -47,12 +47,6 @@ import { Toaster } from "sileo";
 const inter = Inter({
   subsets: ["latin"],
   variable: '--font-inter',
-});
-
-const poppins = Poppins({
-  subsets: ["latin"],
-  weight: ['400', '500', '600', '700'],
-  variable: '--font-poppins',
 });
 
 export const metadata: Metadata = {
@@ -68,11 +62,21 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${poppins.variable} antialiased`}>
+      <body className={`${inter.variable} antialiased`}>
         <AuthProvider>
           <CartProvider>
             {children}
-            <Toaster position="top-center" />
+            <Toaster 
+              position="top-right" 
+              theme="dark" 
+              options={{
+                fill: "#171717",
+                duration: 1500, // 1.5 seconds
+                styles: { 
+                  description: "text-white/75!" 
+                },
+              }}
+            />
           </CartProvider>
         </AuthProvider>
       </body>

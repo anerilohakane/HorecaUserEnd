@@ -316,8 +316,14 @@ export default function ProductCard({
       const result = await response.json();
 
       // Toggle the wishlist status
-      setIsInWishlist(!isInWishlist);
+      const currentlyInWishlist = isInWishlist;
+      setIsInWishlist(!currentlyInWishlist);
       setWishlistSuccess(true);
+
+      sileo.success({
+        title: currentlyInWishlist ? "Removed from Wishlist" : "Added to Wishlist",
+        description: `"${effectiveProduct.name}" has been ${currentlyInWishlist ? "removed from" : "added to"} your wishlist.`
+      });
 
       // Notify Header to update count
       window.dispatchEvent(new Event("wishlist-updated"));
@@ -396,11 +402,7 @@ export default function ProductCard({
         </div>
       )}
 
-      {success && (
-        <div className="pointer-events-none absolute top-2 left-2 right-2 bg-green-100 text-green-700 text-xs p-2 rounded-md z-20">
-          Added to cart!
-        </div>
-      )}
+
 
       {/* Product Image Area */}
       <div className="relative aspect-[4/3] bg-[#F9F9F9] overflow-hidden">
