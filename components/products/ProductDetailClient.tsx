@@ -231,9 +231,9 @@ export default function ProductDetailClient({
 
     // fetch single product when initialProduct not provided
     useEffect(() => {
-        if (product) {
-            // set initial quantity if product arrives
-            setQuantity(product.minOrder ?? 1);
+        if (initialProduct) {
+            setProduct(initialProduct);
+            setQuantity(initialProduct.minOrder ?? 1);
             return;
         }
 
@@ -474,12 +474,55 @@ export default function ProductDetailClient({
     const totalPrice = ((discountedPrice ?? product?.price) ?? 0) * quantity;
 
     // fallback while loading product
+    // Force scroll to top on mount or product change
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'instant' });
+    }, [product?.id]);
+
     if (!product) {
         return (
             <div className="min-h-screen bg-[#FAFAF7]">
+                {/* Skeleton Breadcrumb */}
+                <div className="bg-white border-b border-gray-100">
+                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                        <div className="h-4 bg-gray-100 rounded w-32 animate-pulse" />
+                    </div>
+                </div>
+
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="text-center py-24">
-                        <p className="text-gray-500">Loading product...</p>
+                    <div className="grid lg:grid-cols-2 gap-12">
+                        {/* Left: Image Gallery Skeleton */}
+                        <div className="space-y-4">
+                            <div className="aspect-square bg-white rounded-3xl border border-gray-100 animate-pulse shadow-sm" />
+                            <div className="grid grid-cols-4 gap-4">
+                                {[1, 2, 3, 4].map(i => (
+                                    <div key={i} className="aspect-square bg-white rounded-xl border border-gray-100 animate-pulse" />
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Right: Info Skeleton */}
+                        <div className="space-y-8 py-4">
+                            <div className="space-y-4">
+                                <div className="h-10 bg-gray-200 rounded-lg w-3/4 animate-pulse" />
+                                <div className="h-6 bg-gray-100 rounded-md w-1/4 animate-pulse" />
+                            </div>
+                            
+                            <div className="py-6 border-y border-gray-100 space-y-4">
+                                <div className="h-12 bg-gray-200 rounded-lg w-1/3 animate-pulse" />
+                                <div className="h-20 bg-gray-50 rounded-xl w-full animate-pulse" />
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="h-14 bg-gray-200 rounded-2xl w-full animate-pulse" />
+                                <div className="h-14 bg-gray-100 rounded-2xl w-full animate-pulse" />
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="h-24 bg-gray-50 rounded-2xl animate-pulse" />
+                                <div className="h-24 bg-gray-50 rounded-2xl animate-pulse" />
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
