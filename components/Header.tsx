@@ -10,6 +10,9 @@ import LoginModal from '@/components/auth/LoginModal';
 import { useAuth } from '@/lib/context/AuthContext';
 import Fuse from 'fuse.js';
 
+import NotificationDropdown from './notifications/NotificationDropdown';
+import { sileo } from 'sileo';
+
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
 const SearchSkeleton = () => (
@@ -31,6 +34,12 @@ export default function Header() {
   const router = useRouter();
   const pathname = usePathname();
 
+  // Notification State
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notificationCount, setNotificationCount] = useState(0);
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
   // Search State
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -45,10 +54,7 @@ export default function Header() {
     setMounted(true);
   }, []);
 
-  // Fetch wishlist count when user is authenticated
-  const [notificationCount, setNotificationCount] = useState(0);
-
-  const fetchNotificationCount = async () => {
+  const fetchNotifications = async () => {
     if (!user?.id || !token) return;
     try {
       const res = await fetch(`${API_BASE}/api/notifications?userId=${user.id}`, {
@@ -56,7 +62,7 @@ export default function Header() {
       });
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
-        // Count unread
+        setNotifications(data.data);
         const unread = data.data.filter((n: any) => !n.isRead).length;
         setNotificationCount(unread);
       }
@@ -65,11 +71,74 @@ export default function Header() {
     }
   };
 
+  const markNotificationAsRead = async (id: string) => {
+    if (!token) return;
+    try {
+      // Optimistic update
+      setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
+      setNotificationCount(prev => Math.max(0, prev - 1));
+
+      await fetch(`${API_BASE}/api/notifications/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({ isRead: true })
+      });
+    } catch (error) {
+      console.error("Failed to mark as read", error);
+    }
+  };
+
+  const deleteNotification = async (id: string) => {
+    if (!token) return;
+    try {
+      const wasUnread = notifications.find(n => n._id === id)?.isRead === false;
+      setNotifications(prev => prev.filter(n => n._id !== id));
+      if (wasUnread) setNotificationCount(prev => Math.max(0, prev - 1));
+
+      await fetch(`${API_BASE}/api/notifications/${id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (error) {
+      console.error("Failed to delete notification", error);
+    }
+  };
+
+  const clearAllNotifications = async () => {
+    if (!user?.id || !token) return;
+    try {
+      setNotifications([]);
+      setNotificationCount(0);
+      await fetch(`${API_BASE}/api/notifications?userId=${user.id}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+    } catch (error) {
+      console.error("Failed to clear notifications", error);
+    }
+  };
+
+  // Poll for notifications every 60 seconds
+  useEffect(() => {
+    if (mounted && isAuthenticated && user?.id) {
+       fetchNotifications();
+       pollIntervalRef.current = setInterval(fetchNotifications, 60000);
+    } else {
+       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    }
+    return () => {
+       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+    };
+  }, [mounted, isAuthenticated, user?.id]);
+
   // Fetch wishlist and notifications when auth updates
   useEffect(() => {
     if (mounted && isAuthenticated && user?.id) {
       fetchWishlistCount();
-      fetchNotificationCount();
+      fetchNotifications();
     } else {
       setWishlistCount(0);
       setNotificationCount(0);
@@ -425,16 +494,29 @@ export default function Header() {
 
                   {/* Notification Button */}
                   {isAuthenticated && (
-                    <Link href="/notifications">
-                      <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <div className="relative">
+                      <button 
+                        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                        className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
+                        title="Notifications"
+                      >
                         <Bell size={20} />
                         {notificationCount > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-amber-600 text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
+                          <span className="absolute -top-1 -right-1 bg-[#D97706] text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white">
                             {notificationCount > 9 ? '9+' : notificationCount}
                           </span>
                         )}
                       </button>
-                    </Link>
+
+                      <NotificationDropdown 
+                        isOpen={isNotificationOpen}
+                        onClose={() => setIsNotificationOpen(false)}
+                        notifications={notifications}
+                        onMarkAsRead={markNotificationAsRead}
+                        onDelete={deleteNotification}
+                        onClearAll={clearAllNotifications}
+                      />
+                    </div>
                   )}
 
                   {/* User Authentication Section - Only in Desktop if search hidden */}
