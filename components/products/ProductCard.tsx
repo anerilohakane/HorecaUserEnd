@@ -280,6 +280,24 @@ export default function ProductCard({
     setWishlistError(null);
     setWishlistSuccess(false);
 
+    // [Optimistic Update] Update local state and show notification immediately
+    const wasInWishlist = isInWishlist;
+    setIsInWishlist(!wasInWishlist);
+    setWishlistSuccess(true);
+    
+    // Dispatch event immediately for header update
+    window.dispatchEvent(new CustomEvent("wishlist-updated", { 
+      detail: { 
+        isAdded: !wasInWishlist, 
+        optimistic: true 
+      } 
+    }));
+
+    sileo.success({
+      title: wasInWishlist ? "Removed from Wishlist" : "Added to Wishlist",
+      description: `"${effectiveProduct.name}" has been ${wasInWishlist ? "removed from" : "added to"} your wishlist.`
+    });
+
     try {
       if (!token) {
         throw new Error("Please log in to manage your wishlist.");
@@ -290,12 +308,9 @@ export default function ProductCard({
         userId: user?.id || '',
       };
 
-      const method = isInWishlist ? "DELETE" : "POST";
+      const method = wasInWishlist ? "DELETE" : "POST";
       const baseUrl = API_BASE || "https://horeca-backend-six.vercel.app";
       const endpoint = `${baseUrl}/api/wishlist`;
-
-      console.log(`💟 Wishlist Request: ${method} to ${endpoint}`);
-      console.log("Payload:", payload);
 
       const response = await fetch(endpoint, {
         method: method,
@@ -308,34 +323,36 @@ export default function ProductCard({
 
       if (!response.ok) {
         const err = await response.json().catch(() => null);
-        console.error("🔴 WISHLIST BACKEND ERROR:", err);
         throw new Error(err?.message || err?.error ||
-          (isInWishlist ? "Failed to remove from wishlist" : "Failed to add to wishlist"));
+          (wasInWishlist ? "Failed to remove from wishlist" : "Failed to add to wishlist"));
       }
 
-      const result = await response.json();
-
-      // Toggle the wishlist status
-      const currentlyInWishlist = isInWishlist;
-      setIsInWishlist(!currentlyInWishlist);
-      setWishlistSuccess(true);
-
-      sileo.success({
-        title: currentlyInWishlist ? "Removed from Wishlist" : "Added to Wishlist",
-        description: `"${effectiveProduct.name}" has been ${currentlyInWishlist ? "removed from" : "added to"} your wishlist.`
-      });
-
-      // Notify Header to update count
-      window.dispatchEvent(new Event("wishlist-updated"));
-
-      // Notify parent if removal happened and onRemove prop exists
-      if (isInWishlist && onRemove && effectiveProduct.id) {
+      // Final confirmation from server (optional since we're optimistic)
+      // If we need to remove locally on confirmation (legacy part)
+      if (wasInWishlist && onRemove && effectiveProduct.id) {
         onRemove(effectiveProduct.id);
       }
 
     } catch (err: any) {
+      // [Rollback] Revert state if backend synchronization fails
+      setIsInWishlist(wasInWishlist);
+      setWishlistSuccess(false);
+      
+      // Notify header to revert count
+      window.dispatchEvent(new CustomEvent("wishlist-updated", { 
+        detail: { 
+          isAdded: wasInWishlist, 
+          optimistic: true 
+        } 
+      }));
+
+      sileo.error({
+        title: "Sync Failed",
+        description: err?.message || "Failed to sync wishlist with server."
+      });
+      
       setWishlistError(err?.message ||
-        (isInWishlist ? "Failed to remove from wishlist" : "Failed to add to wishlist"));
+        (wasInWishlist ? "Failed to remove from wishlist" : "Failed to add to wishlist"));
       setTimeout(() => setWishlistError(null), 4000);
     } finally {
       setIsWishlisting(false);

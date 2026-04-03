@@ -135,48 +135,58 @@ export default function ProductDetailClient({
         setIsWishlisting(true);
         setWishlistError(null);
 
+        // [Optimistic Update] Update local state immediately
+        const wasInWishlist = isInWishlist;
+        setIsInWishlist(!wasInWishlist);
+        
+        sileo.success({
+            title: wasInWishlist ? "Removed from Wishlist" : "Added to Wishlist",
+            description: `"${product.name}" has been ${wasInWishlist ? "removed from" : "added to"} your wishlist.`
+        });
+
+        // Notify Header immediately
+        window.dispatchEvent(new CustomEvent("wishlist-updated", { 
+          detail: { isAdded: !wasInWishlist, optimistic: true } 
+        }));
+
         try {
             if (!token) {
                 throw new Error("Please log in to manage your wishlist.");
             }
 
-            // ✅ DEFINE BASE HERE
-            const base =
-                (process.env.NEXT_PUBLIC_API_BASE_URL ||
-                    "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
-
-            // ✅ FIX: Use base URL for DELETE too, as /:id returns 405 Method Not Allowed
+            const base = (process.env.NEXT_PUBLIC_API_BASE_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
             const endpoint = `${base}/api/wishlist`;
 
             const res = await fetch(endpoint, {
-                method: isInWishlist ? "DELETE" : "POST",
+                method: wasInWishlist ? "DELETE" : "POST",
                 headers: {
                     "Content-Type": "application/json",
                     Authorization: `Bearer ${token}`,
                 },
                 body: JSON.stringify({
                     productId: product.id,
-                    userId: user?.id || user?.id,
+                    userId: user?.id,
                 }),
             });
 
             if (!res.ok) {
                 const err = await res.json().catch(() => null);
-                console.error("WISHLIST ERROR:", err);
-                throw new Error(err?.message || "Wishlist update failed");
+                throw new Error(err?.message || "Wishlist sync failed");
             }
 
-            const currentlyInWishlist = isInWishlist;
-            setIsInWishlist((prev) => !prev);
-            
-            sileo.success({
-                title: currentlyInWishlist ? "Removed from Wishlist" : "Added to Wishlist",
-                description: `"${product.name}" has been ${currentlyInWishlist ? "removed from" : "added to"} your wishlist.`
-            });
-
-            // Notify Header
-            window.dispatchEvent(new Event("wishlist-updated"));
         } catch (err: any) {
+            // [Rollback] Revert state if sync fails
+            setIsInWishlist(wasInWishlist);
+            
+            window.dispatchEvent(new CustomEvent("wishlist-updated", { 
+              detail: { isAdded: wasInWishlist, optimistic: true } 
+            }));
+
+            sileo.error({
+              title: "Wishlist Sync Failed",
+              description: err.message || "Could not sync wishlist with server."
+            });
+            
             setWishlistError(err.message || "Wishlist error");
             setTimeout(() => setWishlistError(null), 3000);
         } finally {

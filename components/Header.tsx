@@ -78,7 +78,13 @@ export default function Header() {
 
   // Listen for realtime wishlist updates
   useEffect(() => {
-    const handleWishlistUpdate = () => {
+    const handleWishlistUpdate = (event: any) => {
+      // [Optimistic Update] Update count immediately if detail is provided
+      if (event.detail?.optimistic) {
+        setWishlistCount(prev => Math.max(0, event.detail.isAdded ? prev + 1 : prev - 1));
+      }
+      
+      // Perform background sync to ensure accuracy
       if (user?.id) fetchWishlistCount();
     };
 
