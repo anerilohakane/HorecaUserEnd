@@ -13,7 +13,7 @@ import Fuse from 'fuse.js';
 import NotificationDropdown from './notifications/NotificationDropdown';
 import { sileo } from 'sileo';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
 
 const SearchSkeleton = () => (
   <div className="p-3 animate-pulse flex items-center gap-3">
@@ -61,6 +61,9 @@ export default function Header() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
+      
+      console.log(`[NOTIFICATIONS] Fetched ${data?.data?.length || 0} alerts for user ${user.id}`);
+      
       if (data.success && Array.isArray(data.data)) {
         setNotifications(data.data);
         const unread = data.data.filter((n: any) => !n.isRead).length;
