@@ -165,6 +165,7 @@ const ProfilePage = () => {
     const [isSubModalOpen, setIsSubModalOpen] = useState(false);
     const [subModalOrderId, setSubModalOrderId] = useState<string>("");
     const [subModalItems, setSubModalItems] = useState<any[]>([]);
+    const [subModalFees, setSubModalFees] = useState({ shipping: 0, platform: 0, gst: 0 });
 
     // Cancel Subscription State
     const [isCancelSubModalOpen, setIsCancelSubModalOpen] = useState(false);
@@ -207,9 +208,14 @@ const ProfilePage = () => {
         }
     };
 
-    const handleScheduleRepeat = (orderId: string, items: any[]) => {
-        setSubModalOrderId(orderId);
-        setSubModalItems(items);
+    const handleScheduleRepeat = (order: any) => {
+        setSubModalOrderId(order.id || order._id);
+        setSubModalItems(order.items);
+        setSubModalFees({
+            shipping: order.shippingCharges || 0,
+            platform: order.platformFee || 0,
+            gst: order.gstAmount || 0
+        });
         setIsSubModalOpen(true);
     };
 
@@ -1435,7 +1441,7 @@ const ProfilePage = () => {
                                                         {ord.status?.toLowerCase() === 'delivered' && (
                                                             <div className="p-4 bg-gray-50 border-t border-gray-100 flex justify-end">
                                                                 <button
-                                                                    onClick={() => handleScheduleRepeat(ord.id || ord._id, ord.items)}
+                                                                    onClick={() => handleScheduleRepeat(ord)}
                                                                     className="px-6 py-2.5 text-sm font-medium text-blue-600 border border-blue-200 bg-white rounded-xl hover:bg-blue-50 hover:border-blue-300 transition-all shadow-sm flex items-center gap-2"
                                                                 >
                                                                     <RotateCw size={16} />
@@ -1465,22 +1471,9 @@ const ProfilePage = () => {
                                 {/* SUBSCRIPTIONS TAB */}
                                 {activeTab === "subscriptions" && (
                                     <div className="space-y-8">
-                                        <div className="text-center mb-2">
-                                            <h2 className="text-2xl font-bold text-gray-900 mb-2">My Subscriptions</h2>
-                                            <p className="text-gray-600">Manage your recurring orders</p>
-
-                                            {/* Debug Button */}
-                                            <button
-                                                onClick={async () => {
-                                                    const res = await fetch(`${API_BASE}/api/cron/process-subscriptions`);
-                                                    const json = await res.json();
-                                                    alert(JSON.stringify(json, null, 2));
-                                                    fetchSubscriptions(); // Refresh list
-                                                }}
-                                                className="mt-2 text-xs text-blue-500 underline"
-                                            >
-                                                {/* [Dev] Test Scheduler Now */}
-                                            </button>
+                                        <div className="mb-6">
+                                            <h2 className="text-2xl font-bold text-gray-900 mb-1">My Subscriptions</h2>
+                                            <p className="text-gray-600 text-sm">Manage your recurring orders</p>
                                         </div>
 
                                         {subsLoading && (
@@ -1627,8 +1620,13 @@ const ProfilePage = () => {
             <OrderSubscriptionModal
                 isOpen={isSubModalOpen}
                 onClose={() => setIsSubModalOpen(false)}
+                onSuccess={() => {
+                    fetchSubscriptions();
+                    fetchOrders();
+                }}
                 orderId={subModalOrderId}
                 items={subModalItems}
+                fees={subModalFees}
             />
             {/* Cancel Order Modal */}
             <CancelOrderModal
