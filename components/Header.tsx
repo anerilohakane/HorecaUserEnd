@@ -12,6 +12,16 @@ import Fuse from 'fuse.js';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
 
+const SearchSkeleton = () => (
+  <div className="p-3 animate-pulse flex items-center gap-3">
+    <div className="w-10 h-10 bg-gray-200 rounded flex-shrink-0" />
+    <div className="flex-grow space-y-2">
+      <div className="h-3 bg-gray-200 rounded w-3/4" />
+      <div className="h-2 bg-gray-100 rounded w-1/2" />
+    </div>
+  </div>
+);
+
 export default function Header() {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
@@ -110,9 +120,11 @@ export default function Header() {
 
     if (!query.trim()) {
       setSearchResults([]);
+      setIsSearching(false);
       return;
     }
 
+    setIsSearching(true);
     debounceRef.current = setTimeout(() => {
       performSearch(query);
     }, 300); // 300ms debounce
@@ -301,6 +313,12 @@ export default function Header() {
                         type="text"
                         value={searchQuery}
                         onChange={handleSearch}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            router.push(`/products?q=${encodeURIComponent(searchQuery)}`);
+                            setIsSearchOpen(false);
+                          }
+                        }}
                         placeholder="Search products..." // e.g., 'cherri' finds 'Cherry'
                         className="w-full pl-4 pr-10 py-2 rounded-full border border-gray-300 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] bg-white text-gray-900"
                       />
@@ -314,16 +332,22 @@ export default function Header() {
                       {/* Dropdown Results */}
                       {searchQuery && (
                         <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
-                          {searchResults.length > 0 ? (
-                            <ul>
+                          {isSearching ? (
+                            <div className="divide-y divide-gray-50">
+                              <SearchSkeleton />
+                              <SearchSkeleton />
+                              <SearchSkeleton />
+                            </div>
+                          ) : searchResults.length > 0 ? (
+                            <ul className="divide-y divide-gray-50">
                               {searchResults.map((product) => (
                                 <li key={product._id || product.id}>
                                   <Link
-                                    href={`/products/${product._id || product.id}`}
+                                    href={`/products?q=${encodeURIComponent(product.name)}`}
                                     className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
                                     onClick={() => setIsSearchOpen(false)}
                                   >
-                                    {product.image && (
+                                    {product.image || (product.images && product.images[0]) ? (
                                       <div className="w-10 h-10 relative rounded overflow-hidden bg-gray-100 flex-shrink-0">
                                         <img
                                           src={typeof product.image === 'string' ? product.image : (product.images?.[0]?.url || '/placeholder.png')}
@@ -331,18 +355,22 @@ export default function Header() {
                                           className="object-cover w-full h-full"
                                         />
                                       </div>
+                                    ) : (
+                                      <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                                        <Search size={16} className="text-gray-400" />
+                                      </div>
                                     )}
-                                    <div>
-                                      <p className="text-sm font-medium text-gray-900 line-clamp-1">{product.name}</p>
-                                      <p className="text-xs text-gray-500">{product.category?.name || 'Product'}</p>
+                                    <div className="flex-grow min-w-0">
+                                      <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                                      <p className="text-[10px] text-gray-500 uppercase tracking-wider">{product.category?.name || 'Product'}</p>
                                     </div>
                                   </Link>
                                 </li>
                               ))}
                             </ul>
                           ) : (
-                            <div className="p-4 text-center text-gray-500 text-sm">
-                              No matches found
+                            <div className="p-8 text-center">
+                              <p className="text-gray-500 text-sm">No matches found for "{searchQuery}"</p>
                             </div>
                           )}
                         </div>

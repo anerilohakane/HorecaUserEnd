@@ -467,8 +467,15 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   const [selectedCategory, setSelectedCategory] = useState<string>(initCategory);
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
   const [selectedRating, setSelectedRating] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState<string>(searchParams?.get('q') || '');
   const [sortBy, setSortBy] = useState<SortOption>('popular');
   const [showFilters, setShowFilters] = useState(false);
+
+  // Sync searchQuery when URL changes
+  useEffect(() => {
+    const q = searchParams?.get('q') || '';
+    setSearchQuery(q);
+  }, [searchParams]);
 
   // Fetch products
   useEffect(() => {
@@ -576,6 +583,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
     setSelectedCategory('all');
     setSelectedPriceRange('all');
     setSelectedRating(0);
+    setSearchQuery('');
   };
 
   // Safe Accessors
@@ -606,6 +614,13 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   const processedProducts = useMemo(() => {
     // 1. Filter
     let result = products.filter((p: any) => {
+      // Search query filter
+      if (searchQuery) {
+        const name = (p.name || '').toLowerCase();
+        const query = searchQuery.toLowerCase();
+        if (!name.includes(query)) return false;
+      }
+
       // Category filter
       if (selectedCategory && selectedCategory !== 'all') {
         const catId = getCategoryId(p).toLowerCase();
@@ -646,7 +661,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
     });
 
     return result;
-  }, [products, selectedCategory, selectedPriceRange, selectedRating, sortBy]);
+  }, [products, selectedCategory, selectedPriceRange, selectedRating, sortBy, searchQuery]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 sm:px-4 py-4">
