@@ -55,14 +55,11 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { categories as fallbackCategories } from '@/lib/data';
 
-const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim();
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app').trim();
 
 function buildApiUrl(path: string) {
-  if (API_BASE) {
-    const base = API_BASE.replace(/\/+$/, '');
-    return `${base}/${path.replace(/^\/+/, '')}`;
-  }
-  return `/${path.replace(/^\/+/, '')}`;
+  const base = API_BASE.replace(/\/+$/, '');
+  return `${base}/${path.replace(/^\/+/, '')}`;
 }
 
 function mapCategory(raw: any) {
