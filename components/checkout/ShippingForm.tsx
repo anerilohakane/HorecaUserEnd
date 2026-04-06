@@ -6,7 +6,7 @@ import { MapPin, Plus } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import AddressMap from "@/components/ui/AddressMap";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
 interface Props {
   onSubmit: (address: ShippingAddress) => void;

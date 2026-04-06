@@ -5,7 +5,7 @@
     import React, { createContext, useContext, useState, useEffect } from "react";
     import { getAuthSession, setAuthSession, clearAuthSession } from "@/app/actions/session";
 
-    const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
     interface User {
     id: string;

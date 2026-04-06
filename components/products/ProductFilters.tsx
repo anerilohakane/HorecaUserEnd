@@ -514,7 +514,7 @@ interface ProductFiltersProps {
   onClearFilters: () => void;
 }
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim();
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app').trim();
 const buildUrl = (path: string) => {
   const base = API_BASE.replace(/\/+$/, '');
   const raw = base ? `${base}/${path.replace(/^\/+/, '')}` : `/${path.replace(/^\/+/, '')}`;

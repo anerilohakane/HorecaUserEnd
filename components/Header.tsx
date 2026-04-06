@@ -13,7 +13,7 @@ import Fuse from 'fuse.js';
 import NotificationDropdown from './notifications/NotificationDropdown';
 import { sileo } from 'sileo';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
 
 const SearchSkeleton = () => (
   <div className="p-3 animate-pulse flex items-center gap-3">

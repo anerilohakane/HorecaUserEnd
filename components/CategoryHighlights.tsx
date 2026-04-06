@@ -55,7 +55,7 @@ import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { categories as fallbackCategories } from '@/lib/data';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim();
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim();
 
 function buildApiUrl(path: string) {
   if (API_BASE) {

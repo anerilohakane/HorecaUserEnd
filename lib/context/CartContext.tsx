@@ -6,7 +6,7 @@ import { CartItem } from '@/lib/types/cart';
 import { useAuth } from '@/lib/context/AuthContext';
 import { sileo } from 'sileo';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
 interface CartContextType {
   items: CartItem[];

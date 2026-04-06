@@ -47,7 +47,7 @@ const OrderTrackingMap: React.FC<OrderTrackingMapProps> = ({ destination, status
                 if (!orderId) return;
 
                 // Use environment variable for production
-                const backendUrl = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
                 const res = await fetch(`${backendUrl}/api/order?id=${orderId}`);
                 const data = await res.json();
                 

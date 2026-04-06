@@ -17,8 +17,7 @@ import SkeletonCard from '@/components/products/SkeletonCard';
 
 // Safe API Base URL retrieval
 const getApiBase = () => {
-  if (process.env.NEXT_PUBLIC_API_BASE_URL) return process.env.NEXT_PUBLIC_API_BASE_URL;
-  return "https://horeca-backend-six.vercel.app"; // Fallback to known backend
+  return (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").trim();
 };
 
 function mapRawToProduct(raw: any): Product | null {

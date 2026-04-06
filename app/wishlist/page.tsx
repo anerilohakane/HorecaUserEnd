@@ -12,7 +12,7 @@ import { Product } from '@/lib/types/product';
 import SkeletonCard from '@/components/products/SkeletonCard';
 import PageTransition from '@/components/ui/PageTransition';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL!;
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
 export default function WishlistPage() {
     const { user, token, isAuthenticated } = useAuth();

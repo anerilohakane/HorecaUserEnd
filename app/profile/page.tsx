@@ -52,7 +52,7 @@ const formatToIST = (dateString: string | Date) => {
     });
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
 const ProfilePage = () => {
     const { user: authUser, isAuthenticated, token, logout } = useAuth();

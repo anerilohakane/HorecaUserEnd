@@ -38,7 +38,7 @@ export default function Hero() {
 
     setIsSearching(true);
     try {
-      const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'https://horeca-backend-six.vercel.app';
+      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app';
       const url = `${API_BASE}/api/products?q=${encodeURIComponent(query)}&limit=5`;
       const res = await fetch(url);
       const data = await res.json();

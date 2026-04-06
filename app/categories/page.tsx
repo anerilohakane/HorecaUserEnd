@@ -10,14 +10,11 @@ import SkeletonCategoryCard from '@/components/categories/SkeletonCategoryCard';
 import PageTransition from '@/components/ui/PageTransition';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim();
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim();
 
 function buildApiUrl(path: string) {
-    if (API_BASE) {
-        const base = API_BASE.replace(/\/+$/, '');
-        return `${base}/${path.replace(/^\/+/, '')}`;
-    }
-    return `/${path.replace(/^\/+/, '')}`;
+    const base = API_BASE || "https://horeca-backend-six.vercel.app";
+    return `${base.replace(/\/+$/, '')}/${path.replace(/^\/+/, '')}`;
 }
 
 function mapCategory(raw: any) {

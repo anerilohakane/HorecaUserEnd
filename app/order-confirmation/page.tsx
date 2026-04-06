@@ -26,7 +26,7 @@ import { generateInvoice } from '@/lib/utils/invoice-generator';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getOrderSession } from '@/app/actions/session';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 type PaymentMethodKey = 'cod' | 'upi' | 'card' | 'netbanking';
 
 const OrderConfirmationPage = () => {

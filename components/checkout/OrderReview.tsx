@@ -262,7 +262,7 @@ import { useRouter } from "next/navigation";
 import { setOrderSession } from "@/app/actions/session";
 import { sileo } from 'sileo';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
 interface OrderReviewProps {
   shippingAddress: ShippingAddress;

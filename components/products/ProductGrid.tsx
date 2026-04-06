@@ -275,7 +275,7 @@
 //         setLoading(true);
 //         setError(null);
 
-//         const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim();
+//         const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '').trim();
 //         const base = API_BASE.replace(/\/+$/, '');
 //         const url = base ? `${base}/api/products` : '/api/products';
 
@@ -446,7 +446,7 @@ interface ProductGridProps {
   initialProducts?: Product[];
 }
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim();
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app').trim();
 const buildApiUrl = (path: string) => {
   const base = API_BASE.replace(/\/+$/, '');
   const raw = base ? `${base}/${path.replace(/^\/+/, '')}` : `/${path.replace(/^\/+/, '')}`;

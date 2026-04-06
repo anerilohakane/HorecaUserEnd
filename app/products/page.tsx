@@ -10,12 +10,8 @@ export const dynamic = 'force-dynamic'; // removes automatic static optimization
 
 async function getInitialProducts() {
 
-  const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL?.trim() || '';
-
-  // Build safe URL (supports both /api/products and https://yourapi.com/api/products)
-  const url = API_BASE
-    ? `${API_BASE.replace(/\/+$/, '')}/api/products`
-    : `${process.env.NEXT_PUBLIC_SITE_URL || 'http://horeca-backend-six.vercel.app'}/api/products`;
+  const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app').trim();
+  const url = `${API_BASE.replace(/\/+$/, '')}/api/products`;
 
   try {
     const res = await fetch(url, {

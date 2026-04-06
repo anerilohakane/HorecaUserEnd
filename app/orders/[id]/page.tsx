@@ -8,7 +8,7 @@ import OrderTrackingMap from '@/components/orders/OrderTrackingMap';
 import Header from '@/components/Header';
 import { motion, AnimatePresence } from 'framer-motion';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
 const OrderDetailsPage = () => {
     const { id } = useParams();

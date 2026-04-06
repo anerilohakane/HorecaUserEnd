@@ -16,11 +16,11 @@ interface ProductCardProps {
   showReorder?: boolean;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
 // Get API base URL with fallback
 const getApiBase = () => {
-  return process.env.NEXT_PUBLIC_API_BASE_URL || "http://horeca-backend-six.vercel.app";  // backend
+  return process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";  // backend
 };
 
 function mapRawToProduct(raw: any): Product | null {

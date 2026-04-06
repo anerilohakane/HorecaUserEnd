@@ -268,15 +268,12 @@ import ProductDetailClient from "@/components/products/ProductDetailClient";
 import { allProducts } from "@/lib/productsData";
 import type { Product } from "@/lib/types/product";
 
-const API_BASE_RAW = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").trim();
+const API_BASE_RAW = (process.env.NEXT_PUBLIC_BACKEND_URL ?? "").trim();
 
 /** ---------- UTIL: Build API URL ---------- **/
 function buildApiUrl(path: string) {
-  if (!API_BASE_RAW) {
-    throw new Error("NEXT_PUBLIC_API_BASE_URL is not defined");
-  }
-
-  return `${API_BASE_RAW.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
+  const base = API_BASE_RAW || "https://horeca-backend-six.vercel.app";
+  return `${base.replace(/\/+$/, "")}/${path.replace(/^\/+/, "")}`;
 }
 
 

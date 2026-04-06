@@ -31,7 +31,7 @@ interface ProductDetailClientProps {
     relatedProducts?: Product[];
 }
 
-const API_BASE = (process.env.NEXT_PUBLIC_API_BASE_URL || 'https://horeca-backend-six.vercel.app').trim();
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app').trim();
 
 export default function ProductDetailClient({
     product: initialProduct,
@@ -103,7 +103,7 @@ export default function ProductDetailClient({
 
             try {
                 const base =
-                    (process.env.NEXT_PUBLIC_API_BASE_URL ||
+                    (process.env.NEXT_PUBLIC_BACKEND_URL ||
                         "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
 
                 const res = await fetch(
@@ -154,7 +154,7 @@ export default function ProductDetailClient({
                 throw new Error("Please log in to manage your wishlist.");
             }
 
-            const base = (process.env.NEXT_PUBLIC_API_BASE_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+            const base = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
             const endpoint = `${base}/api/wishlist`;
 
             const res = await fetch(endpoint, {
