@@ -4,6 +4,7 @@
 
     import React, { createContext, useContext, useState, useEffect } from "react";
     import { getAuthSession, setAuthSession, clearAuthSession } from "@/app/actions/session";
+    import { getCurrentLocation } from "@/lib/utils/location";
 
     const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
@@ -70,11 +71,19 @@ const verifyOtp = async (otp: string) => {
   const phone = sessionStorage.getItem("pending_phone");
   if (!phone) throw new Error("Phone missing");
 
-  // 1️⃣ VERIFY OTP (this already creates/fetches customer)
+  // 1️⃣ CAPTURE LOCATION (Dynamic)
+  const coords = await getCurrentLocation();
+
+  // 2️⃣ VERIFY OTP (this already creates/fetches customer)
   const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ phone, otp }),
+    body: JSON.stringify({ 
+        phone, 
+        otp,
+        lat: coords?.lat || null,
+        lng: coords?.lng || null
+    }),
   });
 
   const json = await res.json();

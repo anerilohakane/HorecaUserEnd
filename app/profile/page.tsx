@@ -37,6 +37,7 @@ import { RotateCw } from 'lucide-react';
 import { sileo } from 'sileo';
 import Footer from '@/components/Footer';
 import { clearOrderSession } from '@/app/actions/session';
+import { getCurrentLocation } from '@/lib/utils/location';
 
 const formatToIST = (dateString: string | Date) => {
     if (!dateString) return '';
@@ -77,6 +78,8 @@ const ProfilePage = () => {
         city: "",
         state: "",
         pincode: "",
+        lat: null as number | null,
+        lng: null as number | null,
     });
     const [savingProfile, setSavingProfile] = useState(false);
 
@@ -518,6 +521,8 @@ const ProfilePage = () => {
                         city: json.data.city || "",
                         state: json.data.state || "",
                         pincode: json.data.pincode || "",
+                        lat: json.data.lat || null,
+                        lng: json.data.lng || null,
                     });
                 }
             } catch (error) {
@@ -528,6 +533,26 @@ const ProfilePage = () => {
 
         loadProfile();
     }, [isAuthenticated, authUser, token, activeTab]);
+
+    const handleUpdateLocation = async () => {
+        const coords = await getCurrentLocation();
+        if (coords) {
+            setProfileForm(prev => ({
+                ...prev,
+                lat: coords.lat,
+                lng: coords.lng
+            }));
+            sileo.success({
+                title: "Location Captured",
+                description: `Latitude: ${coords.lat.toFixed(4)}, Longitude: ${coords.lng.toFixed(4)}`
+            });
+        } else {
+            sileo.error({
+                title: "Location Failed",
+                description: "Could not capture your current location. Please check your browser permissions."
+            });
+        }
+    };
 
     const updateCustomerProfile = async () => {
         if (!authUser?.id) return;
@@ -1009,6 +1034,23 @@ const ProfilePage = () => {
                                                         />
                                                     </div>
                                                 ))}
+
+                                                <div className="flex items-end pb-1">
+                                                    <button
+                                                        type="button"
+                                                        onClick={handleUpdateLocation}
+                                                        className="flex items-center gap-2 px-4 py-2 bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors border border-blue-200"
+                                                    >
+                                                        <MapPin className="w-4 h-4" />
+                                                        {profileForm.lat ? "Refresh Location" : "Capture Location"}
+                                                    </button>
+                                                </div>
+
+                                                {profileForm.lat && (
+                                                    <div className="md:col-span-2 text-xs text-gray-500 bg-gray-50 p-2 rounded border border-dashed">
+                                                        Captured Coordinates: {profileForm.lat?.toFixed(6)}, {profileForm.lng?.toFixed(6)}
+                                                    </div>
+                                                )}
 
                                                 <div className="md:col-span-2 flex gap-3 mt-4">
                                                     <button

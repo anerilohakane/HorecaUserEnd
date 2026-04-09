@@ -261,6 +261,7 @@ import { generateInvoice } from "@/lib/utils/invoice-generator";
 import { useRouter } from "next/navigation";
 import { setOrderSession } from "@/app/actions/session";
 import { sileo } from 'sileo';
+import { getCurrentLocation } from "@/lib/utils/location";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
@@ -322,6 +323,14 @@ export default function OrderReview({
         return;
       }
 
+      // 🌐 AUTOMATIC LOCATION CAPTURE
+      let currentCoords = null;
+      try {
+        currentCoords = await getCurrentLocation();
+      } catch (e) {
+        console.warn("Location capture failed (denied or timed out), proceeding with address defaults.");
+      }
+
       // Convert cart items to backend format
       const formattedItems = items.map((item) => ({
         product: item.product.id,
@@ -343,6 +352,8 @@ export default function OrderReview({
           state: shippingAddress.state,
           pincode: shippingAddress.pincode,
           country: shippingAddress.country,
+          lat: currentCoords?.lat || shippingAddress.lat,
+          lng: currentCoords?.lng || shippingAddress.lng,
         },
         items: formattedItems,
         gst,

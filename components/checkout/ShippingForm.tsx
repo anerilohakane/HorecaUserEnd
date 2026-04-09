@@ -5,6 +5,7 @@ import { ShippingAddress } from "@/lib/types/checkout";
 import { MapPin, Plus } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import AddressMap from "@/components/ui/AddressMap";
+import { Loader2 } from "lucide-react";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
@@ -98,6 +99,8 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
             ...addr,
             phoneExtension: addr.phoneExtension || ext,
             phone: addr.phoneExtension ? addr.phone : ph,
+            lat: addr.lat,
+            lng: addr.lng,
           };
           setSavedAddress(normalizedAddr);
           setSelectedType("saved");
@@ -119,6 +122,8 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
           email: prev.email || c.email || '',
           phoneExtension: extension,
           phone: prev.phone || phone || '',
+          lat: c.lat || prev.lat,
+          lng: c.lng || prev.lng,
         }));
         if (c.address && c.pincode) {
           const { extension: savedExt, phone: savedPhone } = parsePhoneNumber(c.phone || '');
@@ -127,6 +132,7 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
             phoneExtension: savedExt, phone: savedPhone,
             addressLine1: c.address || '', addressLine2: '',
             city: c.city || '', state: c.state || '', pincode: c.pincode || '', country: "India",
+            lat: c.lat, lng: c.lng,
           });
         }
       }
@@ -227,7 +233,7 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
     setTouched(newTouched);
     return valid;
   };
-
+  
   const handleNewAddressSubmit = () => {
     if (validateForm()) onSubmit(formData);
   };
@@ -258,6 +264,11 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
               <p>{savedAddress.addressLine1}</p>
               <p>{savedAddress.city}, {savedAddress.state} - {savedAddress.pincode}</p>
               <p className="mt-1 text-gray-600">📞 {savedAddress.phoneExtension} {savedAddress.phone}</p>
+              {savedAddress.lat && savedAddress.lng && (
+                <p className="mt-1 text-[10px] text-blue-600 flex items-center gap-1">
+                  📍 Coordinates: {savedAddress.lat.toFixed(4)}, {savedAddress.lng.toFixed(4)}
+                </p>
+              )}
             </div>
           </label>
 
@@ -286,13 +297,15 @@ export default function ShippingAddressSelector({ onSubmit, initialData, onCance
       {/* NEW ADDRESS FORM */}
       {(!savedAddress || selectedType === "new") && (
         <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <h3 className="font-bold text-lg mb-5 flex items-center justify-between gap-2 text-[#D97706]">
-            <span className="flex items-center gap-2"><MapPin className="text-[#D97706]" /> Add New Address</span>
-            <button type="button" onClick={() => setShowMap(!showMap)}
-              className="text-xs font-semibold bg-[#D97706]/10 text-[#D97706] px-3 py-1.5 rounded-full hover:bg-[#D97706]/20 transition flex items-center gap-1">
-              {showMap ? 'Hide Map' : '📍 Pick on Map'}
-            </button>
-          </h3>
+  <h3 className="font-bold text-lg mb-5 flex items-center justify-between gap-2 text-[#D97706]">
+    <span className="flex items-center gap-2"><MapPin className="text-[#D97706]" /> Add New Address</span>
+    <div className="flex gap-2">
+      <button type="button" onClick={() => setShowMap(!showMap)}
+        className="text-xs font-semibold bg-[#D97706]/10 text-[#D97706] px-3 py-1.5 rounded-full hover:bg-[#D97706]/20 transition flex items-center gap-1">
+        {showMap ? 'Hide Map' : '🗺️ Pick on Map'}
+      </button>
+    </div>
+  </h3>
 
           {showMap && (
             <div className="mb-6 animate-in zoom-in-95 duration-300">
