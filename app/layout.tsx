@@ -38,15 +38,16 @@
 
 
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Outfit } from "next/font/google";
 import "./globals.css";
 import { AuthProvider } from "@/lib/context/AuthContext";
 import { CartProvider } from "@/lib/context/CartContext";
 import { Toaster } from "sileo";
 
-const inter = Inter({
+const outfit = Outfit({
   subsets: ["latin"],
-  variable: '--font-inter',
+  variable: '--font-outfit',
+  weight: ['300', '400', '500', '600', '700', '800', '900'],
 });
 
 export const metadata: Metadata = {
@@ -62,7 +63,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${inter.variable} antialiased`}>
+      <body className={`${outfit.variable} antialiased`}>
         <AuthProvider>
           <CartProvider>
             {children}

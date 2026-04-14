@@ -223,26 +223,26 @@ export default function FeaturedProducts() {
   const displayed = items ?? [];
 
   return (
-    <section className="py-20 bg-white">
+    <section className="py-14 bg-[#FAFAF7]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
         {/* Header */}
-        <div className="flex justify-between items-end mb-10">
+        <div className="flex justify-between items-end mb-8">
           <div>
-            <h2 className="text-3xl font-bold text-[#111827]">Trending Near You</h2>
-            <p className="text-gray-500 mt-1">Best deals on highly demanded products</p>
+            <h2 className="text-2xl lg:text-3xl font-semibold text-[#111827] tracking-tight">Trending Near You</h2>
+            <p className="text-gray-500 text-sm mt-1">Best deals on highly demanded products</p>
           </div>
 
           <Link
             href="/products"
-            className="hidden lg:flex items-center gap-2 text-[#D97706] font-bold hover:text-[#B45309] transition-colors"
+            className="hidden lg:flex items-center gap-1 text-sm font-semibold text-[#D97706] hover:text-[#B45309] transition-colors"
           >
-            View All <ArrowRight size={20} />
+            View All <ArrowRight size={16} />
           </Link>
         </div>
 
         {/* Products Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           {loading
             ? Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="aspect-[3/4] bg-gray-100 rounded-2xl animate-pulse" />
@@ -253,12 +253,12 @@ export default function FeaturedProducts() {
         </div>
 
         {/* Mobile View All */}
-        <div className="text-center mt-12 lg:hidden">
+        <div className="text-center mt-8 lg:hidden">
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 bg-[#D97706] text-white px-8 py-4 rounded-full font-medium shadow-lg"
+            className="inline-flex items-center gap-2 bg-[#D97706] text-white px-8 py-3 rounded-full font-semibold text-sm shadow-md"
           >
-            View All Products <ArrowRight size={18} />
+            View All Products <ArrowRight size={16} />
           </Link>
         </div>
       </div>

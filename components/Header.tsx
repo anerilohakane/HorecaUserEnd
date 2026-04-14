@@ -1,15 +1,15 @@
 "use client";
 
-import { Search, Heart, ShoppingCart, User, Linkedin, Instagram, Facebook, Phone, Mail, X, Bell } from 'lucide-react';
+import {
+  Search, Heart, User, Bell, X, MapPin, Loader2,
+  ChevronDown, Package, Phone, Mail
+} from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import CartButton from '@/components/cart/CartButton';
-import LoginModal from '@/components/auth/LoginModal';
 import { useAuth } from '@/lib/context/AuthContext';
-import Fuse from 'fuse.js';
-
 import NotificationDropdown from './notifications/NotificationDropdown';
 import { sileo } from 'sileo';
 
@@ -26,7 +26,6 @@ const SearchSkeleton = () => (
 );
 
 export default function Header() {
-  const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
   const [wishlistCount, setWishlistCount] = useState(0);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const { user, token, logout, isAuthenticated, isLoading } = useAuth();
@@ -41,18 +40,63 @@ export default function Header() {
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Search State
-  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Ensure component is mounted to avoid hydration issues
+  // Browse catalogue dropdown state
+  const [isCatalogueOpen, setIsCatalogueOpen] = useState(false);
+  const catalogueRef = useRef<HTMLDivElement>(null);
+
+  // Location state
+  const [locationName, setLocationName] = useState('Select Location');
+  const [isLocating, setIsLocating] = useState(false);
+
+  // Mobile menu
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Close catalogue on outside click
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (catalogueRef.current && !catalogueRef.current.contains(e.target as Node)) {
+        setIsCatalogueOpen(false);
+      }
+      if (searchContainerRef.current && !searchContainerRef.current.contains(e.target as Node)) {
+        setIsSearchFocused(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  const handleLocationClick = () => {
+    if (!navigator.geolocation) return;
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || 'Your Location';
+          setLocationName(city);
+        } catch {
+          setLocationName('Your Location');
+        } finally {
+          setIsLocating(false);
+        }
+      },
+      () => setIsLocating(false)
+    );
+  };
 
   const fetchNotifications = async () => {
     if (!user?.id || !token) return;
@@ -61,37 +105,24 @@ export default function Header() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await res.json();
-      
-      console.log(`[NOTIFICATIONS] Fetched ${data?.data?.length || 0} alerts for user ${user.id}`);
-      
       if (data.success && Array.isArray(data.data)) {
         setNotifications(data.data);
-        const unread = data.data.filter((n: any) => !n.isRead).length;
-        setNotificationCount(unread);
+        setNotificationCount(data.data.filter((n: any) => !n.isRead).length);
       }
-    } catch (error) {
-      console.error("Failed to fetch notifications", error);
-    }
+    } catch { }
   };
 
   const markNotificationAsRead = async (id: string) => {
     if (!token) return;
     try {
-      // Optimistic update
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
       setNotificationCount(prev => Math.max(0, prev - 1));
-
       await fetch(`${API_BASE}/api/notifications/${id}`, {
         method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ isRead: true })
       });
-    } catch (error) {
-      console.error("Failed to mark as read", error);
-    }
+    } catch { }
   };
 
   const deleteNotification = async (id: string) => {
@@ -100,14 +131,8 @@ export default function Header() {
       const wasUnread = notifications.find(n => n._id === id)?.isRead === false;
       setNotifications(prev => prev.filter(n => n._id !== id));
       if (wasUnread) setNotificationCount(prev => Math.max(0, prev - 1));
-
-      await fetch(`${API_BASE}/api/notifications/${id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-    } catch (error) {
-      console.error("Failed to delete notification", error);
-    }
+      await fetch(`${API_BASE}/api/notifications/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+    } catch { }
   };
 
   const clearAllNotifications = async () => {
@@ -115,29 +140,20 @@ export default function Header() {
     try {
       setNotifications([]);
       setNotificationCount(0);
-      await fetch(`${API_BASE}/api/notifications?userId=${user.id}`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-    } catch (error) {
-      console.error("Failed to clear notifications", error);
-    }
+      await fetch(`${API_BASE}/api/notifications?userId=${user.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
+    } catch { }
   };
 
-  // Poll for notifications every 60 seconds
   useEffect(() => {
     if (mounted && isAuthenticated && user?.id) {
-       fetchNotifications();
-       pollIntervalRef.current = setInterval(fetchNotifications, 60000);
+      fetchNotifications();
+      pollIntervalRef.current = setInterval(fetchNotifications, 60000);
     } else {
-       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
+      if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
     }
-    return () => {
-       if (pollIntervalRef.current) clearInterval(pollIntervalRef.current);
-    };
+    return () => { if (pollIntervalRef.current) clearInterval(pollIntervalRef.current); };
   }, [mounted, isAuthenticated, user?.id]);
 
-  // Fetch wishlist and notifications when auth updates
   useEffect(() => {
     if (mounted && isAuthenticated && user?.id) {
       fetchWishlistCount();
@@ -148,42 +164,25 @@ export default function Header() {
     }
   }, [mounted, isAuthenticated, user?.id]);
 
-  // Listen for realtime wishlist updates
   useEffect(() => {
     const handleWishlistUpdate = (event: any) => {
-      // [Optimistic Update] Update count immediately if detail is provided
       if (event.detail?.optimistic) {
         setWishlistCount(prev => Math.max(0, event.detail.isAdded ? prev + 1 : prev - 1));
       }
-      
-      // Perform background sync to ensure accuracy
       if (user?.id) fetchWishlistCount();
     };
-
     window.addEventListener('wishlist-updated', handleWishlistUpdate);
     return () => window.removeEventListener('wishlist-updated', handleWishlistUpdate);
   }, [user?.id]);
 
   const performSearch = async (query: string) => {
-    if (!query.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
+    if (!query.trim()) { setSearchResults([]); setIsSearching(false); return; }
     setIsSearching(true);
     try {
-      const url = `${API_BASE || 'https://horeca-backend-six.vercel.app'}/api/products?q=${encodeURIComponent(query)}&limit=5`;
-      const res = await fetch(url);
+      const res = await fetch(`${API_BASE}/api/products?q=${encodeURIComponent(query)}&limit=5`);
       const data = await res.json();
-
-      if (data.success && Array.isArray(data.data?.items)) {
-        setSearchResults(data.data.items);
-      } else {
-        setSearchResults([]);
-      }
-    } catch (error) {
-      console.error("Search failed:", error);
+      setSearchResults(data.success && Array.isArray(data.data?.items) ? data.data.items : []);
+    } catch {
       setSearchResults([]);
     } finally {
       setIsSearching(false);
@@ -193,103 +192,55 @@ export default function Header() {
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
     setSearchQuery(query);
-
     if (debounceRef.current) clearTimeout(debounceRef.current);
-
-    if (!query.trim()) {
-      setSearchResults([]);
-      setIsSearching(false);
-      return;
-    }
-
+    if (!query.trim()) { setSearchResults([]); return; }
     setIsSearching(true);
-    debounceRef.current = setTimeout(() => {
-      performSearch(query);
-    }, 300); // 300ms debounce
+    debounceRef.current = setTimeout(() => performSearch(query), 300);
   };
 
   const fetchWishlistCount = async () => {
     if (!user?.id || !token) return;
-
     setWishlistLoading(true);
     try {
-      const url = `${API_BASE}/api/wishlist?userId=${user.id}`;
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${token}`,
-          Accept: "application/json",
-        },
+      const res = await fetch(`${API_BASE}/api/wishlist?userId=${user.id}`, {
+        headers: { Authorization: `Bearer ${token}`, Accept: 'application/json' }
       });
-
-      const data = await response.json();
-
-      let count = 0;
-
-      if (data?.data?.items) {
-        count = data.data.items.length;
-      } else if (data?.items) {
-        count = data.items.length;
-      }
-
-      setWishlistCount(count);
-    } catch (err) {
-      console.error("🔥 Failed to fetch wishlist count:", err);
-    } finally {
+      const data = await res.json();
+      setWishlistCount(data?.data?.items?.length ?? data?.items?.length ?? 0);
+    } catch { } finally {
       setWishlistLoading(false);
     }
   };
 
+  const handleLogout = () => { logout(); setWishlistCount(0); };
+  const handleLoginClick = () => router.push('/login');
 
-  const formatPhoneNumber = (phone: string | undefined) => {
-    if (!phone || typeof phone !== 'string' || phone.length < 10) {
-      return '';
-    }
-    return `+91 ${phone.slice(0, 3)}***${phone.slice(6)}`;
-  };
+  const catalogueCategories = [
+    { name: 'Ingredients', href: '/products?category=Ingredients' },
+    { name: 'Baking Tools', href: '/products?category=Baking+Tools' },
+    { name: 'Packaging', href: '/products?category=Packaging' },
+    { name: 'Flavors & Additives', href: '/products?category=Flavors' },
+    { name: 'Decorations', href: '/products?category=Decorations' },
+    { name: 'Ready Mixes', href: '/products?category=Ready+Mixes' },
+    { name: 'Dairy & Fats', href: '/products?category=Dairy' },
+  ];
 
-  const handleLogout = () => {
-    logout();
-    setWishlistCount(0);
-  };
+  const navLinks = [
+    { name: 'Home', path: '/' },
+    { name: 'Shop', path: '/products' },
+    { name: 'Categories', path: '/categories' },
+    { name: 'About Us', path: '/about' },
+    { name: 'Contact', path: '/contact' },
+  ];
 
-  const handleLoginClick = () => {
-    setIsLoginModalOpen(true);
-  };
-
-  const toggleSearch = () => {
-    setIsSearchOpen(!isSearchOpen);
-    if (!isSearchOpen) {
-      setSearchQuery('');
-      setSearchResults([]);
-    }
-  };
-
-  // Don't render user-specific content during SSR
   if (!mounted) {
     return (
-      <header className="w-full bg-white">
-        <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-20">
-              <Link href="/" className="flex items-center gap-2 group">
-                <Image
-                  src="/images/logo.png"
-                  alt="Unifoods"
-                  width={180}
-                  height={60}
-                  className="h-12 w-auto object-contain"
-                  priority
-                />
-              </Link>
-              <div className="flex items-center gap-5">
-                <div className="w-5 h-5 bg-gray-200 rounded"></div>
-                <div className="w-5 h-5 bg-gray-200 rounded"></div>
-                <div className="w-5 h-5 bg-gray-200 rounded"></div>
-                <div className="w-20 h-10 bg-gray-200 rounded-full"></div>
-              </div>
-            </div>
+      <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-14 flex items-center justify-between">
+          <div className="w-32 h-8 bg-gray-100 rounded animate-pulse" />
+          <div className="flex gap-3">
+            <div className="w-20 h-8 bg-gray-100 rounded animate-pulse" />
+            <div className="w-24 h-8 bg-gray-100 rounded animate-pulse" />
           </div>
         </div>
       </header>
@@ -297,297 +248,274 @@ export default function Header() {
   }
 
   return (
-    <>
-      <>
-        {/* Top Utility Bar */}
-        <div className="bg-[#F0F4E8] border-b border-[#D4DFBD]">
-          {/* ... existing utility bar content ... */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center py-2 text-xs">
-              <div className="flex items-center gap-3">
-                <span className="text-gray-600">Follow us</span>
-                <div className="flex gap-2">
-                  <Link href="#" className="text-gray-600 hover:text-[#D97706] transition-colors">
-                    <Linkedin size={14} />
-                  </Link>
-                  <Link href="#" className="text-gray-600 hover:text-[#D97706] transition-colors">
-                    <Instagram size={14} />
-                  </Link>
-                  <Link href="#" className="text-gray-600 hover:text-[#D97706] transition-colors">
-                    <Facebook size={14} />
-                  </Link>
-                </div>
-              </div>
+    <header className="w-full bg-white border-b border-gray-200 sticky top-0 z-50 shadow-sm">
+        <div className="max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center h-16 gap-3 lg:gap-5">
 
-              {/* <div className="hidden md:block text-center">
-                <span className="text-[#D97706] font-medium">
-                  Get 10% off your first wholesale order • Use code UNIFOODS10 at checkout!
+            {/* Logo */}
+            <Link href="/" className="flex-shrink-0 flex items-center">
+              <Image
+                src="/images/logo.png"
+                alt="Unifoods"
+                width={130}
+                height={44}
+                className="h-9 w-auto object-contain"
+                priority
+              />
+            </Link>
+
+            {/* Divider */}
+            <div className="hidden md:block h-6 w-px bg-gray-200 flex-shrink-0" />
+
+            {/* Location Selector */}
+            <button
+              onClick={handleLocationClick}
+              disabled={isLocating}
+              className="hidden md:flex items-center gap-1.5 text-xs text-gray-600 hover:text-[#D97706] transition-colors flex-shrink-0 group"
+            >
+              <div className="flex flex-col items-start">
+                <span className="text-[10px] text-gray-400 leading-none">Delivery to</span>
+                <span className="flex items-center gap-1 font-semibold text-gray-800 group-hover:text-[#D97706] transition-colors">
+                  {isLocating ? <Loader2 size={12} className="animate-spin" /> : <MapPin size={12} />}
+                  <span className="max-w-[90px] truncate">{locationName}</span>
+                  <ChevronDown size={12} />
                 </span>
-              </div> */}
-
-              <div className="flex items-center gap-4 text-xs">
-                <a href="tel:+919324856780" className="flex items-center gap-1 text-gray-600 hover:text-[#D97706] transition-colors">
-                  <Phone size={12} />
-                  <span className="hidden sm:inline">+91 93248 56780</span>
-                </a>
-                <a href="mailto:sales@unifoods.in" className="flex items-center gap-1 text-gray-600 hover:text-[#D97706] transition-colors">
-                  <Mail size={12} />
-                  <span className="hidden sm:inline">sales@unifoods.in</span>
-                </a>
               </div>
-            </div>
-          </div>
-        </div>
+            </button>
 
-        {/* Main Navigation Bar */}
-        <div className="sticky top-0 z-50 bg-white/95 backdrop-blur-sm shadow-sm w-full">
-          {/* ... existing navbar content ... */}
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-20">
-              {/* Logo */}
-              <Link href="/" className="flex items-center gap-2 group">
-                <Image
-                  src="/images/logo.png"
-                  alt="Unifoods"
-                  width={180}
-                  height={60}
-                  className="h-14 w-auto object-contain transition-transform group-hover:scale-105"
-                  priority
+            {/* Nav Links */}
+            <nav className="hidden lg:flex items-center gap-5">
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.path}
+                  className="text-sm text-gray-700 hover:text-[#D97706] transition-colors font-medium whitespace-nowrap"
+                >
+                  {link.name}
+                </Link>
+              ))}
+            </nav>
+
+            {/* Search Bar — grows to fill space */}
+            <div ref={searchContainerRef} className="flex-1 min-w-0 relative max-w-xs lg:max-w-sm xl:max-w-md ml-auto">
+              <div className={`flex items-center gap-2 bg-gray-50 border rounded-full px-3 py-1.5 transition-all duration-200 ${isSearchFocused ? 'border-[#D97706] bg-white shadow-sm' : 'border-gray-200'}`}>
+                <Search size={15} className="text-gray-400 flex-shrink-0" />
+                <input
+                  ref={searchInputRef}
+                  type="text"
+                  value={searchQuery}
+                  onChange={handleSearch}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && searchQuery.trim()) {
+                      router.push(`/products?q=${encodeURIComponent(searchQuery)}`);
+                      setIsSearchFocused(false);
+                    }
+                  }}
+                  placeholder="Search items or categories"
+                  className="flex-1 min-w-0 bg-transparent text-sm text-gray-700 placeholder-gray-400 outline-none"
                 />
-              </Link>
+                {searchQuery && (
+                  <button onClick={() => { setSearchQuery(''); setSearchResults([]); }} className="flex-shrink-0 text-gray-400 hover:text-gray-600">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
 
-              {/* Navigation Menu */}
-              <nav className={`hidden md:flex items-center gap-10 ${isSearchOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'} transition-opacity duration-200`}>
-                {[
-                  { name: 'Home', path: '/' },
-                  { name: 'Shop', path: '/products' },
-                  { name: 'Categories', path: '/categories' },
-                  { name: 'About Us', path: '/about' },
-                  { name: 'Contact', path: '/contact' }
-                ].map((link) => {
-                  const isActive = pathname === link.path || (link.path !== '/' && pathname?.startsWith(link.path));
-                  return (
-                    <Link
-                      key={link.name}
-                      href={link.path}
-                      className={`text-sm font-medium transition-colors relative group ${isActive ? 'text-[#D97706]' : 'text-[#111827] hover:text-[#D97706]'}`}
-                    >
-                      {link.name}
-                      <span className={`absolute -bottom-1 left-0 h-0.5 bg-[#D97706] transition-all ${isActive ? 'w-full' : 'w-0 group-hover:w-full'}`}></span>
-                    </Link>
-                  );
-                })}
-              </nav>
-
-              {/* Right Icons */}
-              <div className="flex items-center gap-2 sm:gap-4 lg:gap-5">
-
-                {/* Search Container */}
-                <div ref={searchContainerRef} className={`${isSearchOpen ? 'absolute right-4 left-4 z-50 top-1/2 -translate-y-1/2 md:translate-y-0 md:top-auto bg-white/95 backdrop-blur-sm md:bg-transparent py-4 md:py-0' : 'relative'} md:left-auto md:relative flex items-center justify-end transition-all duration-300 ${isSearchOpen ? 'md:w-[400px] w-[calc(100%-32px)]' : 'w-auto'}`}>
-                  {isSearchOpen ? (
-                    <div className="relative w-full">
-                      <input
-                        ref={searchInputRef}
-                        type="text"
-                        value={searchQuery}
-                        onChange={handleSearch}
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            router.push(`/products?q=${encodeURIComponent(searchQuery)}`);
-                            setIsSearchOpen(false);
-                          }
-                        }}
-                        placeholder="Search products..." // e.g., 'cherri' finds 'Cherry'
-                        className="w-full pl-4 pr-10 py-2 rounded-full border border-gray-300 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] bg-white text-gray-900"
-                      />
-                      <button
-                        onClick={toggleSearch}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-red-500"
-                      >
-                        <X size={18} />
-                      </button>
-
-                      {/* Dropdown Results */}
-                      {searchQuery && (
-                        <div className="absolute top-full mt-2 w-full bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
-                          {isSearching ? (
-                            <div className="divide-y divide-gray-50">
-                              <SearchSkeleton />
-                              <SearchSkeleton />
-                              <SearchSkeleton />
-                            </div>
-                          ) : searchResults.length > 0 ? (
-                            <ul className="divide-y divide-gray-50">
-                              {searchResults.map((product) => (
-                                <li key={product._id || product.id}>
-                                  <Link
-                                    href={`/products?q=${encodeURIComponent(product.name)}`}
-                                    className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
-                                    onClick={() => setIsSearchOpen(false)}
-                                  >
-                                    {product.image || (product.images && product.images[0]) ? (
-                                      <div className="w-10 h-10 relative rounded overflow-hidden bg-gray-100 flex-shrink-0">
-                                        <img
-                                          src={typeof product.image === 'string' ? product.image : (product.images?.[0]?.url || '/placeholder.png')}
-                                          alt={product.name}
-                                          className="object-cover w-full h-full"
-                                        />
-                                      </div>
-                                    ) : (
-                                      <div className="w-10 h-10 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
-                                        <Search size={16} className="text-gray-400" />
-                                      </div>
-                                    )}
-                                    <div className="flex-grow min-w-0">
-                                      <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
-                                      <p className="text-[10px] text-gray-500 uppercase tracking-wider">{product.category?.name || 'Product'}</p>
-                                    </div>
-                                  </Link>
-                                </li>
-                              ))}
-                            </ul>
-                          ) : (
-                            <div className="p-8 text-center">
-                              <p className="text-gray-500 text-sm">No matches found for "{searchQuery}"</p>
-                            </div>
-                          )}
-                        </div>
-                      )}
+              {/* Search Dropdown */}
+              {isSearchFocused && searchQuery && (
+                <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-gray-100 overflow-hidden z-50">
+                  {isSearching ? (
+                    <div className="divide-y divide-gray-50">
+                      <SearchSkeleton /><SearchSkeleton /><SearchSkeleton />
                     </div>
-                  ) : (
-                    <button
-                      onClick={toggleSearch}
-                      className="text-gray-600 hover:text-[#D97706] transition-colors p-1"
-                    >
-                      <Search size={20} />
-                    </button>
-                  )}
-                </div>
-
-                {/* Hide other icons when search is open on mobile */}
-                <div className={`flex items-center gap-2 sm:gap-4 lg:gap-5 transition-opacity duration-200 ${isSearchOpen ? 'hidden md:flex opacity-50' : 'flex'}`}>
-                  {/* Wishlist Button */}
-                  {isAuthenticated ? (
-                    <Link href="/wishlist">
-                      <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
-                        <Heart size={20} />
-                        {wishlistLoading ? (
-                          <span className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center">
-                            <div className="w-4 h-4 border-2 border-gray-300 border-t-transparent rounded-full animate-spin"></div>
-                          </span>
-                        ) : wishlistCount > 0 ? (
-                          <span className="absolute -top-1 -right-1 bg-[#D97706] text-white text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center">
-                            {wishlistCount > 9 ? '9+' : wishlistCount}
-                          </span>
-                        ) : null}
-                      </button>
-                    </Link>
-                  ) : (
-                    <button
-                      onClick={handleLoginClick}
-                      className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
-                      title="Login to view wishlist"
-                    >
-                      <Heart size={20} />
-                    </button>
-                  )}
-
-                  {/* Cart Button */}
-                  <CartButton />
-
-                  {/* Notification Button */}
-                  {isAuthenticated && (
-                    <div className="relative">
-                      <button 
-                        onClick={() => setIsNotificationOpen(!isNotificationOpen)}
-                        className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
-                        title="Notifications"
-                      >
-                        <Bell size={20} />
-                        {notificationCount > 0 && (
-                          <span className="absolute -top-1 -right-1 bg-[#D97706] text-white text-[10px] font-bold w-4.5 h-4.5 rounded-full flex items-center justify-center border-2 border-white">
-                            {notificationCount > 9 ? '9+' : notificationCount}
-                          </span>
-                        )}
-                      </button>
-
-                      <NotificationDropdown 
-                        isOpen={isNotificationOpen}
-                        onClose={() => setIsNotificationOpen(false)}
-                        notifications={notifications}
-                        onMarkAsRead={markNotificationAsRead}
-                        onDelete={deleteNotification}
-                        onClearAll={clearAllNotifications}
-                      />
-                    </div>
-                  )}
-
-                  {/* User Authentication Section - Only in Desktop if search hidden */}
-                  <div className="hidden lg:block">
-                    {isAuthenticated ? (
-                      <div className="flex items-center gap-3">
-                        {/* User Info */}
-                        <div className="flex items-center gap-2">
-                          <Link href="/profile">
-                            <div className="w-8 h-8 bg-[#D97706]/10 rounded-full flex items-center justify-center">
-                              <User size={16} className="text-[#D97706]" />
+                  ) : searchResults.length > 0 ? (
+                    <ul className="divide-y divide-gray-50">
+                      {searchResults.map((product) => (
+                        <li key={product._id || product.id}>
+                          <Link
+                            href={`/products?q=${encodeURIComponent(product.name)}`}
+                            className="flex items-center gap-3 p-3 hover:bg-gray-50 transition-colors"
+                            onClick={() => { setIsSearchFocused(false); setSearchQuery(''); }}
+                          >
+                            {(product.image || product.images?.[0]) ? (
+                              <div className="w-9 h-9 relative rounded overflow-hidden bg-gray-100 flex-shrink-0">
+                                <img
+                                  src={typeof product.image === 'string' ? product.image : (product.images?.[0]?.url || '/placeholder.png')}
+                                  alt={product.name}
+                                  className="object-cover w-full h-full"
+                                />
+                              </div>
+                            ) : (
+                              <div className="w-9 h-9 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                                <Search size={14} className="text-gray-400" />
+                              </div>
+                            )}
+                            <div className="flex-grow min-w-0">
+                              <p className="text-sm font-medium text-gray-900 truncate">{product.name}</p>
+                              <p className="text-[10px] text-gray-500 uppercase tracking-wider">{product.category?.name || 'Product'}</p>
                             </div>
                           </Link>
-                        </div>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    <div className="p-6 text-center">
+                      <p className="text-gray-500 text-sm">No matches for "{searchQuery}"</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-                        {/* Logout Button */}
-                        <button
-                          onClick={handleLogout}
-                          className="text-gray-600 hover:text-[#D97706] transition-colors p-2 rounded-full hover:bg-gray-100"
-                          title="Logout"
-                        >
-                          <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="20"
-                            height="20"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          >
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                            <polyline points="16 17 21 12 16 7" />
-                            <line x1="21" y1="12" x2="9" y2="12" />
-                          </svg>
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={handleLoginClick}
-                        className="flex items-center gap-2 bg-[#D97706] text-white px-6 py-2.5 rounded-full hover:bg-[#B45309] transition-all shadow-md hover:shadow-lg text-sm font-medium"
-                      >
-                        <User size={18} />
-                        Login / Register
-                      </button>
+            {/* Right Action Icons */}
+            <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+              {/* Wishlist */}
+              {isAuthenticated ? (
+                <Link href="/wishlist">
+                  <button className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
+                    <Heart size={19} />
+                    {wishlistCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 bg-[#D97706] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                        {wishlistCount > 9 ? '9+' : wishlistCount}
+                      </span>
                     )}
-                  </div>
+                  </button>
+                </Link>
+              ) : (
+                <button onClick={handleLoginClick} className="relative p-2 hover:bg-gray-100 rounded-full transition-colors">
+                  <Heart size={19} />
+                </button>
+              )}
+
+              {/* Cart */}
+              <CartButton />
+
+              {/* Notifications */}
+              {isAuthenticated && (
+                <div className="relative">
                   <button
-                    onClick={handleLoginClick}
-                    className="lg:hidden text-gray-600 hover:text-[#D97706] transition-colors"
+                    onClick={() => setIsNotificationOpen(!isNotificationOpen)}
+                    className="relative p-2 hover:bg-gray-100 rounded-full transition-colors"
                   >
-                    <User size={20} />
+                    <Bell size={19} />
+                    {notificationCount > 0 && (
+                      <span className="absolute -top-0.5 -right-0.5 bg-[#D97706] text-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center border border-white">
+                        {notificationCount > 9 ? '9+' : notificationCount}
+                      </span>
+                    )}
+                  </button>
+                  <NotificationDropdown
+                    isOpen={isNotificationOpen}
+                    onClose={() => setIsNotificationOpen(false)}
+                    notifications={notifications}
+                    onMarkAsRead={markNotificationAsRead}
+                    onDelete={deleteNotification}
+                    onClearAll={clearAllNotifications}
+                  />
+                </div>
+              )}
+
+              {/* Login/Signup OR User Avatar */}
+              {isAuthenticated ? (
+                <div className="flex items-center gap-2">
+                  <Link href="/profile">
+                    <div className="w-8 h-8 bg-[#D97706]/10 rounded-full flex items-center justify-center hover:bg-[#D97706]/20 transition-colors">
+                      <User size={15} className="text-[#D97706]" />
+                    </div>
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="hidden lg:flex items-center text-xs text-gray-500 hover:text-[#D97706] transition-colors"
+                    title="Logout"
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                      <polyline points="16 17 21 12 16 7" />
+                      <line x1="21" y1="12" x2="9" y2="12" />
+                    </svg>
                   </button>
                 </div>
-              </div>
+              ) : (
+                <button
+                  onClick={handleLoginClick}
+                  className="flex items-center gap-1.5 bg-[#D97706] text-white px-4 py-2 rounded-full text-sm font-semibold hover:bg-[#B45309] transition-all shadow-sm whitespace-nowrap"
+                >
+                  Login/Signup
+                </button>
+              )}
+
+              {/* Mobile hamburger */}
+              <button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                className="md:hidden p-2 hover:bg-gray-100 rounded-full transition-colors"
+              >
+                {isMobileMenuOpen ? <X size={20} /> : (
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <line x1="4" y1="8" x2="20" y2="8" /><line x1="4" y1="16" x2="20" y2="16" />
+                  </svg>
+                )}
+              </button>
             </div>
           </div>
         </div>
 
-        {/* Login Modal */}
-        <LoginModal
-          isOpen={isLoginModalOpen}
-          onClose={() => {
-            setIsLoginModalOpen(false);
-          }}
-        />
-      </>
-    </>
+        {/* Mobile Navigation Drawer */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden border-t border-gray-100 bg-white">
+            <div className="max-w-7xl mx-auto px-4 py-4 space-y-1">
+              {/* Location on mobile */}
+              <button
+                onClick={handleLocationClick}
+                className="flex items-center gap-2 w-full px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-orange-50 hover:text-[#D97706] transition-colors"
+              >
+                {isLocating ? <Loader2 size={16} className="animate-spin" /> : <MapPin size={16} />}
+                <span>Deliver to: <strong>{locationName}</strong></span>
+              </button>
+
+              <Link href="/products" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-semibold text-gray-800 hover:bg-orange-50 hover:text-[#D97706] transition-colors">
+                Browse Catalogue
+              </Link>
+
+              {catalogueCategories.map((cat) => (
+                <Link
+                  key={cat.name}
+                  href={cat.href}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center gap-2 pl-8 pr-3 py-2 rounded-lg text-sm text-gray-600 hover:bg-orange-50 hover:text-[#D97706] transition-colors"
+                >
+                  <Package size={13} className="text-gray-400" />
+                  {cat.name}
+                </Link>
+              ))}
+
+              <div className="border-t border-gray-100 my-2" />
+
+              {navLinks.map((link) => (
+                <Link
+                  key={link.name}
+                  href={link.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="flex items-center px-3 py-2.5 rounded-lg text-sm text-gray-700 hover:bg-orange-50 hover:text-[#D97706] transition-colors"
+                >
+                  {link.name}
+                </Link>
+              ))}
+
+              <div className="border-t border-gray-100 my-2" />
+
+              <div className="flex items-center gap-2 px-3">
+                <a href="tel:+919324856780" className="flex items-center gap-1 text-xs text-gray-500">
+                  <Phone size={12} /> +91 93248 56780
+                </a>
+                <span className="text-gray-300">·</span>
+                <a href="mailto:sales@unifoods.in" className="flex items-center gap-1 text-xs text-gray-500">
+                  <Mail size={12} /> sales@unifoods.in
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+      </header>
   );
 }
