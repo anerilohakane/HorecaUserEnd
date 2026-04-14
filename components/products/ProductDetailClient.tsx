@@ -225,6 +225,7 @@ export default function ProductDetailClient({
             badge: raw.badge ?? (raw.isFeatured ? 'Featured' : undefined),
             inStock: typeof raw.inStock === 'boolean' ? raw.inStock : (typeof raw.stockQuantity === 'number' ? raw.stockQuantity > 0 : true),
             stockQuantity: typeof raw.stockQuantity === 'number' ? raw.stockQuantity : undefined,
+            categoryPrices: raw.categoryPrices,
             ...(raw as any),
         } as Product;
     };
@@ -473,11 +474,21 @@ export default function ProductDetailClient({
     const incrementQuantity = () => setQuantity((prev) => prev + 1);
     const decrementQuantity = () => setQuantity((prev) => Math.max(product?.minOrder ?? 1, prev - 1));
 
+    const resolvePrice = () => {
+        if (user?.category && product?.categoryPrices) {
+            const tierPrice = (product.categoryPrices as any)[user.category];
+            if (tierPrice && tierPrice > 0) return tierPrice;
+        }
+        return product?.price ?? 0;
+    };
+
+    const displayPrice = resolvePrice();
+
     const discountedPrice = product?.discount
-        ? (product.price - (product.price * product.discount) / 100)
+        ? (displayPrice - (displayPrice * product.discount) / 100)
         : null;
 
-    const totalPrice = ((discountedPrice ?? product?.price) ?? 0) * quantity;
+    const totalPrice = ((discountedPrice ?? displayPrice) ?? 0) * quantity;
 
     // fallback while loading product
     // Force scroll to top on mount or product change
@@ -635,7 +646,7 @@ export default function ProductDetailClient({
                                             ₹{discountedPrice.toFixed(0)}
                                         </span>
                                         <span className="text-xl text-gray-400 line-through">
-                                            ₹{product.price}
+                                            ₹{displayPrice}
                                         </span>
                                         <span className="text-sm bg-red-500 text-white px-2 py-1 rounded-full font-semibold">
                                             Save {product.discount}%
@@ -643,7 +654,7 @@ export default function ProductDetailClient({
                                     </>
                                 ) : (
                                     <span className="text-4xl font-bold text-[#111827]">
-                                        ₹{product.price}
+                                        ₹{displayPrice}
                                     </span>
                                 )}
                                 <span className="text-gray-600">/ {product.unit}</span>

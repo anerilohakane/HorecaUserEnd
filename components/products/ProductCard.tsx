@@ -48,6 +48,7 @@ function mapRawToProduct(raw: any): Product | null {
     badge: raw.badge ?? (raw.isFeatured ? 'Featured' : undefined),
     inStock: typeof raw.inStock === 'boolean' ? raw.inStock : (typeof raw.stockQuantity === 'number' ? raw.stockQuantity > 0 : true),
     stockQuantity: typeof raw.stockQuantity === 'number' ? raw.stockQuantity : undefined,
+    categoryPrices: raw.categoryPrices,
     ...(raw as any),
   } as Product;
 }
@@ -378,8 +379,18 @@ export default function ProductCard({
     }
   };
 
+  const resolvePrice = () => {
+    if (user?.category && effectiveProduct.categoryPrices) {
+      const tierPrice = (effectiveProduct.categoryPrices as any)[user.category];
+      if (tierPrice && tierPrice > 0) return tierPrice;
+    }
+    return effectiveProduct.price;
+  };
+
+  const displayPrice = resolvePrice();
+
   const discountedPrice = effectiveProduct.discount
-    ? (effectiveProduct.price - (effectiveProduct.price * effectiveProduct.discount) / 100)
+    ? (displayPrice - (displayPrice * effectiveProduct.discount) / 100)
     : null;
 
   const computeCategoryLabel = (cat: any) => {
@@ -529,11 +540,11 @@ export default function ProductCard({
         <div className="flex items-center justify-between mt-auto">
           <div className="flex flex-col">
             <span className="text-sm font-bold text-gray-900">
-              ₹{discountedPrice ? discountedPrice.toFixed(0) : effectiveProduct.price}
+              ₹{discountedPrice ? discountedPrice.toFixed(0) : displayPrice}
               <span className="text-gray-500 font-normal ml-1">/ {effectiveProduct.unit}</span>
             </span>
             {discountedPrice && (
-              <span className="text-xs text-gray-400 line-through">₹{effectiveProduct.price}</span>
+              <span className="text-xs text-gray-400 line-through">₹{displayPrice}</span>
             )}
           </div>
 
