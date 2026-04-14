@@ -1,3 +1,5 @@
+//cart page
+
 "use client";
 
 import { useCart } from '@/lib/context/CartContext';
