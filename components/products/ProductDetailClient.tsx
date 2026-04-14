@@ -254,7 +254,13 @@ export default function ProductDetailClient({
         (async () => {
             try {
                 const url = buildUrl(`api/products/${encodeURIComponent(productId)}`);
-                const res = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
+                const res = await fetch(url, { 
+                    signal: controller.signal, 
+                    headers: { 
+                        Accept: 'application/json',
+                        ...(token ? { Authorization: `Bearer ${token}` } : {})
+                    } 
+                });
                 if (!res.ok) {
                     let msg = '';
                     try {

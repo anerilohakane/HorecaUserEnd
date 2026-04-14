@@ -454,8 +454,10 @@ const buildApiUrl = (path: string) => {
 };
 
 import SkeletonCard from './SkeletonCard';
+import { useAuth } from '@/lib/context/AuthContext';
 
 export default function ProductGrid({ initialProducts = [] }: ProductGridProps) {
+  const { token } = useAuth();
   const searchParams = useSearchParams();
   const initCategory = searchParams?.get('category') || 'all';
 
@@ -539,7 +541,10 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
 
         const res = await fetch(String(url), {
           signal: controller.signal,
-          headers: { Accept: 'application/json' },
+          headers: { 
+            Accept: 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
           cache: 'no-store',
         });
 
