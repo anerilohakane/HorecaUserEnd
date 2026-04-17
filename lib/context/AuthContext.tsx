@@ -13,6 +13,7 @@
     phone: string;
     name: string | null;
     email: string | null;
+    category: string | null;
     }
 
     interface AuthContextType {
@@ -98,6 +99,7 @@ const normalizedUser = {
   phone: user.phone,
   name: user.name ?? null,
   email: user.email ?? null,
+  category: user.category ?? "D",
 };
 
 // Call Server Action to persist session

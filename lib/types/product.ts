@@ -24,6 +24,13 @@ export interface Product {
   shelfLife?: string;
   origin?: string;
   certification?: string;
+  categoryPrices?: {
+    A: number;
+    B: number;
+    C: number;
+    D: number;
+    E: number;
+  };
 }
 
 export interface Review {

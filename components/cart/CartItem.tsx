@@ -551,6 +551,7 @@ import { CartItem as CartItemType } from '@/lib/types/cart';
 import { Minus, Plus, Trash2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useAuth } from '@/lib/context/AuthContext';
 import { sileo } from 'sileo';
 
 // interface CartItemProps {
@@ -574,6 +575,7 @@ export default function CartItem({
   onRemove,
   useUnoptimizedImages = false,
 }: CartItemProps) {
+  const { user } = useAuth();
 
   console.log(item);
   
@@ -646,6 +648,7 @@ export default function CartItem({
     minOrder: Math.max(1, safeNumber((rawProduct as any)?.minOrder || (rawProduct as any)?.minimumOrder, 1)),
     category: safeString((rawProduct as any)?.category || (rawProduct as any)?.type, ''),
     stockQuantity: (rawProduct as any)?.stockQuantity !== undefined ? safeNumber((rawProduct as any).stockQuantity) : undefined,
+    categoryPrices: (rawProduct as any)?.categoryPrices,
   };
 
 
@@ -691,9 +694,19 @@ export default function CartItem({
   const imageSrc = useMemo(() => getImageSrc(), [product.image, imageError]);
 
   // Pricing calculations
+  const resolvePrice = () => {
+    if (user?.category && product.categoryPrices) {
+      const tierPrice = (product.categoryPrices as any)[user.category];
+      if (tierPrice && tierPrice > 0) return tierPrice;
+    }
+    return product.price;
+  };
+
+  const displayPrice = resolvePrice();
+
   const price = product.discount > 0
-    ? product.price - (product.price * product.discount / 100)
-    : product.price;
+    ? displayPrice - (displayPrice * product.discount / 100)
+    : displayPrice;
 
   const itemTotal = price * quantity;
 
