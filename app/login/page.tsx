@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Phone, Lock, ArrowRight, ArrowLeft, ChevronDown } from "lucide-react";
+import { Phone, Lock, ArrowRight, ArrowLeft, ChevronDown, X } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence, Variants } from "framer-motion";
@@ -27,6 +27,8 @@ const itemVariants: Variants = {
     transition: { duration: 0.5, ease: "easeOut" }
   }
 };
+
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
 
 export default function LoginPage() {
   const { login, verifyOtp, isAuthenticated } = useAuth();
@@ -90,6 +92,14 @@ export default function LoginPage() {
           variants={containerVariants}
           className="w-full lg:w-[45%] xl:w-[40%] p-8 sm:p-12 lg:p-16 xl:p-24 flex flex-col justify-center relative bg-white z-20"
         >
+          {/* Close button (Cross) to return home */}
+          <Link 
+            href="/"
+            className="absolute top-6 right-6 p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all z-30 group"
+            title="Close and return home"
+          >
+            <X size={24} className="group-hover:rotate-90 transition-transform duration-300" />
+          </Link>
           {/* Decorative background grid pattern */}
           <div className="absolute top-0 left-0 w-full h-full opacity-[0.03] pointer-events-none">
             <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
