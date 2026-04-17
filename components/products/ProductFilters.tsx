@@ -608,7 +608,7 @@ export default function ProductFilters({
   useEffect(() => {
     if (categories.length > 0 && selectedCategory && selectedCategory !== 'all') {
       if (selectedCategory.includes(',')) return; // Already processed multiple IDs
-      
+
       const searchCat = selectedCategory.toLowerCase();
 
       // Check if it's a parent category name
@@ -701,8 +701,8 @@ export default function ProductFilters({
             <button
               onClick={() => onCategoryChange('all')}
               className={`w-full flex items-center justify-between p-2 rounded-lg transition-all text-sm ${selectedCategory === 'all'
-                  ? 'bg-[#D97706]/10 text-[#D97706] font-semibold'
-                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                ? 'bg-[#D97706]/10 text-[#D97706] font-semibold'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`}
             >
               <span>All Categories</span>
@@ -755,8 +755,8 @@ export default function ProductFilters({
                         key={child.id}
                         onClick={() => onCategoryChange(child.id)}
                         className={`w-full text-left text-sm py-1.5 px-2 rounded-md transition-colors ${selectedCategory === child.id
-                            ? 'text-[#D97706] font-medium bg-[#D97706]/5'
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
+                          ? 'text-[#D97706] font-medium bg-[#D97706]/5'
+                          : 'text-gray-500 hover:text-gray-900 hover:bg-gray-50'
                           }`}
                       >
                         {child.name}

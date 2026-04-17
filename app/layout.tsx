@@ -67,14 +67,18 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             {children}
-            <Toaster 
-              position="top-right" 
-              theme="dark" 
+            <Toaster
+              position="bottom-right"
+              offset={{ bottom: 24, right: 24 }}
+              theme="light"
               options={{
-                fill: "#171717",
-                duration: 1500, // 1.5 seconds
-                styles: { 
-                  description: "text-white/75!" 
+                fill: "#ffffff",
+                duration: 2000,
+                roundness: 12,
+                styles: {
+                  title: "text-gray-900! font-semibold! text-sm!",
+                  description: "text-gray-500! text-xs!",
+                  badge: "bg-[#D97706]!",
                 },
               }}
             />

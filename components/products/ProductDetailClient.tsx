@@ -446,7 +446,6 @@ export default function ProductDetailClient({
             if (result.success) {
                 sileo.success({
                     title: "Added to Cart",
-                    description: `${quantity} ${product.unit}(s) of "${product.name}" added successfully.`
                 });
             } else {
                 sileo.error({

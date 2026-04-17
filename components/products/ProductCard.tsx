@@ -170,24 +170,24 @@ export default function ProductCard({
   const handleNotifyMe = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     if (!effectiveProduct?.id) return;
-    
+
     if (!user?.id) {
-       sileo.error({ title: "Please log in to be notified." });
-       return;
+      sileo.error({ title: "Please log in to be notified." });
+      return;
     }
 
     try {
       const baseUrl = API_BASE || "https://horeca-backend-six.vercel.app";
       const payload = { userId: user.id, productId: effectiveProduct.id };
-      
+
       const response = await fetch(`${baseUrl}/api/restock-request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
-      
+
       if (response.ok) {
         sileo.success({ title: "We'll notify you when this is back in stock!" });
       } else if (response.status === 404) {
@@ -212,11 +212,11 @@ export default function ProductCard({
 
     // INSUFFICIENT STOCK CHECK
     if (effectiveProduct.stockQuantity !== undefined && effectiveProduct.minOrder > effectiveProduct.stockQuantity) {
-        sileo.error({ 
-            title: "Insufficient Stock", 
-            description: `Required quantity (${effectiveProduct.minOrder}) exceeds available stock (${effectiveProduct.stockQuantity}).` 
-        });
-        return;
+      sileo.error({
+        title: "Insufficient Stock",
+        description: `Required quantity (${effectiveProduct.minOrder}) exceeds available stock (${effectiveProduct.stockQuantity}).`
+      });
+      return;
     }
 
     setIsAdding(true);
@@ -253,10 +253,9 @@ export default function ProductCard({
 
       const result = await response.json();
       window.dispatchEvent(new Event("cart-updated"));
-      
-      sileo.success({ 
-          title: "Added to Cart", 
-          description: `"${effectiveProduct.name}" added successfully.` 
+
+      sileo.success({
+        title: "Added to Cart",
       });
       setSuccess(true);
 
@@ -284,13 +283,13 @@ export default function ProductCard({
     const wasInWishlist = isInWishlist;
     setIsInWishlist(!wasInWishlist);
     setWishlistSuccess(true);
-    
+
     // Dispatch event immediately for header update
-    window.dispatchEvent(new CustomEvent("wishlist-updated", { 
-      detail: { 
-        isAdded: !wasInWishlist, 
-        optimistic: true 
-      } 
+    window.dispatchEvent(new CustomEvent("wishlist-updated", {
+      detail: {
+        isAdded: !wasInWishlist,
+        optimistic: true
+      }
     }));
 
     sileo.success({
@@ -337,20 +336,20 @@ export default function ProductCard({
       // [Rollback] Revert state if backend synchronization fails
       setIsInWishlist(wasInWishlist);
       setWishlistSuccess(false);
-      
+
       // Notify header to revert count
-      window.dispatchEvent(new CustomEvent("wishlist-updated", { 
-        detail: { 
-          isAdded: wasInWishlist, 
-          optimistic: true 
-        } 
+      window.dispatchEvent(new CustomEvent("wishlist-updated", {
+        detail: {
+          isAdded: wasInWishlist,
+          optimistic: true
+        }
       }));
 
       sileo.error({
         title: "Sync Failed",
         description: err?.message || "Failed to sync wishlist with server."
       });
-      
+
       setWishlistError(err?.message ||
         (wasInWishlist ? "Failed to remove from wishlist" : "Failed to add to wishlist"));
       setTimeout(() => setWishlistError(null), 4000);
