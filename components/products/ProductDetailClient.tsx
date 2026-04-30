@@ -475,11 +475,25 @@ export default function ProductDetailClient({
     const decrementQuantity = () => setQuantity((prev) => Math.max(product?.minOrder ?? 1, prev - 1));
 
     const resolvePrice = () => {
+        // 1. Tier Pricing check
         if (user?.category && product?.categoryPrices) {
             const tierPrice = (product.categoryPrices as any)[user.category];
             if (tierPrice && tierPrice > 0) return tierPrice;
         }
-        return product?.price ?? 0;
+
+        // 2. Primary Price check
+        if (product?.price && product.price > 0) {
+            return product.price;
+        }
+
+        // 3. Calculation Fallback (Base Price + Margin)
+        const baseP = Number((product as any)?.basePrice || 0);
+        const margin = Number((product as any)?.assuredMargin || 0);
+        if (baseP > 0) {
+            return baseP + (baseP * margin / 100);
+        }
+
+        return 0;
     };
 
     const displayPrice = resolvePrice();
