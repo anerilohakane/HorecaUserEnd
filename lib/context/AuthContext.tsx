@@ -20,6 +20,8 @@ interface AuthContextType {
   token: string | null;
   login: (phone: string) => Promise<void>;
   verifyOtp: (otp: string) => Promise<void>;
+  loginWithPassword: (identifier: string, password: string) => Promise<void>;
+  registerCustomer: (data: any) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
@@ -62,7 +64,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     loadSession();
   }, []);
 
-  // STEP 1 — SEND OTP
+  // STEP 1 — SEND OTP (Legacy support)
   const login = async (phone: string) => {
     const res = await fetch(`${API_BASE}/api/auth/send-otp`, {
       method: "POST",
@@ -76,15 +78,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     sessionStorage.setItem("pending_phone", phone);
   };
 
-  // STEP 2 — VERIFY OTP + CREATE / FETCH USER
+  // STEP 2 — VERIFY OTP (Legacy support)
   const verifyOtp = async (otp: string) => {
     const phone = sessionStorage.getItem("pending_phone");
     if (!phone) throw new Error("Phone missing");
 
-    // 1️⃣ CAPTURE LOCATION (Dynamic)
     const coords = await getCurrentLocation();
 
-    // 2️⃣ VERIFY OTP
     const res = await fetch(`${API_BASE}/api/auth/verify-otp`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -110,21 +110,70 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       category: userData.category ?? "D",
     };
 
-    // Call Server Action to persist session
     await setAuthSession(token, normalizedUser);
-
-    // SET AUTH STATE
     setUser(normalizedUser);
     setToken(token);
-
     sessionStorage.removeItem("pending_phone");
+  };
+
+  // NEW: LOGIN WITH PASSWORD
+  const loginWithPassword = async (identifier: string, password: string) => {
+    const res = await fetch(`${API_BASE}/api/auth/customer-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ identifier, password }),
+    });
+
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Login failed");
+
+    const token = json.data.accessToken;
+    const userData = json.data.user;
+
+    const normalizedUser = {
+      id: userData.id || userData._id,
+      phone: userData.phone,
+      name: userData.name ?? null,
+      email: userData.email ?? null,
+      category: userData.category ?? "D",
+    };
+
+    await setAuthSession(token, normalizedUser);
+    setUser(normalizedUser);
+    setToken(token);
+  };
+
+  // NEW: REGISTER CUSTOMER
+  const registerCustomer = async (data: any) => {
+    const res = await fetch(`${API_BASE}/api/auth/customer-register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    const json = await res.json();
+    if (!json.success) throw new Error(json.error || "Registration failed");
+
+    const token = json.data.accessToken;
+    const userData = json.data.user;
+
+    const normalizedUser = {
+      id: userData.id || userData._id,
+      phone: userData.phone,
+      name: userData.name ?? null,
+      email: userData.email ?? null,
+      category: userData.category ?? "D",
+    };
+
+    await setAuthSession(token, normalizedUser);
+    setUser(normalizedUser);
+    setToken(token);
   };
 
   const logout = async () => {
     setUser(null);
     setToken(null);
     await clearAuthSession();
-    // Clear any pending phone or other cached auth session data
     if (typeof window !== 'undefined') {
       sessionStorage.clear();
     }
@@ -137,6 +186,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         token,
         login,
         verifyOtp,
+        loginWithPassword,
+        registerCustomer,
         logout,
         refreshUser,
         isAuthenticated: !!user,
