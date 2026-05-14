@@ -379,11 +379,25 @@ export default function ProductCard({
   };
 
   const resolvePrice = () => {
+    // 1. Tier Pricing check
     if (user?.category && effectiveProduct.categoryPrices) {
       const tierPrice = (effectiveProduct.categoryPrices as any)[user.category];
       if (tierPrice && tierPrice > 0) return tierPrice;
     }
-    return effectiveProduct.price;
+
+    // 2. Primary Price check
+    if (effectiveProduct.price && effectiveProduct.price > 0) {
+      return effectiveProduct.price;
+    }
+
+    // 3. Calculation Fallback (Base Price + Margin)
+    const baseP = Number((effectiveProduct as any).basePrice || 0);
+    const margin = Number((effectiveProduct as any).assuredMargin || 0);
+    if (baseP > 0) {
+      return baseP + (baseP * margin / 100);
+    }
+
+    return 0;
   };
 
   const displayPrice = resolvePrice();

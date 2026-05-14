@@ -5,6 +5,7 @@ import { cookies } from 'next/headers';
 // ---- AUTHENTICATION SESSION ----
 
 export async function setAuthSession(token: string, user: any) {
+  console.log("🔐 [Session] Setting Auth Session for User:", user?.id || user?._id || user?.phone);
   const cookieStore = await cookies();
   
   // Set Token Cookie
@@ -44,6 +45,7 @@ export async function getAuthSession() {
 }
 
 export async function clearAuthSession() {
+  console.log("🔓 [Session] Clearing Auth Session");
   const cookieStore = await cookies();
   cookieStore.delete('unifoods_token');
   cookieStore.delete('unifoods_user');

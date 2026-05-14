@@ -212,7 +212,11 @@ export default function Header() {
     }
   };
 
-  const handleLogout = () => { logout(); setWishlistCount(0); };
+  const handleLogout = async () => {
+    await logout();
+    setWishlistCount(0);
+    router.push('/');
+  };
   const handleLoginClick = () => router.push('/login');
 
   const catalogueCategories = [

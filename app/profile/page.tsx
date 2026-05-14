@@ -53,13 +53,13 @@ const formatToIST = (dateString: string | Date) => {
     });
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
 
 const ProfilePage = () => {
-    const { user: authUser, isAuthenticated, token, logout } = useAuth();
+    const { user: authUser, isAuthenticated, token, logout, refreshUser } = useAuth();
 
     // const [user, setUser] = useState(null);
-    const [user, setUser] = useState<any | null>(null);
+    const [user, setUser] = useState<any | null>(authUser);
 
     // const [orders, setOrders] = useState([]);
     const [orders, setOrders] = useState<any[]>([]);
@@ -378,8 +378,11 @@ const ProfilePage = () => {
 
 
 
-    const getInitials = (name?: string) => {
-        if (!name) return "";
+    const getInitials = (name?: string, phone?: string) => {
+        if (!name) {
+            if (phone) return phone.replace(/\D/g, "").slice(-2); // Last 2 digits if no name
+            return "U";
+        }
 
         const words = name.trim().split(" ").filter(Boolean);
 
@@ -478,57 +481,122 @@ const ProfilePage = () => {
     ------------------------------------------------------------- */
     useEffect(() => {
         const loadProfile = async () => {
-            if (!isAuthenticated || !authUser) return;
+            if (!isAuthenticated || !authUser) {
+                console.log("⏭️ loadProfile skipped: isAuthenticated =", isAuthenticated, "authUser =", authUser);
+                if (!isAuthenticated) setUser(null); // Clear local state if unauthenticated
+                return;
+            }
+            
+            // Sync local user state with authUser if needed
+            setUser((prev: any) => ({ ...prev, ...authUser }));
+            fetchSavedItemsCount();
 
             const userId = authUser.id || (authUser as any)._id;
-            const API_URL = `${API_BASE}/api/customers/${userId}`;
+            const phone = authUser.phone;
+            const tokenValue = token;
 
-            console.log("🌍 Fetching customer:", API_URL);
+            // List of candidate URLs to try if one fails with 404
+            const candidateUrls = [
+                `${API_BASE}/api/customers/${userId}`,      // 1. Current (Path param)
+                `${API_BASE}/api/customer/${userId}`,       // 2. Singular (Path param)
+                `${API_BASE}/api/customers?id=${userId}`,   // 3. Plural (Query param 'id')
+                `${API_BASE}/api/customer?id=${userId}`,    // 4. Singular (Query param 'id')
+                `${API_BASE}/api/customers?userId=${userId}`,// 5. Plural (Query param 'userId')
+                `${API_BASE}/api/customer?userId=${userId}`, // 6. Singular (Query param 'userId')
+            ];
+
+            // If we have a phone number, try searching by it too
+            if (phone) {
+                candidateUrls.push(`${API_BASE}/api/customers?phone=${encodeURIComponent(phone)}`);
+            }
+
+            console.log("🌍 [Profile] Starting robust profile fetch for User:", userId, "Phone:", phone);
             setLoading(true);
 
             try {
-                // Call stats fetching functions
+                // Call stats fetching functions (independent of profile fetch)
+                console.log("📊 [Profile] Fetching accessory data...");
                 fetchReviewsCount();
                 fetchSavedItemsCount();
                 fetchOrders();
                 fetchAddresses();
                 if (activeTab === 'subscriptions') fetchSubscriptions();
 
-                const res = await fetch(API_URL, {
-                    method: "GET",
-                    headers: {
-                        Authorization: `Bearer ${token}`,
-                        Accept: "application/json",
-                    },
-                });
+                let successResponse = null;
+                let lastErrorText = "";
+                let validatedUserData: any = null;
 
-                const text = await res.text();
-                let json;
-                try {
-                    json = JSON.parse(text);
-                } catch (err) {
-                    console.error("❌ JSON PARSE ERROR:", err);
-                    setLoading(false);
-                    return;
+                // Try each candidate URL until one works
+                for (const url of candidateUrls) {
+                    console.log(`🔎 [Profile] Trying endpoint: ${url}`);
+                    try {
+                        const res = await fetch(url, {
+                            method: "GET",
+                            headers: {
+                                Authorization: `Bearer ${tokenValue}`,
+                                Accept: "application/json",
+                            },
+                        });
+
+                        if (res.ok) {
+                            const rawData = await res.json();
+                            console.log(`✅ [Profile] Received data from: ${url}`, rawData);
+                            
+                            // Robust data extraction
+                            let userData = rawData?.data || rawData?.user || (rawData?.success ? rawData : rawData);
+                            if (Array.isArray(userData)) userData = userData[0];
+
+                            if (userData && typeof userData === 'object') {
+                                // 🛡️ SECURITY GUARD: Verify ID
+                                const fetchedId = userData._id || userData.id;
+                                if (fetchedId && authUser.id && fetchedId !== authUser.id) {
+                                    console.warn(`⚠️ [Profile] Skipping incorrect session data from ${url}. Expected: ${authUser.id}, received: ${fetchedId}`);
+                                    continue; // Try next endpoint
+                                }
+                                
+                                // Matches or is ambiguous (only phone match)
+                                validatedUserData = userData;
+                                successResponse = rawData;
+                                break; // FOUND VALID DATA
+                            }
+                        } else {
+                            const errBody = await res.text();
+                            console.warn(`⚠️ [Profile] Failed at ${url} Status: ${res.status}. Body:`, errBody);
+                            lastErrorText = errBody;
+                        }
+                    } catch (fetchErr) {
+                        console.error(`❌ [Profile] Fetch error for ${url}:`, fetchErr);
+                    }
                 }
 
-                if (json?.success && json.data) {
-                    setUser(json.data);
-                    setProfileForm({
-                        name: json.data.name || "",
-                        email: json.data.email || "",
-                        address: json.data.address || "",
-                        city: json.data.city || "",
-                        state: json.data.state || "",
-                        pincode: json.data.pincode || "",
-                        lat: json.data.lat || null,
-                        lng: json.data.lng || null,
-                    });
+                if (validatedUserData) {
+                    console.log("✅ [Profile] Successfully validated user data:", validatedUserData);
+                    // MERGE strategy: Preserve existing name/email if backend record is sparse
+                    setUser((prev: any) => ({
+                        ...prev,
+                        ...validatedUserData,
+                        id: authUser.id,   // Ensure ID/Phone are never overwritten by accident
+                        phone: authUser.phone 
+                    }));
+
+                    setProfileForm((prev: any) => ({
+                        ...prev,
+                        ...validatedUserData,
+                        name: validatedUserData.name || prev.name || "",
+                        email: validatedUserData.email || prev.email || "",
+                    }));
+                }
+
+                if (!validatedUserData && isAuthenticated) {
+                    console.error("🔥 [Profile] ALL endpoints failed. Last error:", lastErrorText);
+                    sileo.error({ title: "Unable to load profile", description: "The server could not find your customer record. Please contact support." });
                 }
             } catch (error) {
-                console.error("🔥 Error fetching customer:", error);
+                console.error("🔥 [Profile] CRITICAL ERROR in loadProfile:", error);
+            } finally {
+                setLoading(false);
+                console.log("🏁 [Profile] Profile load sequence complete.");
             }
-            setLoading(false);
         };
 
         loadProfile();
@@ -581,6 +649,9 @@ const ProfilePage = () => {
             // ✅ Update UI instantly
             setUser(data.data);
             setIsEditingProfile(false);
+
+            // 🔥 Sync with global AuthContext
+            await refreshUser();
 
             sileo.success({
                 title: "Profile Updated",
@@ -846,8 +917,8 @@ const ProfilePage = () => {
     const router = useRouter();
 
     const handleLogout = async () => {
-        logout(); // 🔥 clears auth state
-
+        await logout(); // 🔥 clears auth state
+        
         // optional cleanup
         await clearOrderSession();
 
@@ -890,9 +961,9 @@ const ProfilePage = () => {
                             <div className="flex flex-col sm:flex-row items-start sm:items-end gap-6">
 
                                 {/* Avatar */}
-                                <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-white flex items-center justify-center">
+                                <div className="w-32 h-32 rounded-full border-4 border-white shadow-lg bg-white flex items-center justify-center overflow-hidden">
                                     <span className="text-4xl font-bold text-amber-600 tracking-wide">
-                                        {getInitials(user.name)}
+                                        {getInitials(user.name, user.phone)}
                                     </span>
                                 </div>
 
@@ -901,10 +972,12 @@ const ProfilePage = () => {
                                 <div className="flex-1 pt-4 sm:pt-0">
                                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                         <div>
-                                            <h1 className="text-2xl font-bold text-gray-900">{user.name}</h1>
+                                            <h1 className="text-2xl font-bold text-gray-900">
+                                                {user.name || (user.phone ? (user.phone.startsWith("+") ? user.phone : `+${user.phone}`) : "Customer")}
+                                            </h1>
                                             <p className="text-gray-900 flex items-center gap-2 mt-1">
                                                 <Mail className="w-4 h-4" />
-                                                {user.email}
+                                                {user.email || "No email provided"}
                                             </p>
                                         </div>
                                     </div>
@@ -1080,7 +1153,7 @@ const ProfilePage = () => {
                                                         </div>
                                                         <div>
                                                             <p className="text-sm text-gray-500">Full Name</p>
-                                                            <p className="font-medium text-gray-900">{user.name}</p>
+                                                            <p className="font-medium text-gray-900">{user.name || "Not set"}</p>
                                                         </div>
                                                     </div>
 
@@ -1090,7 +1163,7 @@ const ProfilePage = () => {
                                                         </div>
                                                         <div>
                                                             <p className="text-sm text-gray-500">Email</p>
-                                                            <p className="font-medium text-gray-900">{user.email}</p>
+                                                            <p className="font-medium text-gray-900">{user.email || "Not set"}</p>
                                                         </div>
                                                     </div>
 
@@ -1120,7 +1193,6 @@ const ProfilePage = () => {
                                                             </p>
                                                         </div>
                                                     </div>
-
                                                 </div>
                                             </div>
                                         )}
