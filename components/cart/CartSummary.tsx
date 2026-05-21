@@ -55,9 +55,9 @@ export default function CartSummary({ subtotal, itemCount, items }: CartSummaryP
   const discount = appliedCoupon ? (subtotal * appliedCoupon.discount) / 100 : 0;
   const subtotalAfterDiscount = subtotal - discount;
 
-  // Dynamic GST calculation based on item-level rates
+  // Dynamic GST calculation using category-specific price (item.price fallback to product.price)
   const totalTaxRaw = items.reduce((acc, item) => {
-    const itemPrice = item.product.price;
+    const itemPrice = (item as any).price ?? item.product.price;
     const qty = item.quantity;
     const gstRate = item.product.gst || 0;
     return acc + (itemPrice * qty * (gstRate / 100));
@@ -66,9 +66,9 @@ export default function CartSummary({ subtotal, itemCount, items }: CartSummaryP
   // Apply discount proportionally to the tax if a coupon is used
   const discountRatio = subtotal > 0 ? subtotalAfterDiscount / subtotal : 1;
   const tax = totalTaxRaw * discountRatio;
-  const shipping = subtotal >= 500 ? 0 : 20; // Free shipping above ₹500
-  const platformFee = 5;
-  const total = subtotalAfterDiscount + tax + shipping + platformFee;
+  const shipping = 0;      // Removed - no shipping charges
+  const platformFee = 0;   // Removed - no platform fee
+  const total = subtotalAfterDiscount + tax;
 
   return (
     <div className="bg-white rounded-2xl soft-shadow p-6 sticky top-24">
@@ -97,7 +97,7 @@ export default function CartSummary({ subtotal, itemCount, items }: CartSummaryP
         {(() => {
           const distinctRates = Array.from(new Set(items.map(item => item.product.gst || 0)));
           const rateLabel = distinctRates.length === 1 ? `${distinctRates[0]}%` : distinctRates.map(r => `${r}%`).join(', ');
-          
+
           return (
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">GST ({rateLabel})</span>
@@ -108,29 +108,6 @@ export default function CartSummary({ subtotal, itemCount, items }: CartSummaryP
           );
         })()}
 
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Shipping</span>
-          {shipping === 0 ? (
-            <span className="font-semibold text-[#D97706]">FREE</span>
-          ) : (
-            <span className="font-semibold text-[#111827]">
-              ₹{shipping.toFixed(2)}
-            </span>
-          )}
-        </div>
-
-        <div className="flex justify-between text-sm">
-          <span className="text-gray-600">Platform Fee</span>
-          <span className="font-semibold text-[#111827]">
-            ₹{platformFee.toFixed(2)}
-          </span>
-        </div>
-
-        {shipping > 0 && subtotal < 500 && (
-          <p className="text-xs text-gray-500">
-            Add ₹{(500 - subtotal).toFixed(0)} more for FREE shipping
-          </p>
-        )}
       </div>
 
       {/* Total */}

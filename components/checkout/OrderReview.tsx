@@ -331,12 +331,12 @@ export default function OrderReview({
         console.warn("Location capture failed (denied or timed out), proceeding with address defaults.");
       }
 
-      // Convert cart items to backend format
+      // Convert cart items to backend format using category price
       const formattedItems = items.map((item) => ({
         product: item.product.id,
         quantity: item.quantity,
-        unitPrice: item.product.price,
-        image: item.product.image || "", // ✅ Added image field
+        unitPrice: (item as any).price ?? item.product.price,
+        image: item.product.image || "",
         attributes: item.selectedAttributes || {},
       }));
 
@@ -358,12 +358,9 @@ export default function OrderReview({
         items: formattedItems,
         gst,
         gstAmount,
-        // WORKAROUND: The deployed backend currently ignores 'platformFee' when calculating the final total.
-        // We add it to 'shippingCharges' here so the final total calculates correctly.
-        // Once the updated backend is deployed to Vercel, this can be separated again.
-        shippingCharges: shipping + platformFee,
+        shippingCharges: 0,  // Removed - no shipping charges
         discounts: discount,
-        platformFee,
+        platformFee: 0,      // Removed - no platform fee
         total,
         paymentMethod,
         transactionId: null,
@@ -466,9 +463,9 @@ export default function OrderReview({
 
         <div className="space-y-4">
           {items.map((item) => {
-            const price = item.product.discount
+            const price = (item as any).price ?? (item.product.discount
               ? item.product.price - (item.product.price * item.product.discount) / 100
-              : item.product.price;
+              : item.product.price);
 
             return (
               <div key={item.product.id} className="flex gap-4 border-b pb-4">
@@ -516,14 +513,6 @@ export default function OrderReview({
               return <span>GST ({rateLabel})</span>;
             })()}
             <span>₹{gstAmount.toFixed(2)}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Shipping</span>
-            <span>{shipping === 0 ? "FREE" : `₹${shipping}`}</span>
-          </div>
-          <div className="flex justify-between">
-            <span>Platform Fee</span>
-            <span>₹{platformFee.toFixed(2)}</span>
           </div>
         </div>
 

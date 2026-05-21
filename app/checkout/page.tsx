@@ -46,9 +46,9 @@ export default function CheckoutPage() {
   const discount = 0; // Would come from applied coupon
   const subtotalAfterDiscount = subtotal - discount;
 
-  // Dynamic GST calculation based on item-level rates
+  // Dynamic GST calculation using category-specific price (item.price fallback to product.price)
   const totalTaxRaw = items.reduce((acc, item) => {
-    const itemPrice = item.product.price;
+    const itemPrice = (item as any).price ?? item.product.price;
     const qty = item.quantity;
     const gstRate = item.product.gst || 0;
     return acc + (itemPrice * qty * (gstRate / 100));
@@ -58,9 +58,9 @@ export default function CheckoutPage() {
   const discountRatio = subtotal > 0 ? subtotalAfterDiscount / subtotal : 1;
   const gstAmount = totalTaxRaw * discountRatio;
   const gst = items.length > 0 ? (gstAmount / subtotal) * 100 : 0;
-  const shipping = subtotal >= 500 ? 0 : 20;
-  const platformFee = 5;
-  const total = subtotalAfterDiscount + gstAmount + shipping + platformFee;
+  const shipping = 0;     // Removed - no shipping charges
+  const platformFee = 0;  // Removed - no platform fee
+  const total = subtotalAfterDiscount + gstAmount;
 
   const steps = [
     { id: 'shipping' as CheckoutStep, label: 'Shipping', number: 1 },
@@ -211,7 +211,7 @@ export default function CheckoutPage() {
             {/* Step Content */}
             <div>
               {currentStep === 'shipping' && (
-              <ShippingForm
+                <ShippingForm
                   onSubmit={handleShippingSubmit}
                   initialData={shippingAddress || undefined}
                   onCancel={() => router.push('/products')}
