@@ -392,50 +392,19 @@ const OrderConfirmationPage = () => {
                 </div>
                 <div className="p-5 space-y-3">
                   {(() => {
-                    // ----------------------------------------------------------------------
-                    // 🧮 CLIENT-SIDE RECALCULATION FOR CONSISTENCY
-                    // This ensures that what the user sees is mathematically correct (A+B+C = Total)
-                    // preventing mismatch between backend 'total' and frontend calculated components.
-                    // ----------------------------------------------------------------------
-                    const platformFee = 5;
-
-                    // 1. Calculate Subtotal from Items
-                    const calculatedSubtotal = order.items.reduce((acc, item) => {
-                      const price = item.price ?? (item as any).unitPrice ?? (item as any).product?.price ?? 0;
-                      const qty = item.quantity || (item as any).qty || 1;
-                      return acc + (price * qty);
-                    }, 0);
-
-                    // 2. Shipping Logic (consistent with Checkout)
-                    const dbShipping = order.shipping ?? (order as any).shippingCharges;
-                    const calculatedShipping = dbShipping !== undefined
-                      ? dbShipping
-                      : (calculatedSubtotal >= 500 ? 0 : 20);
-
-                    // 3. Discount (from DB)
+                    const subtotalVal = order.subtotal ?? 0;
                     const discountVal = order.discount || (order as any).discounts || 0;
-
-                    // 4. Tax (Dynamic calculation per item)
-                    const calculatedTax = order.items.reduce((acc, item) => {
-                      const price = item.price ?? (item as any).unitPrice ?? (item as any).product?.price ?? 0;
-                      const qty = item.quantity || (item as any).qty || 1;
-                      const gstRate = (item as any).gst ?? 0;
-                      return acc + (price * qty * (gstRate / 100));
-                    }, 0);
-
-                    // If discount exists, decrease tax proportionally
-                    const taxableAmount = Math.max(0, calculatedSubtotal - discountVal);
-                    const discountRatio = calculatedSubtotal > 0 ? taxableAmount / calculatedSubtotal : 1;
-                    const finalTax = calculatedTax * discountRatio;
-
-                    // 5. Final Total
-                    const calculatedTotal = calculatedSubtotal - discountVal + finalTax + calculatedShipping + platformFee;
+                    const shippingChargesVal = (order as any).shippingCharges ?? order.shipping ?? 0;
+                    const gstAmountVal = order.gstAmount ?? (order as any).tax ?? 0;
+                    const platformFeeVal = order.platformFee ?? 0;
+                    const totalVal = order.total ?? 0;
+                    const movApplied = (order as any).movApplied ?? false;
 
                     return (
                       <>
                         <div className="flex justify-between text-sm text-gray-600">
                           <span>Price ({order.items.length} items)</span>
-                          <span>₹{calculatedSubtotal.toFixed(2)}</span>
+                          <span>₹{subtotalVal.toFixed(2)}</span>
                         </div>
                         {discountVal > 0 && (
                           <div className="flex justify-between text-sm text-green-600">
@@ -443,14 +412,16 @@ const OrderConfirmationPage = () => {
                             <span>- ₹{discountVal.toFixed(2)}</span>
                           </div>
                         )}
+                        {platformFeeVal > 0 && (
+                          <div className="flex justify-between text-sm text-gray-600">
+                            <span>Platform Fee</span>
+                            <span>₹{platformFeeVal.toFixed(2)}</span>
+                          </div>
+                        )}
                         <div className="flex justify-between text-sm text-gray-600">
-                          <span>Platform Fee</span>
-                          <span>₹{platformFee.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-sm text-gray-600">
-                          <span>Delivery Charges</span>
-                          <span className={calculatedShipping === 0 ? "text-green-600 uppercase text-xs font-bold" : ""}>
-                            {calculatedShipping === 0 ? 'FREE' : `₹${calculatedShipping.toFixed(2)}`}
+                          <span>Delivery Charges{movApplied ? ' (Below MOV)' : ''}</span>
+                          <span className={shippingChargesVal === 0 ? "text-green-600 uppercase text-xs font-bold" : ""}>
+                            {shippingChargesVal === 0 ? 'FREE' : `₹${shippingChargesVal.toFixed(2)}`}
                           </span>
                         </div>
                         <div className="flex justify-between text-sm text-gray-600">
@@ -459,14 +430,14 @@ const OrderConfirmationPage = () => {
                             const rateLabel = distinctRates.length === 1 ? `${distinctRates[0]}%` : distinctRates.map(r => `${r}%`).join(', ');
                             return <span>GST ({rateLabel})</span>;
                           })()}
-                          <span>₹{finalTax.toFixed(2)}</span>
+                          <span>₹{gstAmountVal.toFixed(2)}</span>
                         </div>
 
-                        <div className="p-5 pt-0 -mx-5 pb-0"> {/* Negative margin to break out of padding then re-add */}
+                        <div className="p-5 pt-0 -mx-5 pb-0">
                           <div className="border-t border-dashed border-gray-200 pt-4 mb-4">
                             <div className="flex justify-between items-center px-5">
                               <span className="font-bold text-lg text-gray-900">Total Amount</span>
-                              <span className="font-bold text-xl text-gray-900">₹{calculatedTotal.toFixed(2)}</span>
+                              <span className="font-bold text-xl text-gray-900">₹{totalVal.toFixed(2)}</span>
                             </div>
                           </div>
                         </div>

@@ -248,20 +248,20 @@
 
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { ShippingAddress, PaymentMethod as PaymentMethodType } from "@/lib/types/checkout";
 import { CartItem } from "@/lib/types/cart";
-import { MapPin, CreditCard, Package, Edit2 } from "lucide-react";
+import { MapPin, CreditCard, Package, Edit2, Truck, AlertTriangle } from "lucide-react";
 import Image from "next/image";
 import { useCart } from "@/lib/context/CartContext";
 import { useAuth } from "@/lib/context/AuthContext";
-// import { u } from "framer-motion/client"; // This looked accidental in previous read?? removing it.
 import OrderSuccessModal from "./OrderSuccessModal";
 import { generateInvoice } from "@/lib/utils/invoice-generator";
 import { useRouter } from "next/navigation";
 import { setOrderSession } from "@/app/actions/session";
 import { sileo } from 'sileo';
 import { getCurrentLocation } from "@/lib/utils/location";
+import { MOV_AMOUNT, MOV_DELIVERY_CHARGE } from "@/lib/constants/mov";
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
@@ -279,6 +279,9 @@ interface OrderReviewProps {
   platformFee?: number;
   onEditShipping: () => void;
   onEditPayment: () => void;
+  // MOV props
+  movApplied?: boolean;
+  movDeliveryCharge?: number;
 }
 
 export default function OrderReview({
@@ -294,14 +297,29 @@ export default function OrderReview({
   platformFee = 5,
   onEditShipping,
   onEditPayment,
+  movApplied = false,
+  movDeliveryCharge = 0,
 }: OrderReviewProps) {
   
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successOrder, setSuccessOrder] = useState<any>(null); // Using any or Order type if available
+  const [successOrder, setSuccessOrder] = useState<any>(null);
   const { clearCart } = useCart();
   const { user } = useAuth();
   const router = useRouter();
+
+  // Defensive check: if grandTotal is below MOV and movApplied wasn't flagged,
+  // notify via sileo (edge case: user navigated directly to /checkout)
+  useEffect(() => {
+    const grandTotal = subtotal + gstAmount - discount;
+    if (grandTotal < MOV_AMOUNT && !movApplied) {
+      sileo.warning({
+        title: 'Minimum Order Value Not Met',
+        description: `Your order total ₹${grandTotal.toFixed(0)} is below ₹${MOV_AMOUNT.toLocaleString('en-IN')} MOV. Go back to cart and review options.`,
+      });
+    }
+  }, []);
+
   const paymentMethodNames = {
     cod: "Cash on Delivery",
     upi: "UPI Payment",
@@ -358,12 +376,15 @@ export default function OrderReview({
         items: formattedItems,
         gst,
         gstAmount,
-        shippingCharges: 0,  // Removed - no shipping charges
+        shippingCharges: movDeliveryCharge,  // MOV delivery charge (0 if MOV met)
         discounts: discount,
         platformFee: 0,      // Removed - no platform fee
         total,
         paymentMethod,
         transactionId: null,
+        // MOV fields — backend validates and stores these
+        movApplied,
+        movDeliveryCharge,
       };
 
       console.log("📤 Sending order to backend:", body);
@@ -386,6 +407,9 @@ export default function OrderReview({
       // Success! Show modal
       // Save order to server session
       await setOrderSession(data.order._id || data.order.orderNumber, data.order);
+
+      // Clear MOV session flag after successful order
+      sessionStorage.removeItem('mov_applied');
 
       setSuccessOrder(data.order);
       setShowSuccessModal(true);
@@ -514,12 +538,31 @@ export default function OrderReview({
             })()}
             <span>₹{gstAmount.toFixed(2)}</span>
           </div>
+
+          {/* MOV Delivery Charge line — only shown when user agreed to pay it */}
+          {movApplied && movDeliveryCharge > 0 && (
+            <div className="flex justify-between items-center p-2 bg-amber-50 rounded-lg border border-amber-200">
+              <span className="flex items-center gap-1.5 text-amber-700 font-medium">
+                <Truck size={13} />
+                Delivery Charges
+                <span className="text-xs text-amber-500">(Below MOV)</span>
+              </span>
+              <span className="font-semibold text-amber-700">₹{movDeliveryCharge.toFixed(2)}</span>
+            </div>
+          )}
         </div>
 
         <div className="border-t mt-3 pt-3 flex justify-between">
           <span className="text-lg font-semibold">Total</span>
           <span className="text-2xl font-bold text-[#D97706]">₹{total.toFixed(2)}</span>
         </div>
+
+        {movApplied && (
+          <p className="mt-2 text-xs text-amber-600 flex items-center gap-1">
+            <AlertTriangle size={11} />
+            Includes ₹{MOV_DELIVERY_CHARGE} delivery charge (order below ₹{MOV_AMOUNT.toLocaleString('en-IN')} MOV)
+          </p>
+        )}
       </div>
 
       {/* PLACE ORDER BUTTON */}

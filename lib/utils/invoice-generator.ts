@@ -150,57 +150,66 @@ export const generateInvoice = (order: any) => {
         finalY += (isHighlight ? 10 : 7);
     };
 
-    // 1. Calculate Subtotal
+    // -------------------------------------------------------
+    // TOTALS — use stored order values; never recompute independently
+    // This ensures the invoice always matches what was actually charged
+    // -------------------------------------------------------
+
+    // Subtotal: prefer stored value, fallback to item sum
+    const storedSubtotal = (order as any).subtotal ?? (order as any).invoice?.meta?.subtotal;
     const calculatedSubtotal = (order.items || []).reduce((acc: number, item: any) => {
-        const price = typeof item.price === 'number' ? item.price : (typeof item.unitPrice === 'number' ? item.unitPrice : 0);
-        const qty = item.quantity || 1;
-        return acc + (price * qty);
+        const price = typeof item.unitPrice === 'number' ? item.unitPrice
+            : (typeof item.price === 'number' ? item.price : 0);
+        return acc + (price * (item.quantity || 1));
     }, 0);
+    const subtotal = typeof storedSubtotal === 'number' ? storedSubtotal : calculatedSubtotal;
 
-    // 2. Shipping
-    const dbShipping = order.shipping ?? (order as any).shippingCharges;
-    const calculatedShipping = dbShipping !== undefined
-        ? dbShipping
-        : (calculatedSubtotal >= 500 ? 0 : 20);
-
-    // 3. Discount
-    const discountVal = order.discount || (order as any).discounts || 0;
-
-    // 4. Tax (Dynamic calculation per item)
-    const totalTaxRaw = (order.items || []).reduce((acc: number, item: any) => {
-        const price = typeof item.price === 'number' ? item.price : (typeof item.unitPrice === 'number' ? item.unitPrice : 0);
-        const qty = item.quantity || 1;
-        const gstRate = item.gst ?? 0;
-        return acc + (price * qty * (gstRate / 100));
+    // GST: use stored gstAmount, fallback to per-item dynamic calculation
+    const storedGstAmount = (order as any).gstAmount ?? (order as any).invoice?.meta?.gstAmount;
+    const calcGst = (order.items || []).reduce((acc: number, item: any) => {
+        const price = typeof item.unitPrice === 'number' ? item.unitPrice
+            : (typeof item.price === 'number' ? item.price : 0);
+        return acc + (price * (item.quantity || 1) * ((item.gst ?? 0) / 100));
     }, 0);
+    const gstAmount = typeof storedGstAmount === 'number' ? storedGstAmount : calcGst;
 
-    // Apply discount proportionally to the tax
-    const taxableAmount = Math.max(0, calculatedSubtotal - discountVal);
-    const discountRatio = calculatedSubtotal > 0 ? taxableAmount / calculatedSubtotal : 1;
-    const finalTax = totalTaxRaw * discountRatio;
+    // Discount
+    const discountVal = (order as any).discounts ?? order.discount ?? (order as any).invoice?.meta?.discounts ?? 0;
 
-    // 5. Platform Fee
-    const platformFee = 5;
+    // Shipping / MOV delivery charge — use stored value (0 if not set)
+    const shippingCharges = (order as any).shippingCharges ?? (order as any).invoice?.meta?.shippingCharges ?? 0;
 
-    // 6. Total
-    const calculatedTotal = calculatedSubtotal - discountVal + finalTax + calculatedShipping + platformFee;
+    // MOV delivery charge (for label)
+    const movApplied = (order as any).movApplied ?? false;
+    const movDeliveryCharge = (order as any).movDeliveryCharge ?? shippingCharges;
 
+    // Grand Total: always use stored total — single source of truth
+    const storedTotal = (order as any).total ?? (order as any).invoice?.meta?.total;
+    const grandTotal = typeof storedTotal === 'number'
+        ? storedTotal
+        : (subtotal - discountVal + gstAmount + shippingCharges);
 
-    printTotal("Subtotal:", `Rs. ${calculatedSubtotal.toFixed(2)}`);
+    // Print rows
+    printTotal("Subtotal:", `Rs. ${subtotal.toFixed(2)}`);
     if (discountVal > 0) {
         printTotal("Discount:", `- Rs. ${discountVal.toFixed(2)}`);
     }
-    printTotal("Platform Fee:", `Rs. ${platformFee.toFixed(2)}`);
-    printTotal("Delivery Charges:", calculatedShipping === 0 ? "FREE" : `Rs. ${calculatedShipping.toFixed(2)}`);
-    const distinctRates = Array.from(new Set((order.items || []).map((item: any) => (item.gst || (item as any).product?.gst || 0))));
+    // Delivery charges: show MOV charge if applied, otherwise FREE
+    if (shippingCharges > 0) {
+        const label = movApplied ? `Delivery Charges (Below MOV):` : `Delivery Charges:`;
+        printTotal(label, `Rs. ${shippingCharges.toFixed(2)}`);
+    } else {
+        printTotal("Delivery Charges:", "FREE");
+    }
+    // GST with rate label
+    const distinctRates = Array.from(new Set((order.items || []).map((item: any) => item.gst ?? (item as any).product?.gst ?? 0)));
     const rateLabel = distinctRates.length === 1 ? `${distinctRates[0]}%` : distinctRates.map(r => `${r}%`).join(', ');
-    
-    printTotal(`GST (${rateLabel || '0%'}):`, `Rs. ${finalTax.toFixed(2)}`);
+    printTotal(`GST (${rateLabel || '0%'}):`, `Rs. ${gstAmount.toFixed(2)}`);
 
     doc.setDrawColor(220);
     doc.line(130, finalY - 3, 196, finalY - 3);
 
-    printTotal("Grand Total:", `Rs. ${calculatedTotal.toFixed(2)}`, true, true);
+    printTotal("Grand Total:", `Rs. ${grandTotal.toFixed(2)}`, true, true);
 
     // --- Signatures / Footer ---
     const pageHeight = doc.internal.pageSize.height;

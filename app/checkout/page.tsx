@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/context/AuthContext';
 import PageTransition from "@/components/ui/PageTransition";
+import { MOV_AMOUNT, MOV_DELIVERY_CHARGE } from '@/lib/constants/mov';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -24,12 +25,21 @@ export default function CheckoutPage() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
+  // MOV state — read from sessionStorage set by CartSummary
+  const [movApplied, setMovApplied] = useState(false);
+  const [movDeliveryCharge, setMovDeliveryCharge] = useState(0);
 
 
   console.log("User ", user);
 
   useEffect(() => {
     setMounted(true);
+    // Read MOV flag set by CartSummary when user agreed to delivery charge
+    const movFlag = sessionStorage.getItem('mov_applied');
+    if (movFlag === 'true') {
+      setMovApplied(true);
+      setMovDeliveryCharge(MOV_DELIVERY_CHARGE);
+    }
   }, []);
 
   console.log(shippingAddress);
@@ -60,7 +70,8 @@ export default function CheckoutPage() {
   const gst = items.length > 0 ? (gstAmount / subtotal) * 100 : 0;
   const shipping = 0;     // Removed - no shipping charges
   const platformFee = 0;  // Removed - no platform fee
-  const total = subtotalAfterDiscount + gstAmount;
+  // MOV delivery charge is added to total when movApplied
+  const total = subtotalAfterDiscount + gstAmount + movDeliveryCharge;
 
   const steps = [
     { id: 'shipping' as CheckoutStep, label: 'Shipping', number: 1 },
@@ -269,6 +280,8 @@ export default function CheckoutPage() {
                     onEditShipping={() => setCurrentStep('shipping')}
                     onEditPayment={() => setCurrentStep('payment')}
                     platformFee={platformFee}
+                    movApplied={movApplied}
+                    movDeliveryCharge={movDeliveryCharge}
                   />
 
                 </div>
