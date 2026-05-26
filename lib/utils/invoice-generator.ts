@@ -45,10 +45,12 @@ export const generateInvoice = (order: any) => {
 
     const invoiceNo = order.invoice?.invoiceNumber || `INV-${(order.orderNumber || '000').replace('#', '')}`;
     const orderDate = formatDate(order.date || order.placedAt || order.createdAt);
+    const billStatus = order.invoice?.status || 'optional';
 
     doc.text(`Invoice No: ${invoiceNo}`, 196, 28, { align: 'right' });
     doc.text(`Date: ${orderDate}`, 196, 33, { align: 'right' });
     doc.text(`Order ID: ${order.orderNumber || order._id || 'N/A'}`, 196, 38, { align: 'right' });
+    doc.text(`Bill Status: ${billStatus.toUpperCase()}`, 196, 43, { align: 'right' });
 
     // --- Details Section ---
     const startY = 60;
