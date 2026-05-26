@@ -399,7 +399,16 @@ export default function OrderReview({
       console.log("📥 Order response:", data);
 
       if (!data.success) {
-        sileo.error({ title: "Order Failed", description: data.message || "Failed to place your order. Please try again." });
+        let desc = data.error || data.message || "Failed to place your order. Please try again.";
+        if (data.details && Array.isArray(data.details)) {
+          const detailMsgs = data.details.map((d: any) => {
+            const itemInCart: any = items.find(item => (item.product?.id || item.product?._id) === d.product);
+            const prodName = itemInCart?.product?.name || itemInCart?.product?.title || 'Product';
+            return `${prodName}: Requested ${d.requested}, Available ${d.available}`;
+          }).join(', ');
+          desc = `${desc} (${detailMsgs})`;
+        }
+        sileo.error({ title: "Order Failed", description: desc });
         setIsPlacingOrder(false);
         return;
       }
