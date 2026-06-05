@@ -325,6 +325,7 @@ export default function OrderReview({
     upi: "UPI Payment",
     card: "Credit/Debit Card",
     netbanking: "Net Banking",
+    cn: "Credit Note (CN)",
   };
 
   // ---------------------------------------------------------

@@ -27,7 +27,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { getOrderSession } from '@/app/actions/session';
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
-type PaymentMethodKey = 'cod' | 'upi' | 'card' | 'netbanking';
+type PaymentMethodKey = 'cod' | 'upi' | 'card' | 'netbanking' | 'cn';
 
 const OrderConfirmationPage = () => {
   const [order, setOrder] = useState<Order | null>(null);
@@ -101,6 +101,7 @@ const OrderConfirmationPage = () => {
     upi: 'UPI Payment',
     card: 'Credit/Debit Card',
     netbanking: 'Net Banking',
+    cn: 'Credit Note (CN)',
   };
 
   // ----------------------------------------------------------------------
@@ -458,7 +459,8 @@ const OrderConfirmationPage = () => {
                         cod: 'Cash on Delivery',
                         upi: 'UPI Payment',
                         card: 'Credit/Debit Card',
-                        netbanking: 'Net Banking'
+                        netbanking: 'Net Banking',
+                        cn: 'Credit Note (CN)'
                       };
                       return names[normalizedMethod] || method || 'Unknown Method';
                     })()
