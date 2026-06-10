@@ -41,7 +41,7 @@ export default function PriceRequestModal({ isOpen, onClose, product, currentPri
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          customerId: user.id || user._id,
+          customerId: user.id || (user as any)._id,
           productId: product.id || product._id,
           originalPrice: currentPrice,
           requestedPrice: Number(requestedPrice),
