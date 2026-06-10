@@ -21,7 +21,7 @@ import {
     MessageSquare,
     LogOut,
     Clock,
-    Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud
+    Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud, FileText
 } from 'lucide-react';
 import PageTransition from "@/components/ui/PageTransition";
 import Header from '@/components/Header';
@@ -82,6 +82,10 @@ const ProfilePage = () => {
         lng: null as number | null,
     });
     const [savingProfile, setSavingProfile] = useState(false);
+
+    // Price Requests State
+    const [priceRequests, setPriceRequests] = useState<any[]>([]);
+    const [priceRequestsLoading, setPriceRequestsLoading] = useState(false);
 
     // Review State
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -521,6 +525,7 @@ const ProfilePage = () => {
                 fetchOrders();
                 fetchAddresses();
                 if (activeTab === 'subscriptions') fetchSubscriptions();
+                if (activeTab === 'price-requests') fetchPriceRequests();
 
                 let successResponse = null;
                 let lastErrorText = "";
@@ -601,6 +606,30 @@ const ProfilePage = () => {
 
         loadProfile();
     }, [isAuthenticated, authUser, token, activeTab]);
+
+    /* ------------------------------------------------------------
+       🔥 FETCH PRICE REQUESTS
+    ------------------------------------------------------------- */
+    const fetchPriceRequests = async () => {
+        if (!authUser) return;
+        const userId = authUser.id || (authUser as any)._id;
+        if (!userId || !token) return;
+
+        setPriceRequestsLoading(true);
+        try {
+            const res = await fetch(`${API_BASE}/api/price-requests?customerId=${userId}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const json = await res.json();
+            if (json.success) {
+                setPriceRequests(json.data);
+            }
+        } catch (e) {
+            console.error("Failed to fetch price requests", e);
+        } finally {
+            setPriceRequestsLoading(false);
+        }
+    };
 
     const handleUpdateLocation = async () => {
         const coords = await getCurrentLocation();
@@ -845,12 +874,6 @@ const ProfilePage = () => {
         }
     };
 
-    useEffect(() => {
-        if (activeTab === 'subscriptions') {
-            fetchSubscriptions();
-        }
-    }, [activeTab, authUser]);
-
 
 
 
@@ -1023,6 +1046,7 @@ const ProfilePage = () => {
                                         { id: "orders", label: "My Orders", icon: Package },
                                         { id: "subscriptions", label: "My Subscriptions", icon: RotateCw },
                                         { id: "addresses", label: "Addresses", icon: MapPin },
+                                        { id: "price-requests", label: "Price Requests", icon: FileText },
                                     ].map((tab) => {
                                         const Icon = tab.icon;
                                         const isActive = activeTab === tab.id;
@@ -1701,6 +1725,80 @@ const ProfilePage = () => {
                                                                     <XCircle size={20} />
                                                                 </button>
                                                             )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {/* PRICE REQUESTS TAB */}
+                                {activeTab === "price-requests" && (
+                                    <div className="space-y-6">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h2 className="text-xl font-semibold text-gray-900">Price Requests</h2>
+                                                <p className="text-sm text-gray-500 mt-1">View your negotiated product prices and sales feedback.</p>
+                                            </div>
+                                            <button onClick={fetchPriceRequests} className="p-2 text-gray-500 hover:text-amber-600 transition-colors bg-gray-50 hover:bg-amber-50 rounded-lg">
+                                                <RotateCw className={`w-5 h-5 ${priceRequestsLoading ? 'animate-spin' : ''}`} />
+                                            </button>
+                                        </div>
+
+                                        {priceRequestsLoading ? (
+                                            <div className="flex flex-col items-center justify-center py-16 space-y-4">
+                                                <Loader2 className="w-8 h-8 text-amber-500 animate-spin" />
+                                                <p className="text-gray-500 font-medium">Loading requests...</p>
+                                            </div>
+                                        ) : priceRequests.length === 0 ? (
+                                            <div className="text-center py-16 bg-gray-50 rounded-2xl border border-dashed border-gray-200">
+                                                <div className="w-16 h-16 bg-white rounded-full shadow-sm flex items-center justify-center mx-auto mb-4">
+                                                    <FileText className="w-8 h-8 text-gray-400" />
+                                                </div>
+                                                <h3 className="text-lg font-semibold text-gray-900 mb-1">No Price Requests Yet</h3>
+                                                <p className="text-gray-500 mb-6">You haven't requested any custom prices for products.</p>
+                                                <button onClick={() => router.push('/products')} className="inline-flex items-center gap-2 px-6 py-2.5 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors font-medium">
+                                                    Explore Products <ArrowRight className="w-4 h-4" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-4">
+                                                {priceRequests.map((req) => (
+                                                    <div key={req._id} className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col md:flex-row gap-4 p-4 hover:shadow-md transition-shadow">
+                                                        <div className="flex-1">
+                                                            <div className="flex items-center gap-2 mb-2">
+                                                                <span className="text-xs text-gray-500">{formatToIST(req.createdAt)}</span>
+                                                                <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${req.status === 'approved' ? 'bg-green-100 text-green-700' : req.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>{req.status}</span>
+                                                            </div>
+                                                            <h3 className="font-semibold text-gray-900">{req.product?.name}</h3>
+                                                            <div className="flex flex-wrap gap-x-6 gap-y-2 mt-3 text-sm">
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-gray-500 text-xs">Original</span>
+                                                                    <span className="font-medium text-gray-900 line-through">₹{req.originalPrice}</span>
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-gray-500 text-xs">Requested</span>
+                                                                    <span className="font-bold text-amber-600">₹{req.requestedPrice}</span>
+                                                                </div>
+                                                                <div className="flex flex-col">
+                                                                    <span className="text-gray-500 text-xs">Quantity</span>
+                                                                    <span className="font-medium text-gray-900">{req.quantity}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="bg-gray-50 p-4 rounded-lg md:w-64 flex flex-col">
+                                                            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Latest Message</h4>
+                                                            {req.remarks && req.remarks.length > 0 ? (
+                                                                <div className="text-sm text-gray-700 italic line-clamp-3">"{req.remarks[req.remarks.length - 1].message}"</div>
+                                                            ) : (
+                                                                <span className="text-sm text-gray-400 italic">No messages yet.</span>
+                                                            )}
+                                                            <div className="mt-auto pt-3 flex justify-end">
+                                                                <button onClick={() => router.push(`/products/${req.product?.id || req.product?._id}`)} className="text-amber-600 text-sm font-medium hover:text-amber-700 flex items-center gap-1">
+                                                                    View Product <ChevronRight className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}

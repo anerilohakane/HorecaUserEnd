@@ -66,6 +66,9 @@ export default function CategoriesPage() {
                     if (Array.isArray(arr)) list = arr;
                 }
 
+                // Filter out items without a name
+                list = list.filter((item: any) => item && (item.name || item.categoryName || item.title));
+
                 const mapped = (list || []).map(mapCategory).filter(Boolean);
                 if (active) {
                     // correct: if empty, try fallback?

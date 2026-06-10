@@ -457,7 +457,7 @@ import SkeletonCard from './SkeletonCard';
 import { useAuth } from '@/lib/context/AuthContext';
 
 export default function ProductGrid({ initialProducts = [] }: ProductGridProps) {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const searchParams = useSearchParams();
   const initCategory = searchParams?.get('category') || 'all';
 
@@ -593,7 +593,12 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
 
   // Safe Accessors
   const getPrice = (p: any): number => {
-    const regularPrice = Number(p.price ?? 0);
+    let base = Number(p.price ?? 0);
+    if (user?.category && p.categoryPrices) {
+      const tierPrice = p.categoryPrices[user.category];
+      if (tierPrice && tierPrice > 0) base = tierPrice;
+    }
+    const regularPrice = base;
     const discountedPrice = Number(p.discountedPrice ?? 0);
     // If discountedPrice is valid and lower than regular price, use it for filtering/sorting
     if (discountedPrice > 0 && (discountedPrice < regularPrice || regularPrice === 0)) {

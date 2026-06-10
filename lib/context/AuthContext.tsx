@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       phone: userData.phone,
       name: userData.name ?? null,
       email: userData.email ?? null,
-      category: userData.category ?? "D",
+      category: userData.category ?? "C",
     };
 
     await setAuthSession(token, normalizedUser);
@@ -135,7 +135,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       phone: userData.phone,
       name: userData.name ?? null,
       email: userData.email ?? null,
-      category: userData.category ?? "D",
+      category: userData.category ?? "C",
     };
 
     await setAuthSession(token, normalizedUser);
@@ -162,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       phone: userData.phone,
       name: userData.name ?? null,
       email: userData.email ?? null,
-      category: userData.category ?? "D",
+      category: userData.category ?? "C",
     };
 
     await setAuthSession(token, normalizedUser);
