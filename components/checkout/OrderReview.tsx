@@ -282,6 +282,8 @@ interface OrderReviewProps {
   // MOV props
   movApplied?: boolean;
   movDeliveryCharge?: number;
+  // Negotiation Support
+  priceNegotiationId?: string;
 }
 
 export default function OrderReview({
@@ -299,6 +301,7 @@ export default function OrderReview({
   onEditPayment,
   movApplied = false,
   movDeliveryCharge = 0,
+  priceNegotiationId,
 }: OrderReviewProps) {
   
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
@@ -386,6 +389,7 @@ export default function OrderReview({
         // MOV fields — backend validates and stores these
         movApplied,
         movDeliveryCharge,
+        priceNegotiationId,
       };
 
       console.log("📤 Sending order to backend:", body);
@@ -423,8 +427,11 @@ export default function OrderReview({
 
       setSuccessOrder(data.order);
       setShowSuccessModal(true);
-      await clearCart();
-      window.dispatchEvent(new Event("cart-updated"));
+      
+      if (!priceNegotiationId) {
+        await clearCart();
+        window.dispatchEvent(new Event("cart-updated"));
+      }
       
       // Removed redirect
       // window.location.href = `/order-confirmation?order=${data.order._id}`;

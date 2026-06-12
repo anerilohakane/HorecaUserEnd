@@ -69,6 +69,7 @@ export default function WishlistPage() {
 
                         return {
                             id: String(productData.id || productData._id || productId),
+                            _id: String(productData._id || productData.id || productId),
                             name: productData.name || item.name || "Unknown Product",
                             price: Number(productData.price || item.price || 0),
                             image: (image && !image.startsWith('http') && !image.startsWith('/')) ? `/images/products/${image}` : image,
@@ -82,11 +83,15 @@ export default function WishlistPage() {
                             category: productData.category || '',
                             minOrder: productData.minOrder || 1,
                             discount: productData.discount || productData.offerPercentage || 0,
+                            categoryPrices: productData.categoryPrices || null,
+                            basePrice: productData.basePrice || null,
+                            tags: productData.tags || [],
                         } as Product;
                     } catch (e) {
                         // Fallback if product fetch fails
                         return {
                             id: String(productId),
+                            _id: String(productId),
                             name: item.name || "Unknown",
                             price: Number(item.price || 0),
                             image: "/images/placeholder.png",
@@ -97,6 +102,7 @@ export default function WishlistPage() {
                             description: '',
                             category: '',
                             minOrder: 1,
+                            tags: [],
                         } as Product;
                     }
                 })

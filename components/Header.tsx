@@ -233,6 +233,7 @@ export default function Header() {
     { name: 'Home', path: '/' },
     { name: 'Shop', path: '/products' },
     { name: 'Categories', path: '/categories' },
+    ...(user?.category === 'A' ? [{ name: 'Price Requests', path: '/price-requests' }] : []),
     { name: 'About Us', path: '/about' },
     { name: 'Contact', path: '/contact' },
   ];

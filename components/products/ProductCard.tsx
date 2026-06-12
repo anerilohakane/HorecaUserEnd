@@ -456,7 +456,9 @@ export default function ProductCard({
             let src = '/images/placeholder.png';
 
             if (rawImage) {
-              if (rawImage.startsWith('http://') || rawImage.startsWith('https://') || rawImage.startsWith('//')) {
+              if (rawImage.includes('cloudinary.com') && rawImage.includes('placeholder.png')) {
+                src = '/images/placeholder.png';
+              } else if (rawImage.startsWith('http://') || rawImage.startsWith('https://') || rawImage.startsWith('//')) {
                 src = rawImage;
               } else {
                 const filename = rawImage.replace(/^\/+/, '');
@@ -475,6 +477,10 @@ export default function ProductCard({
                 className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-xl"
                 unoptimized={isExternal}
                 priority={false}
+                onError={(e) => {
+                  e.currentTarget.srcset = '';
+                  e.currentTarget.src = '/images/placeholder.png';
+                }}
               />
             );
           })()}

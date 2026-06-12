@@ -96,7 +96,12 @@ export default function PriceRequestModal({ isOpen, onClose, product, currentPri
               <form onSubmit={handleSubmit} className="p-6 space-y-5">
                 <div className="bg-gray-50 p-4 rounded-xl flex items-center gap-4">
                   {product.image && (
-                    <img src={product.image} alt={product.name} className="w-16 h-16 object-cover rounded-lg border border-gray-200 bg-white" />
+                    <img 
+                      src={product.image} 
+                      alt={product.name} 
+                      className="w-16 h-16 object-cover rounded-lg border border-gray-200 bg-white"
+                      onError={(e) => { e.currentTarget.src = '/images/placeholder.png'; }}
+                    />
                   )}
                   <div>
                     <h3 className="font-semibold text-gray-900 line-clamp-1">{product.name}</h3>
