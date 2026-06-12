@@ -64,12 +64,22 @@ export default function PriceRequestsPage() {
                 }
 
                 // Fetch Addresses (required for the Negotiated Order Modal)
-                const addrRes = await fetch(`${API_BASE}/api/address?userId=${userId}`, {
+                const addrRes = await fetch(`${API_BASE}/api/order?userId=${userId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 if (addrRes.ok && addrRes.headers.get("content-type")?.includes("application/json")) {
-                    const addrJson = await addrRes.json();
-                    if (addrJson.success) setAddresses(addrJson.data);
+                    const data = await addrRes.json();
+                    if (data?.success && Array.isArray(data.orders)) {
+                        const rawAddresses = data.orders.map((o: any) => o.shippingAddress).filter(Boolean);
+                        const uniqueMap = new Map();
+                        rawAddresses.forEach((addr: any) => {
+                            const key = `${addr.fullName}-${addr.phone}-${addr.addressLine1}-${addr.pincode}`;
+                            if (!uniqueMap.has(key)) {
+                                uniqueMap.set(key, addr);
+                            }
+                        });
+                        setAddresses(Array.from(uniqueMap.values()));
+                    }
                 }
 
             } catch (e) {

@@ -29,7 +29,13 @@ export default function NegotiatedOrderModal({
   const router = useRouter();
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'cn' | 'wallet' | 'upi'>('cod');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedAddressId, setSelectedAddressId] = useState<string>(addresses?.[0]?._id || addresses?.[0]?.id || '');
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('');
+
+  React.useEffect(() => {
+    if (addresses && addresses.length > 0 && !selectedAddressId) {
+      setSelectedAddressId(addresses[0]._id || addresses[0].id || '0');
+    }
+  }, [addresses, selectedAddressId]);
 
   if (!isOpen || !negotiation) return null;
 
@@ -117,9 +123,19 @@ export default function NegotiatedOrderModal({
             className="bg-white rounded-3xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto flex flex-col p-6 scrollbar-hide"
           >
             {/* Header */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-bold text-[#111827]">Place Order</h2>
-              <p className="text-[#6B7280] text-sm mt-1">Review the order summary and choose a payment method.</p>
+            <div className="mb-6 flex justify-between items-start">
+              <div>
+                <h2 className="text-2xl font-bold text-[#111827]">Place Order</h2>
+                <p className="text-[#6B7280] text-sm mt-1">Review the order summary and choose a payment method.</p>
+              </div>
+              <button 
+                onClick={onClose}
+                className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
 
             {/* Summary Card */}
