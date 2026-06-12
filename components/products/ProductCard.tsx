@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
 import { sileo } from 'sileo';
 import AutoReorderModal from './AutoReorderModal';
+import PriceRequestModal from './PriceRequestModal';
 
 interface ProductCardProps {
   product?: Partial<Product> | null;
@@ -71,6 +72,7 @@ export default function ProductCard({
   const [productState, setProductState] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
+  const [isPriceRequestModalOpen, setIsPriceRequestModalOpen] = useState(false);
   const { user, token } = useAuth();
 
   // Helper function defined early
@@ -453,7 +455,9 @@ export default function ProductCard({
             let src = '/images/placeholder.png';
 
             if (rawImage) {
-              if (rawImage.startsWith('http://') || rawImage.startsWith('https://') || rawImage.startsWith('//')) {
+              if (rawImage.includes('cloudinary.com') && rawImage.includes('placeholder.png')) {
+                src = '/images/placeholder.png';
+              } else if (rawImage.startsWith('http://') || rawImage.startsWith('https://') || rawImage.startsWith('//')) {
                 src = rawImage;
               } else {
                 const filename = rawImage.replace(/^\/+/, '');
@@ -472,6 +476,10 @@ export default function ProductCard({
                 className="object-cover group-hover:scale-105 transition-transform duration-500 rounded-t-xl"
                 unoptimized={isExternal}
                 priority={false}
+                onError={(e) => {
+                  e.currentTarget.srcset = '';
+                  e.currentTarget.src = '/images/placeholder.png';
+                }}
               />
             );
           })()}
@@ -575,6 +583,19 @@ export default function ProductCard({
             {effectiveProduct.inStock ? (isAdding ? 'ADD...' : 'ADD +') : 'Notify Me'}
           </button>
         </div>
+
+        {/* Request Better Price Button (Only for Tier A) */}
+        {user?.category === 'A' && (
+          <button 
+            onClick={(e) => {
+              e.preventDefault();
+              setIsPriceRequestModalOpen(true);
+            }}
+            className="mt-2 w-full text-[10px] font-bold py-1.5 border border-dashed border-[#D97706] text-[#D97706] hover:bg-orange-50 rounded transition-colors uppercase tracking-wider z-20 relative"
+          >
+            Request Better Price
+          </button>
+        )}
       </div>
 
       {effectiveProduct?.id && (
@@ -587,6 +608,15 @@ export default function ProductCard({
           }}
           isOpen={isReorderModalOpen}
           onClose={() => setIsReorderModalOpen(false)}
+        />
+      )}
+
+      {effectiveProduct?.id && (
+        <PriceRequestModal
+          product={effectiveProduct}
+          currentPrice={Number(discountedPrice || displayPrice)}
+          isOpen={isPriceRequestModalOpen}
+          onClose={() => setIsPriceRequestModalOpen(false)}
         />
       )}
     </div >

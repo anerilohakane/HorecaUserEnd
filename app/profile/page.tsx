@@ -21,7 +21,7 @@ import {
     MessageSquare,
     LogOut,
     Clock,
-    Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud
+    Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud, FileText, Search
 } from 'lucide-react';
 import PageTransition from "@/components/ui/PageTransition";
 import Header from '@/components/Header';
@@ -602,6 +602,10 @@ const ProfilePage = () => {
         loadProfile();
     }, [isAuthenticated, authUser, token, activeTab]);
 
+
+
+
+
     const handleUpdateLocation = async () => {
         const coords = await getCurrentLocation();
         if (coords) {
@@ -844,12 +848,6 @@ const ProfilePage = () => {
             setSubsLoading(false);
         }
     };
-
-    useEffect(() => {
-        if (activeTab === 'subscriptions') {
-            fetchSubscriptions();
-        }
-    }, [activeTab, authUser]);
 
 
 
@@ -1711,6 +1709,7 @@ const ProfilePage = () => {
 
 
 
+
                             </div>
                         </main>
                     </div>
@@ -1762,6 +1761,8 @@ const ProfilePage = () => {
                 onSubmit={handleCancelSubscriptionSubmit}
                 subscriptionId={cancelSubId || ''}
             />
+
+
         </PageTransition>
     );
 };

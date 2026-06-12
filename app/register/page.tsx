@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin } from "lucide-react";
+import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,6 +32,7 @@ export default function RegisterPage() {
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [pincode, setPincode] = useState("");
+  const [category, setCategory] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
@@ -79,6 +80,7 @@ export default function RegisterPage() {
       if (address.trim().length < 5) return "Please enter a complete business address";
       if (city.trim().length < 2) return "City is required";
       if (state.trim().length < 2) return "State is required";
+      if (!category) return "Please select a customer tier (A, B, C)";
       
       const pinRegex = /^[1-9][0-9]{5}$/;
       if (!pinRegex.test(pincode)) return "Please enter a valid 6-digit PIN code";
@@ -114,6 +116,11 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!category) {
+      setError("Please select a customer tier (A, B, C)");
+      return;
+    }
+
     if (password.length < 8) {
       setError("Password must be at least 8 characters");
       return;
@@ -138,10 +145,13 @@ export default function RegisterPage() {
         phone: countryCode + phone.trim(),
         businessName: businessName.trim(),
         gstNumber: gstNumber.trim().toUpperCase(),
-        address: address.trim(),
-        city: city.trim(),
-        state: state.trim(),
-        pincode: pincode.trim(),
+        locations: [{
+          address: address.trim(),
+          city: city.trim(),
+          state: state.trim(),
+          pincode: pincode.trim(),
+        }],
+        category,
         password,
         licenseImage: licenseUrl
       });
@@ -285,6 +295,20 @@ export default function RegisterPage() {
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                       required
                     />
+                  </div>
+                  <div className="relative">
+                    <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <select
+                      value={category}
+                      onChange={(e) => setCategory(e.target.value)}
+                      className={`w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm ${!category ? 'text-gray-400' : 'text-gray-900'}`}
+                      required
+                    >
+                      <option value="" disabled>Select Customer Tier *</option>
+                      <option value="A">Tier A (Premium)</option>
+                      <option value="B">Tier B (Standard)</option>
+                      <option value="C">Tier C (Basic)</option>
+                    </select>
                   </div>
                   <div className="relative">
                     <MapPin className="absolute left-4 top-4 text-gray-400" size={20} />

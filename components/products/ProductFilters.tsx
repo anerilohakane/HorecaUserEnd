@@ -561,7 +561,7 @@ export default function ProductFilters({
       setLoading(true);
       setError(null);
       try {
-        const url = buildUrl('api/categories?include=children');
+        const url = buildUrl('api/brands?limit=200&isActive=true');
         const res = await fetch(url, { signal: controller.signal, headers: { Accept: 'application/json' } });
         if (!res.ok) throw new Error('Failed to load');
         const json = await res.json();

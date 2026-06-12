@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { PaymentMethod as PaymentMethodType } from '@/lib/types/checkout';
-import { CreditCard, Smartphone, Building2, Banknote, CheckCircle } from 'lucide-react';
+import { CreditCard, Smartphone, Building2, Banknote, CheckCircle, Receipt } from 'lucide-react';
 
 interface PaymentMethodProps {
   onSubmit: (method: PaymentMethodType) => void;
@@ -39,6 +39,13 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
       name: 'Net Banking',
       description: 'All major banks supported',
       icon: Building2,
+      popular: false,
+    },
+    {
+      id: 'cn' as PaymentMethodType,
+      name: 'Credit Note (CN)',
+      description: 'Place order using Credit Note',
+      icon: Receipt,
       popular: false,
     },
   ];
@@ -157,6 +164,14 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
                           RUPAY
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {isSelected && method.id === 'cn' && (
+                    <div className="mt-4 pt-4 border-t border-[#D97706]/20">
+                      <p className="text-sm text-gray-700 mb-3">
+                        Your order will be processed via Credit Note without an immediate transaction.
+                      </p>
                     </div>
                   )}
                 </div>

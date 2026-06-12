@@ -6,6 +6,7 @@ import { Product } from '@/lib/types/product';
 import ProductImageGallery from './ProductImageGallery';
 import ProductReviews from './ProductReviews';
 import ReviewFormModal from './ReviewFormModal'; // Added
+import PriceRequestModal from './PriceRequestModal'; // Added
 import RelatedProducts from './RelatedProducts';
 import { Review } from '@/lib/types/product'; // Added
 import {
@@ -49,6 +50,10 @@ export default function ProductDetailClient({
     const { user, token } = useAuth();
     const [shareMessage, setShareMessage] = useState<string | null>(null);
 
+    // Price Negotiation State
+    const [isPriceRequestModalOpen, setIsPriceRequestModalOpen] = useState(false);
+    const [eligibleTiers, setEligibleTiers] = useState<string[]>([]);
+    
     // Reviews State
     const [reviews, setReviews] = useState<Review[]>([]);
 
@@ -128,6 +133,24 @@ export default function ProductDetailClient({
         checkWishlist();
     }, [product?.id]);
 
+    // Fetch Eligible Tiers for Negotiation
+    useEffect(() => {
+        const fetchTiers = async () => {
+            try {
+                const base = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+                const res = await fetch(`${base}/api/settings?key=priceNegotiationEligibleTiers`);
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setEligibleTiers(json.data);
+                } else {
+                    setEligibleTiers(['A']); // Default to Tier A
+                }
+            } catch (err) {
+                console.error("Failed to fetch eligible tiers:", err);
+            }
+        };
+        fetchTiers();
+    }, []);
 
     const handleWishlistToggle = async () => {
         if (!product?.id || isWishlisting) return;
@@ -720,30 +743,42 @@ export default function ProductDetailClient({
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex gap-3">
-                            {product.inStock ? (
-                                <button
-                                    onClick={handleAddToCart}
-                                    disabled={isAdding}
-                                    className={`flex-1 py-4 px-6 rounded-xl border-2 font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 uppercase tracking-wide
-                                    ${isAdding
-                                            ? 'bg-orange-50 border-[#D97706] text-[#D97706]'
-                                            : 'bg-white border-[#D97706] text-[#D97706] hover:bg-orange-50'
-                                        }`}
-                                >
-                                    <ShoppingCart size={20} strokeWidth={2.5} />
-                                    {isAdding ? 'Adding...' : 'Add to Cart'}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={() => sileo.error({ title: "Out of Stock", description: `Sorry, "${product.name}" is currently out of stock.` })}
-                                    className="flex-1 py-4 px-6 rounded-xl border-2 border-gray-200 bg-gray-50 text-red-500 font-bold uppercase tracking-wide flex items-center justify-center cursor-not-allowed hover:bg-gray-100 transition-colors"
-                                >
-                                    Out of Stock
-                                </button>
-                            )}
+                        <div className="flex flex-col sm:flex-row gap-3">
+                            <div className="flex-1 flex gap-3">
+                                {product.inStock ? (
+                                    <button
+                                        onClick={handleAddToCart}
+                                        disabled={isAdding}
+                                        className={`flex-1 py-4 px-6 rounded-xl border-2 font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 uppercase tracking-wide
+                                        ${isAdding
+                                                ? 'bg-orange-50 border-[#D97706] text-[#D97706]'
+                                                : 'bg-white border-[#D97706] text-[#D97706] hover:bg-orange-50'
+                                            }`}
+                                    >
+                                        <ShoppingCart size={20} strokeWidth={2.5} />
+                                        {isAdding ? 'Adding...' : 'Add to Cart'}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => sileo.error({ title: "Out of Stock", description: `Sorry, "${product.name}" is currently out of stock.` })}
+                                        className="flex-1 py-4 px-6 rounded-xl border-2 border-gray-200 bg-gray-50 text-red-500 font-bold uppercase tracking-wide flex items-center justify-center cursor-not-allowed hover:bg-gray-100 transition-colors"
+                                    >
+                                        Out of Stock
+                                    </button>
+                                )}
 
-                            <button
+                                {user && eligibleTiers.includes(user.category || 'A') && (
+                                    <button
+                                        onClick={() => setIsPriceRequestModalOpen(true)}
+                                        className="flex-1 py-4 px-4 rounded-xl border-2 border-slate-900 bg-slate-900 text-white font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 uppercase tracking-wide hover:bg-slate-800"
+                                    >
+                                        Request Better Price
+                                    </button>
+                                )}
+                            </div>
+
+                            <div className="flex gap-3">
+                                <button
                                 onClick={handleWishlistToggle}
                                 disabled={isWishlisting}
                                 title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
@@ -770,7 +805,7 @@ export default function ProductDetailClient({
                             >
                                 <Share2 size={20} strokeWidth={2} />
                             </button>
-
+                            </div>
                         </div>
 
                         {/* Features */}
@@ -916,6 +951,13 @@ export default function ProductDetailClient({
                     onClose={() => setIsReviewFormOpen(false)}
                     onSubmit={handleReviewSubmit}
                     productName={product.name}
+                />
+
+                <PriceRequestModal
+                    isOpen={isPriceRequestModalOpen}
+                    onClose={() => setIsPriceRequestModalOpen(false)}
+                    product={product}
+                    currentPrice={displayPrice}
                 />
             </div>
         </motion.div>

@@ -14,6 +14,7 @@ import Link from 'next/link';
 import { useEffect } from 'react';
 import { useAuth } from '@/lib/context/AuthContext';
 import PageTransition from "@/components/ui/PageTransition";
+import { MOV_AMOUNT, MOV_DELIVERY_CHARGE } from '@/lib/constants/mov';
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -24,12 +25,21 @@ export default function CheckoutPage() {
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const { user } = useAuth();
   const [mounted, setMounted] = useState(false);
+  // MOV state — read from sessionStorage set by CartSummary
+  const [movApplied, setMovApplied] = useState(false);
+  const [movDeliveryCharge, setMovDeliveryCharge] = useState(0);
 
 
   console.log("User ", user);
 
   useEffect(() => {
     setMounted(true);
+    // Read MOV flag set by CartSummary when user agreed to delivery charge
+    const movFlag = sessionStorage.getItem('mov_applied');
+    if (movFlag === 'true') {
+      setMovApplied(true);
+      setMovDeliveryCharge(MOV_DELIVERY_CHARGE);
+    }
   }, []);
 
   console.log(shippingAddress);
@@ -46,9 +56,9 @@ export default function CheckoutPage() {
   const discount = 0; // Would come from applied coupon
   const subtotalAfterDiscount = subtotal - discount;
 
-  // Dynamic GST calculation based on item-level rates
+  // Dynamic GST calculation using category-specific price (item.price fallback to product.price)
   const totalTaxRaw = items.reduce((acc, item) => {
-    const itemPrice = item.product.price;
+    const itemPrice = (item as any).price ?? item.product.price;
     const qty = item.quantity;
     const gstRate = item.product.gst || 0;
     return acc + (itemPrice * qty * (gstRate / 100));
@@ -58,9 +68,10 @@ export default function CheckoutPage() {
   const discountRatio = subtotal > 0 ? subtotalAfterDiscount / subtotal : 1;
   const gstAmount = totalTaxRaw * discountRatio;
   const gst = items.length > 0 ? (gstAmount / subtotal) * 100 : 0;
-  const shipping = subtotal >= 500 ? 0 : 20;
-  const platformFee = 5;
-  const total = subtotalAfterDiscount + gstAmount + shipping + platformFee;
+  const shipping = 0;     // Removed - no shipping charges
+  const platformFee = 0;  // Removed - no platform fee
+  // MOV delivery charge is added to total when movApplied
+  const total = subtotalAfterDiscount + gstAmount + movDeliveryCharge;
 
   const steps = [
     { id: 'shipping' as CheckoutStep, label: 'Shipping', number: 1 },
@@ -211,7 +222,7 @@ export default function CheckoutPage() {
             {/* Step Content */}
             <div>
               {currentStep === 'shipping' && (
-              <ShippingForm
+                <ShippingForm
                   onSubmit={handleShippingSubmit}
                   initialData={shippingAddress || undefined}
                   onCancel={() => router.push('/products')}
@@ -269,6 +280,8 @@ export default function CheckoutPage() {
                     onEditShipping={() => setCurrentStep('shipping')}
                     onEditPayment={() => setCurrentStep('payment')}
                     platformFee={platformFee}
+                    movApplied={movApplied}
+                    movDeliveryCharge={movDeliveryCharge}
                   />
 
                 </div>

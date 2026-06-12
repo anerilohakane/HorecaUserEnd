@@ -19,11 +19,12 @@ function buildApiUrl(path: string) {
 
 function mapCategory(raw: any) {
     if (!raw) return null;
-    const id = raw._id ?? raw.id ?? raw.categoryId ?? raw.name ?? raw.title;
-    const name = raw.name ?? raw.categoryName ?? raw.title ?? raw.category ?? 'Unnamed';
+    const id = raw._id ?? raw.id ?? raw.name;
+    const name = raw.name ?? raw.categoryName ?? raw.title ?? 'Unnamed';
+    // Brand image is stored as { url, publicId } object
     const image =
+        (raw?.image?.url) ||
         (typeof raw?.image === 'string' && raw.image) ||
-        (raw?.image?.url && String(raw.image.url)) ||
         raw?.imageUrl ||
         raw?.thumbnail ||
         raw?.photo ||
@@ -49,30 +50,37 @@ export default function CategoriesPage() {
         (async () => {
             try {
                 setLoading(true);
-                const url = buildApiUrl('api/categories');
+                // /api/brands holds categories (parent=null are root categories)
+                // Using limit=200 to get all categories in one request
+                const url = buildApiUrl('api/brands?limit=200&isActive=true');
                 const res = await fetch(url);
-                if (!res.ok) throw new Error('Failed to fetch');
+                if (!res.ok) throw new Error(`HTTP ${res.status}`);
                 const json = await res.json();
 
                 let list: any[] = [];
-                if (Array.isArray(json)) list = json;
+                // Brands API returns { success, data: { items, pagination } }
+                if (Array.isArray(json?.data?.items)) list = json.data.items;
                 else if (Array.isArray(json?.data)) list = json.data;
-                else if (Array.isArray(json?.categories)) list = json.categories;
-                else if (Array.isArray(json?.results)) list = json.results;
-                else if (Array.isArray(json?.data?.items)) list = json.data.items;
+                else if (Array.isArray(json)) list = json;
                 else {
-                    // attempt to find first array in object
                     const arr = Object.values(json || {}).find((v: any) => Array.isArray(v));
-                    if (Array.isArray(arr)) list = arr;
+                    if (Array.isArray(arr)) list = arr as any[];
                 }
 
-                const mapped = (list || []).map(mapCategory).filter(Boolean);
+                // Only keep root-level categories (parent === null or no parent field)
+                // and filter out items without a name
+                list = list.filter((item: any) =>
+                    item &&
+                    (item.name || item.categoryName || item.title) &&
+                    (!item.parent || item.parent === null)
+                );
+
+                const mapped = list.map(mapCategory).filter(Boolean);
                 if (active) {
-                    // correct: if empty, try fallback?
                     if (mapped.length > 0) {
                         setCats(mapped);
                     } else {
-                        console.warn("Categories API returned empty list, using fallback.");
+                        console.warn('Categories API returned empty list, using fallback.');
                         setCats(mappedFallback);
                     }
                     setLoading(false);
