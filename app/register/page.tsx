@@ -111,10 +111,7 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    if (!licenseFile) {
-      setError("Please upload your business license");
-      return;
-    }
+    // Removed licenseFile validation as it's optional
 
     if (!category) {
       setError("Please select a customer tier (A, B, C)");
@@ -135,7 +132,10 @@ export default function RegisterPage() {
 
     try {
       // 1. Upload License Image
-      const licenseUrl = await uploadLicense(licenseFile);
+      let licenseUrl = null;
+      if (licenseFile) {
+        licenseUrl = await uploadLicense(licenseFile);
+      }
 
       // 2. Register Customer
       await registerCustomer({
@@ -377,7 +377,7 @@ export default function RegisterPage() {
                   className="space-y-4"
                 >
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700">Business License / FSSAI (Photo) *</label>
+                    <label className="text-sm font-bold text-gray-700">Business License / FSSAI (Photo) (Optional)</label>
                     <div 
                       onClick={() => fileInputRef.current?.click()}
                       className={`w-full border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${licenseFile ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 hover:bg-white hover:border-[#D97706]'}`}
