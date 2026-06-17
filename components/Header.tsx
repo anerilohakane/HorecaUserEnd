@@ -37,6 +37,44 @@ export default function Header() {
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [notificationCount, setNotificationCount] = useState(0);
+  const unreadCountRef = useRef(0);
+
+  const playNotificationSound = () => {
+    try {
+      const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      const now = audioCtx.currentTime;
+
+      // First chime (C6 note)
+      const osc1 = audioCtx.createOscillator();
+      const gain1 = audioCtx.createGain();
+      osc1.type = 'sine';
+      osc1.frequency.setValueAtTime(1046.50, now); 
+      gain1.gain.setValueAtTime(0.8, now); // Much louder
+      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+      osc1.connect(gain1);
+      gain1.connect(audioCtx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.15);
+
+      // Second chime (E6 note)
+      const osc2 = audioCtx.createOscillator();
+      const gain2 = audioCtx.createGain();
+      osc2.type = 'sine';
+      osc2.frequency.setValueAtTime(1318.51, now + 0.15); 
+      gain2.gain.setValueAtTime(0.8, now + 0.15); // Much louder
+      gain2.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+      osc2.connect(gain2);
+      gain2.connect(audioCtx.destination);
+      osc2.start(now + 0.15);
+      osc2.stop(now + 0.5);
+
+    } catch (e) {
+      // Ignore if autoplay blocked or not supported
+    }
+  };
   const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Search State
@@ -107,7 +145,12 @@ export default function Header() {
       const data = await res.json();
       if (data.success && Array.isArray(data.data)) {
         setNotifications(data.data);
-        setNotificationCount(data.data.filter((n: any) => !n.isRead).length);
+        const newUnreadCount = data.data.filter((n: any) => !n.isRead).length;
+        if (newUnreadCount > unreadCountRef.current) {
+          playNotificationSound();
+        }
+        unreadCountRef.current = newUnreadCount;
+        setNotificationCount(newUnreadCount);
       }
     } catch { }
   };
@@ -116,7 +159,9 @@ export default function Header() {
     if (!token) return;
     try {
       setNotifications(prev => prev.map(n => n._id === id ? { ...n, isRead: true } : n));
-      setNotificationCount(prev => Math.max(0, prev - 1));
+      const newCount = Math.max(0, notificationCount - 1);
+      unreadCountRef.current = newCount;
+      setNotificationCount(newCount);
       await fetch(`${API_BASE}/api/notifications/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -130,7 +175,11 @@ export default function Header() {
     try {
       const wasUnread = notifications.find(n => n._id === id)?.isRead === false;
       setNotifications(prev => prev.filter(n => n._id !== id));
-      if (wasUnread) setNotificationCount(prev => Math.max(0, prev - 1));
+      if (wasUnread) {
+        const newCount = Math.max(0, notificationCount - 1);
+        unreadCountRef.current = newCount;
+        setNotificationCount(newCount);
+      }
       await fetch(`${API_BASE}/api/notifications/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
     } catch { }
   };
@@ -139,6 +188,7 @@ export default function Header() {
     if (!user?.id || !token) return;
     try {
       setNotifications([]);
+      unreadCountRef.current = 0;
       setNotificationCount(0);
       await fetch(`${API_BASE}/api/notifications?userId=${user.id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` } });
     } catch { }

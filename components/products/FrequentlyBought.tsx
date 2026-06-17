@@ -31,7 +31,16 @@ export default function FrequentlyBought() {
                 if (res.ok) {
                     const json = await res.json();
                     if (json.success && Array.isArray(json.data)) {
-                        setProducts(json.data);
+                        const uniqueMap = new Map();
+                        json.data.forEach(p => {
+                            if (p) {
+                                const pid = String(p._id || p.id || p.productId);
+                                if (pid && !uniqueMap.has(pid)) {
+                                    uniqueMap.set(pid, p);
+                                }
+                            }
+                        });
+                        setProducts(Array.from(uniqueMap.values()));
                     }
                 }
             } catch (err) {
@@ -68,8 +77,8 @@ export default function FrequentlyBought() {
                 </div>
             ) : products.length === 0 ? null : (
                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide snap-x">
-                    {products.map(product => (
-                        <div key={product._id} className="min-w-[200px] w-[200px] snap-start">
+                    {products.map((product, i) => (
+                        <div key={`${product._id || product.id || 'prod'}-${i}`} className="min-w-[200px] w-[200px] snap-start">
                             <ProductCard product={product} />
                         </div>
                     ))}
