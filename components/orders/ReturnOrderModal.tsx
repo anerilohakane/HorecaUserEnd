@@ -15,6 +15,9 @@ const ReturnOrderModal: React.FC<ReturnOrderModalProps> = ({ isOpen, onClose, on
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [selectedItems, setSelectedItems] = useState<string[]>([]); // Array of product IDs
+    const [returnQuantities, setReturnQuantities] = useState<Record<string, number>>({});
+    const [alreadyReturned, setAlreadyReturned] = useState<Record<string, number>>({});
+    const [isLoadingData, setIsLoadingData] = useState(false);
 
     // Initialize/Reset
     React.useEffect(() => {
@@ -22,10 +25,52 @@ const ReturnOrderModal: React.FC<ReturnOrderModalProps> = ({ isOpen, onClose, on
             setReason('');
             setComment('');
             setError(null);
-            // Default select all? Or none? Let's select all for convenience.
-            setSelectedItems(orderItems.map(item => item.product?._id || item.product?.id || item.productId || item.product));
+            
+            const fetchReturnData = async () => {
+                setIsLoadingData(true);
+                try {
+                    const API_BASE = (process.env.NEXT_PUBLIC_HORECA_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+                    const res = await fetch(`${API_BASE}/api/returns?orderId=${orderId}`);
+                    const json = await res.json();
+                    
+                    const returnedRecord: Record<string, number> = {};
+                    if (json.data) {
+                        json.data.forEach((ret: any) => {
+                            if (ret.status !== "Vendor Rejected" && ret.status !== "Return Closed") {
+                                ret.items.forEach((ri: any) => {
+                                    const pId = String(ri.product?._id || ri.product);
+                                    if (ri.status !== "Rejected") {
+                                        returnedRecord[pId] = (returnedRecord[pId] || 0) + (ri.requestedReturnQty || ri.quantity || 0);
+                                    }
+                                });
+                            }
+                        });
+                    }
+                    setAlreadyReturned(returnedRecord);
+
+                    const initialSelection: string[] = [];
+                    const initialQty: Record<string, number> = {};
+
+                    orderItems.forEach(item => {
+                        const pId = String(item.product?._id || item.product?.id || item.productId || item.product);
+                        const maxAllowed = item.quantity - (returnedRecord[pId] || 0);
+                        if (maxAllowed > 0) {
+                            initialSelection.push(pId);
+                            initialQty[pId] = maxAllowed;
+                        }
+                    });
+
+                    setSelectedItems(initialSelection);
+                    setReturnQuantities(initialQty);
+                } catch (err) {
+                    console.error("Failed to fetch past returns", err);
+                } finally {
+                    setIsLoadingData(false);
+                }
+            };
+            fetchReturnData();
         }
-    }, [isOpen, orderItems]);
+    }, [isOpen, orderItems, orderId]);
 
     if (!isOpen) return null;
 
@@ -53,10 +98,17 @@ const ReturnOrderModal: React.FC<ReturnOrderModalProps> = ({ isOpen, onClose, on
         setIsSubmitting(true);
         setError(null);
         try {
-            // Filter original items based on selection to pass back full objects
+            // Filter original items based on selection and map to include requested quantity
             const itemsToReturn = orderItems.filter(item => {
                 const pId = item.product?._id || item.product?.id || item.productId || item.product;
                 return selectedItems.includes(pId);
+            }).map(item => {
+                const pId = item.product?._id || item.product?.id || item.productId || item.product;
+                return {
+                    ...item,
+                    quantity: returnQuantities[pId] || 1,
+                    requestedReturnQty: returnQuantities[pId] || 1
+                };
             });
 
             await onSubmit({ selectedItems: itemsToReturn, reason, comment, images: [] });
@@ -102,26 +154,55 @@ const ReturnOrderModal: React.FC<ReturnOrderModalProps> = ({ isOpen, onClose, on
                             {error}
                         </div>
                     )}
+                    {isLoadingData && (
+                        <div className="text-sm text-gray-500 flex items-center gap-2">
+                            <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+                            Checking return eligibility...
+                        </div>
+                    )}
 
                     {/* Item Selection */}
                     <div className="space-y-3">
                         <label className="text-sm font-medium text-gray-700 block">Select Items to Return ({selectedItems.length})</label>
                         <div className="border rounded-xl divide-y">
                             {orderItems.map((item) => {
-                                const pId = item.product?._id || item.product?.id || item.productId || item.product;
+                                const pId = String(item.product?._id || item.product?.id || item.productId || item.product);
+                                const maxAllowed = item.quantity - (alreadyReturned[pId] || 0);
+                                const isFullyReturned = maxAllowed <= 0;
                                 const isSelected = selectedItems.includes(pId);
                                 return (
                                     <div
                                         key={pId}
-                                        onClick={() => toggleItem(pId)}
-                                        className={`flex items-center gap-3 p-3 cursor-pointer transition-colors ${isSelected ? 'bg-amber-50/50' : 'hover:bg-gray-50'}`}
+                                        onClick={() => !isFullyReturned && toggleItem(pId)}
+                                        className={`flex items-center gap-3 p-3 transition-colors ${isFullyReturned ? 'opacity-50 cursor-not-allowed bg-gray-50' : isSelected ? 'bg-amber-50/50 cursor-pointer' : 'hover:bg-gray-50 cursor-pointer'}`}
                                     >
-                                        <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-amber-600 border-amber-600 text-white' : 'border-gray-300 text-transparent'}`}>
+                                        <div className={`w-5 h-5 rounded border flex items-center justify-center flex-shrink-0 ${isFullyReturned ? 'bg-gray-200 border-gray-300' : isSelected ? 'bg-amber-600 border-amber-600 text-white' : 'border-gray-300 text-transparent'}`}>
                                             <CheckSquare size={14} />
                                         </div>
-                                        <div className="flex-1">
-                                            <p className="font-medium text-gray-900 text-sm">{item.productName || item.name}</p>
-                                            <p className="text-xs text-gray-500">Qty: {item.quantity} • ₹{item.unitPrice}</p>
+                                        <div className="flex-1 flex items-center justify-between">
+                                            <div>
+                                                <p className="font-medium text-gray-900 text-sm">{item.productName || item.name}</p>
+                                                <p className="text-xs text-gray-500">
+                                                    Ordered: {item.quantity} 
+                                                    {alreadyReturned[pId] > 0 && ` • Previously Returned: ${alreadyReturned[pId]}`} 
+                                                    {isFullyReturned && <span className="text-rose-600 font-medium ml-2">(Max Reached)</span>}
+                                                </p>
+                                            </div>
+                                            {isSelected && !isFullyReturned && (
+                                                <div className="flex items-center gap-3 bg-white border rounded-lg px-2 py-1 ml-4" onClick={e => e.stopPropagation()}>
+                                                    <button 
+                                                        disabled={(returnQuantities[pId] || 1) <= 1}
+                                                        onClick={() => setReturnQuantities(prev => ({ ...prev, [pId]: Math.max(1, (prev[pId] || 1) - 1) }))}
+                                                        className="text-gray-500 hover:text-amber-600 disabled:opacity-50 text-lg font-medium px-1"
+                                                    >-</button>
+                                                    <span className="text-sm font-bold text-gray-900 w-4 text-center">{returnQuantities[pId] || 1}</span>
+                                                    <button 
+                                                        disabled={(returnQuantities[pId] || 1) >= maxAllowed}
+                                                        onClick={() => setReturnQuantities(prev => ({ ...prev, [pId]: Math.min(maxAllowed, (prev[pId] || 1) + 1) }))}
+                                                        className="text-gray-500 hover:text-amber-600 disabled:opacity-50 text-lg font-medium px-1"
+                                                    >+</button>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 );
