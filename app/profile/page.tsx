@@ -36,6 +36,7 @@ import CancelSubscriptionModal from '@/components/orders/CancelSubscriptionModal
 import { RotateCw } from 'lucide-react';
 import { sileo } from 'sileo';
 import Footer from '@/components/Footer';
+import RaiseGrievanceModal from '@/components/RaiseGrievanceModal';
 import { clearOrderSession } from '@/app/actions/session';
 import { getCurrentLocation } from '@/lib/utils/location';
 
@@ -87,6 +88,41 @@ const ProfilePage = () => {
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [reviewProduct, setReviewProduct] = useState<{ id: string, name: string } | null>(null);
     const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+
+    // Grievance State
+    const [isGrievanceModalOpen, setIsGrievanceModalOpen] = useState(false);
+    const [grievanceOrderId, setGrievanceOrderId] = useState<string | null>(null);
+    const [grievanceMap, setGrievanceMap] = useState<Record<string, string>>({});
+
+    useEffect(() => {
+        if (activeTab === "orders" && authUser) {
+            const fetchGrievances = async () => {
+                const userId = authUser?.id || (authUser as any)?._id;
+                if (!userId) return;
+                try {
+                    const res = await fetch(`${API_BASE}/api/grievances?customerId=${userId}`);
+                    const json = await res.json();
+                    if (json.data) {
+                        const newMap: Record<string, string> = {};
+                        json.data.forEach((g: any) => {
+                            if (g.orderId) {
+                                newMap[String(g.orderId)] = g.status || "Open";
+                            }
+                        });
+                        setGrievanceMap(newMap);
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch grievances", e);
+                }
+            };
+            fetchGrievances();
+        }
+    }, [activeTab, authUser]);
+
+    const handleRaiseGrievance = (orderId: string) => {
+        setGrievanceOrderId(orderId);
+        setIsGrievanceModalOpen(true);
+    };
 
     const handleWriteReview = (orderId: string, product: { id: string, name: string }) => {
         console.log("Opening Review Modal with:", { orderId, product });
@@ -1371,6 +1407,41 @@ const ProfilePage = () => {
                                                                             <MapPin size={16} /> Track
                                                                         </button>
                                                                     )}
+
+                                                                    {(() => {
+                                                                        const oId = String(ord.id || ord._id || ord.orderId);
+                                                                        const grievanceStatus = grievanceMap[oId];
+                                                                        const hasGrievance = !!grievanceStatus;
+                                                                        
+                                                                        let statusColor = "text-gray-500";
+                                                                        if (grievanceStatus === "Resolved" || grievanceStatus === "Closed") statusColor = "text-green-600";
+                                                                        else if (grievanceStatus === "In Progress") statusColor = "text-amber-600";
+                                                                        else if (grievanceStatus === "Escalated") statusColor = "text-red-600";
+
+                                                                        return (
+                                                                            <div className="flex flex-col items-end">
+                                                                                <button
+                                                                                    onClick={(e) => {
+                                                                                        e.stopPropagation();
+                                                                                        if (!hasGrievance) handleRaiseGrievance(oId);
+                                                                                    }}
+                                                                                    disabled={hasGrievance}
+                                                                                    className={`ml-2 px-4 py-2 text-sm font-bold rounded-lg shadow-sm flex items-center gap-2 transition ${
+                                                                                        hasGrievance 
+                                                                                            ? "bg-gray-100 text-gray-400 border border-gray-200 cursor-not-allowed" 
+                                                                                            : "bg-red-50 text-red-600 border border-red-100 hover:bg-red-100"
+                                                                                    }`}
+                                                                                >
+                                                                                    <AlertCircle size={16} /> {hasGrievance ? "Issue Raised" : "Raise Issue"}
+                                                                                </button>
+                                                                                {hasGrievance && (
+                                                                                    <span className="text-[11px] font-bold mt-1 pr-1">
+                                                                                        Issue Status: <span className={statusColor}>{grievanceStatus}</span>
+                                                                                    </span>
+                                                                                )}
+                                                                            </div>
+                                                                        );
+                                                                    })()}
                                                                 </div>
                                                             </div>
                                                         </div>
@@ -1762,6 +1833,12 @@ const ProfilePage = () => {
                 subscriptionId={cancelSubId || ''}
             />
 
+            <RaiseGrievanceModal 
+                isOpen={isGrievanceModalOpen}
+                onClose={() => setIsGrievanceModalOpen(false)}
+                customerId={user?.id || (user as any)?._id || "Unknown_Customer"}
+                orderId={grievanceOrderId || undefined}
+            />
 
         </PageTransition>
     );

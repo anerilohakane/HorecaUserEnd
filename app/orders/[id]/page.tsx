@@ -7,6 +7,8 @@ import { ChevronLeft, Package, Clock, MapPin, Phone, Star, ShieldCheck, Truck, M
 import OrderTrackingMap from '@/components/orders/OrderTrackingMap';
 import Header from '@/components/Header';
 import { motion, AnimatePresence } from 'framer-motion';
+import { AlertTriangle } from 'lucide-react';
+import RaiseGrievanceModal from '@/components/RaiseGrievanceModal';
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
 
@@ -17,6 +19,7 @@ const OrderDetailsPage = () => {
     const [order, setOrder] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isFullScreen, setIsFullScreen] = useState(false);
+    const [isGrievanceModalOpen, setIsGrievanceModalOpen] = useState(false);
 
     // Trigger resize event when toggling full screen to ensure map renders correctly
     useEffect(() => {
@@ -251,6 +254,17 @@ const OrderDetailsPage = () => {
                                         </motion.div>
                                     )}
 
+                                    {/* Action Buttons */}
+                                    <div className="flex justify-center mt-4">
+                                        <button 
+                                            onClick={() => setIsGrievanceModalOpen(true)}
+                                            className="flex items-center gap-2 bg-red-50 text-red-600 px-5 py-2.5 rounded-xl font-bold hover:bg-red-100 transition-colors border border-red-100"
+                                        >
+                                            <AlertTriangle size={18} />
+                                            Raise Issue / Grievance
+                                        </button>
+                                    </div>
+
                                     {/* Order Items */}
                                     <div>
                                         <h3 className="font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -316,6 +330,15 @@ const OrderDetailsPage = () => {
                     </motion.div>
                 )}
             </AnimatePresence>
+
+            {order && (
+                <RaiseGrievanceModal 
+                    isOpen={isGrievanceModalOpen}
+                    onClose={() => setIsGrievanceModalOpen(false)}
+                    customerId={order.userId || "Unknown_Customer"} // Pass customer reference
+                    orderId={order.orderNumber}
+                />
+            )}
         </div>
     );
 };
