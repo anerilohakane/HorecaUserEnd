@@ -149,7 +149,7 @@ export default function PriceRequestsPage() {
                                 />
                             </div>
                             <div className="flex gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-hide">
-                                {['all', 'pending', 'approved', 'placed'].map((status) => (
+                                {['all', 'pending', 'approved', 'rejected', 'placed'].map((status) => (
                                     <button
                                         key={status}
                                         onClick={() => setPriceRequestFilter(status)}
