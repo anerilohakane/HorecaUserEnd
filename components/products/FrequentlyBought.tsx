@@ -32,7 +32,7 @@ export default function FrequentlyBought() {
                     const json = await res.json();
                     if (json.success && Array.isArray(json.data)) {
                         const uniqueMap = new Map();
-                        json.data.forEach(p => {
+                        json.data.forEach((p: any) => {
                             if (p) {
                                 const pid = String(p._id || p.id || p.productId);
                                 if (pid && !uniqueMap.has(pid)) {

@@ -138,7 +138,7 @@ export default function PurchaseOrderForm() {
     }
 
     // Group products by brand
-    const groupedProducts = products.reduce((acc, p) => {
+    const groupedProducts = products.reduce((acc: any, p: any) => {
         const brandId = p.categoryId;
         const brand = brands.find(b => b._id === brandId);
         const brandName = brand ? brand.name : "Other";
