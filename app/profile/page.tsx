@@ -27,6 +27,7 @@ import PageTransition from "@/components/ui/PageTransition";
 import Header from '@/components/Header';
 import { useAuth } from '@/lib/context/AuthContext';
 import ShippingAddressSelector from '@/components/checkout/ShippingForm';
+import PurchaseOrderForm from '@/components/orders/PurchaseOrderForm';
 import { useRouter } from "next/navigation";
 import ReviewFormModal from '@/components/products/ReviewFormModal';
 import ReturnOrderModal from '@/components/orders/ReturnOrderModal';
@@ -486,7 +487,7 @@ const ProfilePage = () => {
                 if (!isAuthenticated) setUser(null); // Clear local state if unauthenticated
                 return;
             }
-            
+
             // Sync local user state with authUser if needed
             setUser((prev: any) => ({ ...prev, ...authUser }));
             fetchSavedItemsCount();
@@ -541,7 +542,7 @@ const ProfilePage = () => {
                         if (res.ok) {
                             const rawData = await res.json();
                             console.log(`✅ [Profile] Received data from: ${url}`, rawData);
-                            
+
                             // Robust data extraction
                             let userData = rawData?.data || rawData?.user || (rawData?.success ? rawData : rawData);
                             if (Array.isArray(userData)) userData = userData[0];
@@ -553,7 +554,7 @@ const ProfilePage = () => {
                                     console.warn(`⚠️ [Profile] Skipping incorrect session data from ${url}. Expected: ${authUser.id}, received: ${fetchedId}`);
                                     continue; // Try next endpoint
                                 }
-                                
+
                                 // Matches or is ambiguous (only phone match)
                                 validatedUserData = userData;
                                 successResponse = rawData;
@@ -576,7 +577,7 @@ const ProfilePage = () => {
                         ...prev,
                         ...validatedUserData,
                         id: authUser.id,   // Ensure ID/Phone are never overwritten by accident
-                        phone: authUser.phone 
+                        phone: authUser.phone
                     }));
 
                     setProfileForm((prev: any) => ({
@@ -916,7 +917,7 @@ const ProfilePage = () => {
 
     const handleLogout = async () => {
         await logout(); // 🔥 clears auth state
-        
+
         // optional cleanup
         await clearOrderSession();
 
@@ -1021,6 +1022,7 @@ const ProfilePage = () => {
                                         { id: "orders", label: "My Orders", icon: Package },
                                         { id: "subscriptions", label: "My Subscriptions", icon: RotateCw },
                                         { id: "addresses", label: "Addresses", icon: MapPin },
+                                        ...(user?.poMandatory ? [{ id: "purchase_order", label: "Purchase Order", icon: FileText }] : [])
                                     ].map((tab) => {
                                         const Icon = tab.icon;
                                         const isActive = activeTab === tab.id;
@@ -1276,6 +1278,12 @@ const ProfilePage = () => {
                                 )}
 
 
+                                {/* PURCHASE ORDER FORM */}
+                                {activeTab === "purchase_order" && (
+                                    <div className="space-y-8">
+                                        <PurchaseOrderForm />
+                                    </div>
+                                )}
 
                                 {/* ---------------------------- ORDERS TAB (NOW WITH IMAGES) ---------------------------- */}
                                 {activeTab === "orders" && (
