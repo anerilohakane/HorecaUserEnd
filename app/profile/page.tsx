@@ -87,17 +87,18 @@ const ProfilePage = () => {
 
     // Review State
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-    const [reviewProduct, setReviewProduct] = useState<{ id: string, name: string } | null>(null);
     const [reviewOrderId, setReviewOrderId] = useState<string | null>(null);
+    const [reviewProduct, setReviewProduct] = useState<{ id: string, name: string } | null>(null);
 
     // Grievance State
     const [isGrievanceModalOpen, setIsGrievanceModalOpen] = useState(false);
     const [grievanceOrderId, setGrievanceOrderId] = useState<string | null>(null);
     const [grievanceMap, setGrievanceMap] = useState<Record<string, string>>({});
+    const [returnMap, setReturnMap] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (activeTab === "orders" && authUser) {
-            const fetchGrievances = async () => {
+            const fetchGrievancesAndReturns = async () => {
                 const userId = authUser?.id || (authUser as any)?._id;
                 if (!userId) return;
                 try {
@@ -112,11 +113,37 @@ const ProfilePage = () => {
                         });
                         setGrievanceMap(newMap);
                     }
+
+                    const resReturns = await fetch(`${API_BASE}/api/returns?customerId=${userId}`);
+                    const jsonReturns = await resReturns.json();
+                    if (jsonReturns.data) {
+                        const newReturnMap: Record<string, string> = {};
+                        const qtysByOrder: Record<string, Record<string, number>> = {};
+                        
+                        jsonReturns.data.forEach((r: any) => {
+                            const oId = String(r.order?._id || r.order);
+                            if (oId) {
+                                newReturnMap[oId] = r.status || "Requested";
+                                
+                                if (r.status !== "Vendor Rejected" && r.status !== "Return Closed") {
+                                    if (!qtysByOrder[oId]) qtysByOrder[oId] = {};
+                                    r.items?.forEach((ri: any) => {
+                                        if (ri.status !== "Rejected") {
+                                            const pId = String(ri.product?._id || ri.product);
+                                            qtysByOrder[oId][pId] = (qtysByOrder[oId][pId] || 0) + (ri.requestedReturnQty || ri.quantity || 0);
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                        setReturnMap(newReturnMap);
+                        setReturnedQtysMap(qtysByOrder);
+                    }
                 } catch (e) {
-                    console.error("Failed to fetch grievances", e);
+                    console.error("Failed to fetch grievances or returns", e);
                 }
             };
-            fetchGrievances();
+            fetchGrievancesAndReturns();
         }
     }, [activeTab, authUser]);
 
@@ -189,10 +216,14 @@ const ProfilePage = () => {
     const [returnOrderItems, setReturnOrderItems] = useState<any[]>([]);
     const [returnOrderId, setReturnOrderId] = useState<string | null>(null);
     const [returnAddress, setReturnAddress] = useState<any>(null);
+    const [returnedQtysMap, setReturnedQtysMap] = useState<Record<string, Record<string, number>>>({});
 
     // Cancel Order State
     const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
     const [cancelOrderId, setCancelOrderId] = useState<string | null>(null);
+
+    // Order Filter State
+    const [orderFilter, setOrderFilter] = useState("All");
 
     // Order Subscription State
     const [isSubModalOpen, setIsSubModalOpen] = useState(false);
@@ -278,63 +309,17 @@ const ProfilePage = () => {
             }));
 
             const payload = {
-                userId: rawUserId,
-                user: rawUserId,
-                customerId: rawUserId, // Alias
                 orderId: returnOrderId,
-                order: returnOrderId,
-
-                // Top-Level Product ID (Required by some backend logic? use first item's ID as fallback)
-                productId: formattedItems[0]?.productId,
-                product: formattedItems[0]?.productId,
-
+                customerId: rawUserId,
+                selectedItems: formattedItems,
                 reason: data.reason,
                 comment: data.comment,
-                images: data.images || [],
-                quantity: formattedItems.length, // Number of unique items returned? Or total qty?
-
-                // Refund Amount
-                amount: totalRefundAmount,
-                refundAmount: totalRefundAmount,
-
-                // Flattened Address
-                addressLine1: returnAddress?.addressLine1 || "",
-                addressLine2: returnAddress?.addressLine2 || "",
-                city: returnAddress?.city || "",
-                state: returnAddress?.state || "",
-                pincode: returnAddress?.pincode || "",
-                phone: returnAddress?.phone || "",
-
-                // Address Objects
-                pickupAddress: returnAddress,
-                address: returnAddress,
-
-                // Refund Method
-                refundMode: 'Source',
-                refundMethod: 'Source',
-
-                // Bank Details (Mock)
-                bankDetails: {
-                    accountHolderName: authUser.name || "Test User",
-                    bankName: "Test Bank",
-                    accountNumber: "1234567890",
-                    ifscCode: "TEST0000001"
-                },
-
-                // Resolution
-                resolution: 'Refund',
-                action: 'Refund',
-                type: 'refund',
-                condition: 'Unopened',
-
-                // Items Arrays
-                items: formattedItems,
-                products: formattedItems
+                images: data.images || []
             };
 
             console.log("Submitting Return Payload:", payload);
 
-            const res = await fetch(`${API_BASE}/api/return-order`, {
+            const res = await fetch(`${API_BASE}/api/returns`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -353,8 +338,8 @@ const ProfilePage = () => {
                 throw new Error(text || "Failed to submit return request");
             }
 
-            if (!res.ok || !json.success) {
-                throw new Error(json.message || json.error || "Failed to submit return request");
+            if (!res.ok) {
+                throw new Error(json.error || json.message || "Failed to submit return request");
             }
 
             sileo.success({ title: "Return Request Submitted", description: "Your return request has been submitted successfully!" });
@@ -1361,7 +1346,40 @@ const ProfilePage = () => {
                                         {/* Orders List */}
                                         {!ordersLoading && orders.length > 0 && (
                                             <div className="space-y-6">
-                                                {orders.map((ord, index) => (
+                                                {/* Filter UI */}
+                                                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                                    {["All", "Pending", "Confirmed", "Shipped", "Out for Delivery", "Delivered", "Cancelled", "Returned"].map(status => (
+                                                        <button
+                                                            key={status}
+                                                            onClick={() => setOrderFilter(status)}
+                                                            className={`whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-colors ${orderFilter === status ? "bg-amber-600 text-white shadow-sm" : "bg-gray-100 text-gray-700 hover:bg-gray-200"}`}
+                                                        >
+                                                            {status}
+                                                        </button>
+                                                    ))}
+                                                </div>
+
+                                                {orders.filter(ord => {
+                                                    if (orderFilter === "All") return true;
+                                                    if (orderFilter === "Returned") {
+                                                        const oId = String(ord.id || ord._id || ord.orderId);
+                                                        return !!returnMap[oId];
+                                                    }
+                                                    const ordStatus = (ord.status || "Pending").toLowerCase().replace(/_/g, ' ');
+                                                    return ordStatus === orderFilter.toLowerCase().replace(/_/g, ' ');
+                                                }).length === 0 ? (
+                                                    <div className="text-center py-12 text-gray-500 bg-white rounded-xl border border-gray-100">
+                                                        No orders found for the selected status.
+                                                    </div>
+                                                ) : orders.filter(ord => {
+                                                    if (orderFilter === "All") return true;
+                                                    if (orderFilter === "Returned") {
+                                                        const oId = String(ord.id || ord._id || ord.orderId);
+                                                        return !!returnMap[oId];
+                                                    }
+                                                    const ordStatus = (ord.status || "Pending").toLowerCase().replace(/_/g, ' ');
+                                                    return ordStatus === orderFilter.toLowerCase().replace(/_/g, ' ');
+                                                }).map((ord, index) => (
                                                     <div
                                                         key={ord.id || index}
                                                         className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden"
@@ -1399,15 +1417,10 @@ const ProfilePage = () => {
                                                                         ₹{ord.total.toLocaleString('en-IN')}
                                                                     </span>
 
-                                                                    {/* Return Order Button - Visible if Delivered and Not already returned */}
-                                                                    {/* Return Order Button - Visible if Delivered and Not already returned */}
-                                                                    {/* Removed from header */}
-
                                                                     {['out_for_delivery', 'shipped', 'confirmed', 'processing'].includes(ord.status?.toLowerCase()) && (
                                                                         <button
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
-                                                                                // Use window.location or router if available, but safe to assume router from context
                                                                                 window.location.href = `/orders/${ord.id || ord._id || ord.orderId}`;
                                                                             }}
                                                                             className="ml-2 px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-lg hover:bg-amber-700 transition shadow-sm flex items-center gap-2"
@@ -1580,8 +1593,6 @@ const ProfilePage = () => {
                                                             if (ord.status?.toLowerCase() !== 'delivered') return null;
 
                                                             // Calculate Return Window (7 Days)
-                                                            // Prefer deliveredAt, fallback to updatedAt (when status became delivered), fallback to createdAt + shipping time?
-                                                            // Using updatedAt as proxy for delivery time if deliveredAt is missing
                                                             const promptDeliveryDate = ord.deliveredAt || ord.updatedAt || ord.createdAt;
                                                             const deliveryDate = new Date(promptDeliveryDate);
                                                             const currentDate = new Date();
@@ -1590,7 +1601,17 @@ const ProfilePage = () => {
                                                             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                                                             const daysLeft = 7 - diffDays;
 
-                                                            const isReturnable = daysLeft >= 0;
+                                                            const isReturnableByTime = daysLeft >= 0;
+                                                            const currentReturnStatus = returnMap[String(ord._id || ord.id)];
+                                                            const isVendorConfirmed = currentReturnStatus && !['Pending Vendor Approval', 'Vendor Rejected'].includes(currentReturnStatus);
+                                                            
+                                                            const isFullyReturned = ord.items?.every((item: any) => {
+                                                                const pId = String(item.product?._id || item.product?.id || item.productId || item.product);
+                                                                const maxAllowed = item.quantity - (returnedQtysMap[String(ord._id || ord.id)]?.[pId] || 0);
+                                                                return maxAllowed <= 0;
+                                                            });
+                                                            
+                                                            const isReturnable = isReturnableByTime && !isVendorConfirmed && !isFullyReturned;
 
                                                             return (
                                                                 <div className="p-4 bg-gray-50 border-t border-gray-100 flex items-center justify-between">
@@ -1607,14 +1628,22 @@ const ProfilePage = () => {
                                                                         )}
                                                                     </div>
 
-                                                                    {isReturnable && (
-                                                                        <button
-                                                                            onClick={() => handleReturnOrder(ord.id || ord._id, ord.items, ord.shippingAddress)}
-                                                                            className="px-6 py-2.5 text-sm font-medium text-red-600 border border-red-200 bg-white rounded-xl hover:bg-red-50 hover:border-red-300 transition-all shadow-sm flex items-center gap-2"
-                                                                        >
-                                                                            Return Order
-                                                                        </button>
-                                                                    )}
+                                                                    <div className="mt-4 flex flex-wrap gap-3 items-center">
+                                                                        {returnMap[String(ord._id || ord.id)] && (
+                                                                            <span className="text-sm font-medium text-amber-600 bg-amber-50 px-3 py-1.5 rounded-lg border border-amber-200">
+                                                                                Previous Return {returnMap[String(ord._id || ord.id)]}
+                                                                            </span>
+                                                                        )}
+                                                                        
+                                                                        {isReturnable && (
+                                                                            <button
+                                                                                onClick={() => handleReturnOrder(ord.id || ord._id, ord.items, ord.shippingAddress)}
+                                                                                className="px-4 py-2 border border-[#9c2b2b] rounded-lg text-sm font-medium text-[#9c2b2b] hover:bg-[#9c2b2b] hover:text-white transition-colors"
+                                                                            >
+                                                                                Return Items
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         })()}
