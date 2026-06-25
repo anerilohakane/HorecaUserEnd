@@ -8,7 +8,8 @@ import { Product } from '@/lib/types/product';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Sparkles, Loader } from 'lucide-react';
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app';
+// const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app';
+const API_BASE = "http://localhost:3001";
 
 export default function FrequentlyBought() {
     const { user, isAuthenticated } = useAuth();
@@ -28,7 +29,9 @@ export default function FrequentlyBought() {
         const fetchFrequentItems = async () => {
             try {
                 const res = await fetch(`${API_BASE}/api/analytics/frequent-items?userId=${user.id}`);
-                if (res.ok) {
+                const contentType = res.headers.get("content-type");
+
+                if (res.ok && contentType && contentType.includes("application/json")) {
                     const json = await res.json();
                     if (json.success && Array.isArray(json.data)) {
                         const uniqueMap = new Map();
@@ -42,9 +45,13 @@ export default function FrequentlyBought() {
                         });
                         setProducts(Array.from(uniqueMap.values()));
                     }
+                } else if (!res.ok) {
+                    // Suppress error in UI, just log silently
+                    console.log("Failed to fetch frequent items, status:", res.status);
                 }
-            } catch (err) {
-                console.error("Failed to fetch frequent items:", err);
+            } catch (err: any) {
+                // Use console.log instead of console.error so Next.js doesn't capture it in the dev overlay
+                console.log("Failed to fetch frequent items:", err.message);
             } finally {
                 setLoading(false);
             }

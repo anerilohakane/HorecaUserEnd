@@ -21,13 +21,14 @@ import {
     MessageSquare,
     LogOut,
     Clock,
-    Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud, FileText, Search
+    Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud, FileText, Search, Plus, List
 } from 'lucide-react';
 import PageTransition from "@/components/ui/PageTransition";
 import Header from '@/components/Header';
 import { useAuth } from '@/lib/context/AuthContext';
 import ShippingAddressSelector from '@/components/checkout/ShippingForm';
 import PurchaseOrderForm from '@/components/orders/PurchaseOrderForm';
+import MyPurchaseOrders from '@/components/orders/MyPurchaseOrders';
 import { useRouter } from "next/navigation";
 import ReviewFormModal from '@/components/products/ReviewFormModal';
 import ReturnOrderModal from '@/components/orders/ReturnOrderModal';
@@ -67,6 +68,7 @@ const ProfilePage = () => {
     const [orders, setOrders] = useState<any[]>([]);
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('personal');
+    const [expandedModule, setExpandedModule] = useState<string | null>(null);
     const [loading, setLoading] = useState(true);
     const [savedItemsCount, setSavedItemsCount] = useState(0);
     const [showAddressForm, setShowAddressForm] = useState(false);
@@ -1043,24 +1045,78 @@ const ProfilePage = () => {
                                         { id: "orders", label: "My Orders", icon: Package },
                                         { id: "subscriptions", label: "My Subscriptions", icon: RotateCw },
                                         { id: "addresses", label: "Addresses", icon: MapPin },
-                                        ...(user?.poMandatory ? [{ id: "purchase_order", label: "Purchase Order", icon: FileText }] : [])
+                                        ...(user?.poMandatory ? [{
+                                            id: "po_module",
+                                            label: "Purchase Order",
+                                            icon: FileText,
+                                            subItems: [
+                                                { id: "purchase_order", label: "Create PO", icon: Plus },
+                                                { id: "my_purchase_orders", label: "My Purchase Orders", icon: List }
+                                            ]
+                                        }] : [])
                                     ].map((tab) => {
                                         const Icon = tab.icon;
-                                        const isActive = activeTab === tab.id;
+                                        const hasSubItems = tab.subItems && tab.subItems.length > 0;
+                                        
+                                        // A module is expanded if it's the actively expanded module, 
+                                        // OR if one of its subItems is currently active (so it stays open when navigating)
+                                        const isChildActive = hasSubItems && tab.subItems.some((sub: any) => sub.id === activeTab);
+                                        const isExpanded = expandedModule === tab.id || (expandedModule === null && isChildActive);
+                                        
+                                        const isParentActive = activeTab === tab.id || isChildActive;
 
                                         return (
-                                            <button
-                                                key={tab.id}
-                                                onClick={() => setActiveTab(tab.id)}
-                                                className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl mb-1 transition-all ${isActive
-                                                    ? "bg-amber-600 text-white shadow-sm"
-                                                    : "text-gray-700 hover:bg-gray-50"
-                                                    }`}
-                                            >
-                                                <Icon className="w-5 h-5" />
-                                                <span className="font-medium">{tab.label}</span>
-                                                {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-                                            </button>
+                                            <div key={tab.id} className="mb-1">
+                                                <button
+                                                    onClick={() => {
+                                                        if (hasSubItems) {
+                                                            // Toggle accordion state
+                                                            if (expandedModule === tab.id) {
+                                                                setExpandedModule(''); // Explicitly collapse
+                                                            } else {
+                                                                setExpandedModule(tab.id); // Expand
+                                                            }
+                                                        } else {
+                                                            setActiveTab(tab.id);
+                                                            setExpandedModule(null); // Reset when navigating to non-accordion tab
+                                                        }
+                                                    }}
+                                                    className={`w-full flex items-center gap-4 px-4 py-3.5 rounded-xl transition-all ${!hasSubItems && activeTab === tab.id
+                                                        ? "bg-amber-600 text-white shadow-sm"
+                                                        : isParentActive
+                                                            ? "bg-amber-50 text-amber-900"
+                                                            : "text-gray-700 hover:bg-gray-50"
+                                                        }`}
+                                                >
+                                                    <Icon className="w-5 h-5" />
+                                                    <span className="font-medium">{tab.label}</span>
+                                                    {!hasSubItems && activeTab === tab.id && <ChevronRight className="w-4 h-4 ml-auto" />}
+                                                    {hasSubItems && (
+                                                        <ChevronRight className={`w-4 h-4 ml-auto transition-transform ${isExpanded ? "rotate-90 text-amber-600" : ""}`} />
+                                                    )}
+                                                </button>
+
+                                                {hasSubItems && isExpanded && (
+                                                    <div className="ml-12 mt-1 flex flex-col gap-1 py-2">
+                                                        {tab.subItems.map((sub: any) => {
+                                                            const SubIcon = sub.icon;
+                                                            return (
+                                                                <button
+                                                                    key={sub.id}
+                                                                    onClick={() => setActiveTab(sub.id)}
+                                                                    className={`flex items-center gap-3 text-left px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${activeTab === sub.id
+                                                                        ? "bg-amber-600 text-white shadow-sm"
+                                                                        : "text-gray-600 hover:text-amber-700 hover:bg-amber-50"
+                                                                        }`}
+                                                                >
+                                                                    {SubIcon && <SubIcon className="w-4 h-4" />}
+                                                                    {sub.label}
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                )}
+                                            </div>
                                         );
                                     })}
                                 </nav>
@@ -1303,6 +1359,13 @@ const ProfilePage = () => {
                                 {activeTab === "purchase_order" && (
                                     <div className="space-y-8">
                                         <PurchaseOrderForm />
+                                    </div>
+                                )}
+
+                                {/* MY PURCHASE ORDERS */}
+                                {activeTab === "my_purchase_orders" && (
+                                    <div className="space-y-8">
+                                        <MyPurchaseOrders />
                                     </div>
                                 )}
 

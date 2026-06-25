@@ -1,11 +1,12 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Trash2, Plus, Loader2, Tag, ShoppingBag } from 'lucide-react';
+import { Trash2, Plus, Loader2, Tag, ShoppingBag, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/lib/context/AuthContext';
 import { sileo } from 'sileo';
 
-// const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
-const API_BASE = "http://localhost:3001";
+const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+
+// const API_BASE = "http://localhost:3001";
 
 export default function PurchaseOrderForm() {
     const { token, user } = useAuth();
@@ -20,21 +21,20 @@ export default function PurchaseOrderForm() {
     // List of added products
     const [poItems, setPoItems] = useState<any[]>([]);
     const [quantityToAdd, setQuantityToAdd] = useState<number>(1);
-    
+
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [pastPOs, setPastPOs] = useState<any[]>([]);
-    const [loadingPOs, setLoadingPOs] = useState(false);
+
+    // MOV State
+    const [showMOVPanel, setShowMOVPanel] = useState(false);
+    const [movApplied, setMovApplied] = useState(false);
+
+    const MOV_AMOUNT = 3500;
+    const MOV_DELIVERY_CHARGE = 250;
 
     useEffect(() => {
         fetchSuppliers();
         fetchBrands(); // To map categoryId to brand name
     }, []);
-
-    useEffect(() => {
-        if (user) {
-            fetchPastPOs();
-        }
-    }, [user]);
 
     useEffect(() => {
         if (selectedSupplier) {
@@ -46,34 +46,20 @@ export default function PurchaseOrderForm() {
         setQuantityToAdd(1);
     }, [selectedSupplier]);
 
-    const fetchPastPOs = async () => {
-        const customerId = (user as any)?._id || user?.id;
-        if (!customerId) return;
-        setLoadingPOs(true);
-        try {
-            const res = await fetch(`${API_BASE}/api/customer-po?customerId=${customerId}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            const json = await res.json();
-            if (json.success) {
-                setPastPOs(json.data || []);
-            }
-        } catch (e) {
-            console.error(e);
-        } finally {
-            setLoadingPOs(false);
-        }
-    };
-
     const fetchSuppliers = async () => {
         setLoadingSuppliers(true);
         try {
             const res = await fetch(`${API_BASE}/api/supplier`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const json = await res.json();
-            if (json.success) {
-                setSuppliers(json.data || []);
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const json = await res.json();
+                console.log(json.data);
+
+                if (json.success) {
+                    setSuppliers(json.data || []);
+                }
             }
         } catch (e) {
             console.error(e);
@@ -87,9 +73,12 @@ export default function PurchaseOrderForm() {
             const res = await fetch(`${API_BASE}/api/brands?limit=1000`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const json = await res.json();
-            if (json.success) {
-                setBrands(json.data.items || []);
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const json = await res.json();
+                if (json.success) {
+                    setBrands(json.data.items || []);
+                }
             }
         } catch (e) {
             console.error(e);
@@ -102,9 +91,12 @@ export default function PurchaseOrderForm() {
             const res = await fetch(`${API_BASE}/api/products?supplierId=${supplierId}&limit=1000`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
-            const json = await res.json();
-            if (json.success) {
-                setProducts(json.data.items || []);
+            const contentType = res.headers.get("content-type");
+            if (contentType && contentType.includes("application/json")) {
+                const json = await res.json();
+                if (json.success) {
+                    setProducts(json.data.items || []);
+                }
             }
         } catch (e) {
             console.error(e);
@@ -128,7 +120,7 @@ export default function PurchaseOrderForm() {
 
         // Add separately as a new row
         setPoItems([...poItems, { product, quantity: quantityToAdd, unitPrice: product.price || product.basePrice || 0 }]);
-        
+
         // Reset selection
         setSelectedProduct('');
         setQuantityToAdd(1);
@@ -147,11 +139,33 @@ export default function PurchaseOrderForm() {
         setPoItems(newItems);
     };
 
-    const handleSubmitPO = async () => {
+    const handleSubmitPO = async (forceMov = false) => {
         if (poItems.length === 0) {
             sileo.error({ title: "Empty PO", description: "Please add at least one product to the Purchase Order" });
             return;
         }
+
+        const subtotal = poItems.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0);
+        const gst = subtotal * 0.18;
+        const grandTotalBeforeMOV = subtotal + gst;
+        const isMov = movApplied || forceMov;
+
+        if (grandTotalBeforeMOV < MOV_AMOUNT && !isMov) {
+            sileo.warning({
+                title: 'Minimum Order Value (MOV) Not Met',
+                description: `Order total ₹${grandTotalBeforeMOV.toFixed(0)} is below ₹${MOV_AMOUNT.toLocaleString('en-IN')} MOV. Add more items or continue with ₹${MOV_DELIVERY_CHARGE} delivery charge.`,
+            });
+            setShowMOVPanel(true);
+            return;
+        }
+
+        if (forceMov) {
+            setMovApplied(true);
+            setShowMOVPanel(false);
+        }
+
+        const movCharge = isMov ? MOV_DELIVERY_CHARGE : 0;
+        const grandTotal = grandTotalBeforeMOV + movCharge;
 
         setIsSubmitting(true);
         try {
@@ -165,7 +179,12 @@ export default function PurchaseOrderForm() {
                     quantity: item.quantity,
                     unitPrice: item.unitPrice
                 })),
-                createdBy: user?.name || "Customer"
+                createdBy: user?.name || "Customer",
+                subtotal,
+                gst,
+                shippingCharges: movCharge,
+                movApplied: isMov,
+                totalAmount: grandTotal
             };
 
             const res = await fetch(`${API_BASE}/api/customer-po`, {
@@ -177,7 +196,15 @@ export default function PurchaseOrderForm() {
                 body: JSON.stringify(payload)
             });
 
-            const data = await res.json();
+            const contentType = res.headers.get("content-type");
+            let data: any = {};
+
+            if (contentType && contentType.includes("application/json")) {
+                data = await res.json();
+            } else if (!res.ok) {
+                throw new Error("Failed to submit Purchase Order: Server returned an invalid response");
+            }
+
             if (!res.ok || !data.success) {
                 throw new Error(data.error || "Failed to submit Purchase Order");
             }
@@ -185,7 +212,8 @@ export default function PurchaseOrderForm() {
             sileo.success({ title: "Success", description: "Purchase Order submitted successfully!" });
             setPoItems([]);
             setSelectedSupplier('');
-            fetchPastPOs();
+            setMovApplied(false);
+            setShowMOVPanel(false);
         } catch (e: any) {
             sileo.error({ title: "Error", description: e.message || "Failed to submit Purchase Order" });
         } finally {
@@ -202,10 +230,15 @@ export default function PurchaseOrderForm() {
         acc[brandName].push(p);
         return acc;
     }, {});
-    
+
     const subtotal = poItems.reduce((acc, item) => acc + (item.unitPrice * item.quantity), 0);
     const gst = subtotal * 0.18;
-    const grandTotal = subtotal + gst;
+    const grandTotalBeforeMOV = subtotal + gst;
+    
+    // Check if mov charge is actively applied in UI state to update the grand total visual
+    const isMov = movApplied && grandTotalBeforeMOV < MOV_AMOUNT;
+    const movCharge = isMov ? MOV_DELIVERY_CHARGE : 0;
+    const grandTotal = grandTotalBeforeMOV + movCharge;
 
     return (
         <div className="space-y-6">
@@ -229,7 +262,7 @@ export default function PurchaseOrderForm() {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="flex-1">
                     <label className="block text-sm font-medium text-[#4a5568] mb-1.5">Product</label>
                     <div className="relative">
@@ -254,7 +287,7 @@ export default function PurchaseOrderForm() {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="flex-shrink-0">
                     <button
                         onClick={handleAddProduct}
@@ -284,8 +317,8 @@ export default function PurchaseOrderForm() {
                                     <td className="px-5 py-3">
                                         <div className="flex items-center gap-3">
                                             <div className="w-10 h-10 rounded-md overflow-hidden border border-[#e2e8f0] flex-shrink-0">
-                                                <img 
-                                                    src={(item.product.images && item.product.images[0]?.url) || (item.product.images && item.product.images[0]) || "/images/placeholder.png"} 
+                                                <img
+                                                    src={(item.product.images && item.product.images[0]?.url) || (item.product.images && item.product.images[0]) || "/images/placeholder.png"}
                                                     alt={item.product.name}
                                                     className="w-full h-full object-cover"
                                                 />
@@ -309,10 +342,10 @@ export default function PurchaseOrderForm() {
                                         />
                                     </td>
                                     <td className="px-5 py-3 text-right font-bold text-[#2d3748] text-[13px]">
-                                        ₹{(item.unitPrice * item.quantity).toLocaleString('en-IN', {minimumFractionDigits: 2})}
+                                        ₹{(item.unitPrice * item.quantity).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                        <button 
+                                        <button
                                             onClick={() => handleRemoveItem(index)}
                                             className="text-[#cbd5e0] hover:text-red-500 transition-colors"
                                         >
@@ -332,15 +365,21 @@ export default function PurchaseOrderForm() {
                                         <div className="w-[280px]">
                                             <div className="flex justify-between items-center mb-3">
                                                 <span className="text-[11px] font-bold text-[#a0aec0] uppercase tracking-wider">SUBTOTAL</span>
-                                                <span className="font-bold text-[#2d3748] text-[13px]">₹{subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                                <span className="font-bold text-[#2d3748] text-[13px]">₹{subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                             </div>
                                             <div className="flex justify-between items-center mb-4">
                                                 <span className="text-[11px] font-bold text-[#a0aec0] uppercase tracking-wider">GST</span>
-                                                <span className="font-bold text-[#2d3748] text-[13px]">₹{gst.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                                <span className="font-bold text-[#2d3748] text-[13px]">₹{gst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                             </div>
+                                            {isMov && (
+                                                <div className="flex justify-between items-center mb-4">
+                                                    <span className="text-[11px] font-bold text-[#a0aec0] uppercase tracking-wider">DELIVERY (BELOW MOV)</span>
+                                                    <span className="font-bold text-[#2d3748] text-[13px]">₹{MOV_DELIVERY_CHARGE.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+                                                </div>
+                                            )}
                                             <div className="flex justify-between items-center pt-4 border-t border-[#e2e8f0]">
                                                 <span className="text-[11px] font-bold text-[#2d3748] uppercase tracking-wider">GRAND TOTAL (INCL. GST)</span>
-                                                <span className="font-bold text-[#d69e2e] text-base">₹{grandTotal.toLocaleString('en-IN', {minimumFractionDigits: 2})}</span>
+                                                <span className="font-bold text-[#d69e2e] text-base">₹{grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
                                             </div>
                                         </div>
                                     </div>
@@ -350,13 +389,43 @@ export default function PurchaseOrderForm() {
                     </table>
                 </div>
             )}
-            
+
             {poItems.length > 0 && (
-                <div className="mt-6 flex justify-end">
+                <div className="mt-6 flex flex-col items-end gap-4">
+                    {/* MOV Inline Confirmation Panel */}
+                    {showMOVPanel && (
+                        <div className="w-full flex items-start gap-3 bg-amber-50 border-2 border-amber-300 text-amber-900 px-5 py-4 rounded-xl">
+                            <AlertCircle className="w-5 h-5 flex-shrink-0 text-amber-500 mt-0.5" />
+                            <div className="flex-1">
+                                <p className="text-sm font-bold mb-0.5">Below Minimum Order Value (₹{MOV_AMOUNT.toLocaleString('en-IN')})</p>
+                                <p className="text-xs text-amber-700 mb-3 leading-relaxed">
+                                    Order total <strong>₹{grandTotalBeforeMOV.toFixed(0)}</strong> is below MOV.
+                                    A delivery charge of <strong>₹{MOV_DELIVERY_CHARGE}</strong> will be added to proceed.
+                                </p>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowMOVPanel(false)}
+                                        className="px-4 py-2 text-xs font-semibold border border-amber-400 text-amber-800 rounded-lg hover:bg-amber-100 transition-colors"
+                                    >
+                                        Add More Items
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleSubmitPO(true)}
+                                        className="px-4 py-2 text-xs font-bold bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors shadow-sm"
+                                    >
+                                        Continue with ₹{MOV_DELIVERY_CHARGE} Delivery
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
                     <button
-                        onClick={handleSubmitPO}
+                        onClick={() => handleSubmitPO(false)}
                         disabled={isSubmitting}
-                        className="bg-amber-600 hover:bg-amber-700 text-white px-8 py-3 rounded-xl font-medium transition-colors flex items-center gap-2"
+                        className="bg-[#e67e22] hover:bg-[#d35400] text-white px-8 py-3 rounded-xl font-semibold transition-colors flex items-center gap-2"
                     >
                         {isSubmitting ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
                         {isSubmitting ? 'Submitting PO...' : 'Submit Purchase Order'}
@@ -364,65 +433,6 @@ export default function PurchaseOrderForm() {
                 </div>
             )}
 
-            {/* Past POs List */}
-            <div className="mt-12 pt-8 border-t border-[#e2e8f0]">
-                <h3 className="text-lg font-bold text-[#2d3748] mb-6">My Purchase Orders</h3>
-                {loadingPOs ? (
-                    <div className="flex justify-center py-8">
-                        <Loader2 className="w-8 h-8 animate-spin text-amber-500" />
-                    </div>
-                ) : pastPOs.length === 0 ? (
-                    <div className="text-center py-8 text-[#a0aec0] bg-[#f8fafc] rounded-xl border border-dashed border-[#cbd5e0]">
-                        No purchase orders found
-                    </div>
-                ) : (
-                    <div className="space-y-4">
-                        {pastPOs.map(po => (
-                            <div key={po._id} className="bg-white border border-[#e2e8f0] rounded-xl p-5 hover:shadow-sm transition-shadow">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <div className="font-bold text-[#2d3748] mb-1">{po.poNumber}</div>
-                                        <div className="text-sm text-[#718096]">
-                                            {new Date(po.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' })}
-                                        </div>
-                                    </div>
-                                    <div className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                        po.status === 'Approved' ? 'bg-green-100 text-green-700' :
-                                        po.status === 'Pending' ? 'bg-yellow-100 text-yellow-700' :
-                                        po.status === 'Rejected' ? 'bg-red-100 text-red-700' :
-                                        'bg-gray-100 text-gray-700'
-                                    }`}>
-                                        {po.status}
-                                    </div>
-                                </div>
-                                <div className="text-sm text-[#4a5568] mb-4">
-                                    <span className="font-semibold">Supplier:</span> {po.supplier?.businessName || po.supplier?.name || 'N/A'}
-                                </div>
-                                <div className="bg-[#f8fafc] rounded-lg p-3 overflow-x-auto">
-                                    <table className="w-full text-left">
-                                        <thead>
-                                            <tr>
-                                                <th className="text-[11px] font-bold text-[#a0aec0] uppercase tracking-wider pb-2">Product</th>
-                                                <th className="text-[11px] font-bold text-[#a0aec0] uppercase tracking-wider pb-2 text-center">Qty</th>
-                                                <th className="text-[11px] font-bold text-[#a0aec0] uppercase tracking-wider pb-2 text-right">Price</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-[#e2e8f0]">
-                                            {po.items.map((item: any, i: number) => (
-                                                <tr key={i}>
-                                                    <td className="py-2 text-[13px] text-[#4a5568] font-medium min-w-[200px]">{item.name || 'Unknown Product'}</td>
-                                                    <td className="py-2 text-[13px] text-[#4a5568] text-center">{item.quantity}</td>
-                                                    <td className="py-2 text-[13px] text-[#4a5568] text-right whitespace-nowrap">₹{item.unitPrice?.toLocaleString('en-IN')}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-            </div>
         </div>
     );
 }
