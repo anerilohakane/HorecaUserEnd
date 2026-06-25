@@ -8,8 +8,7 @@ import { Product } from '@/lib/types/product';
 import { useAuth } from '@/lib/context/AuthContext';
 import { Sparkles, Loader } from 'lucide-react';
 
-// const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app';
-const API_BASE = "http://localhost:3001";
+const API_BASE = process.env.NEXT_PUBLIC_HORECA_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'https://horeca-backend-six.vercel.app';
 
 export default function FrequentlyBought() {
     const { user, isAuthenticated } = useAuth();
