@@ -306,8 +306,12 @@ const ProfilePage = () => {
                 product: item.product?._id || item.product?.id || item.productId || item.product,
                 productId: item.product?._id || item.product?.id || item.productId || item.product,
                 quantity: item.quantity,
-                price: item.unitPrice,
-                reason: data.reason // Apply global reason to all items for now
+                price: item.unitPrice || item.price,
+                reason: item.reason || data.reason || "Not specified",
+                images: item.images || [],
+                expiryDate: item.expiryDate || null,
+                deliveryDate: item.deliveryDate || null,
+                batchDetails: item.batchDetails || ""
             }));
 
             const payload = {
