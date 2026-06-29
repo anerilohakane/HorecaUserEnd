@@ -98,6 +98,10 @@ const ProfilePage = () => {
     const [grievanceMap, setGrievanceMap] = useState<Record<string, string>>({});
     const [returnMap, setReturnMap] = useState<Record<string, string>>({});
 
+    // Credit Note State
+    const [creditNotes, setCreditNotes] = useState<any[]>([]);
+    const [loadingCNs, setLoadingCNs] = useState<boolean>(false);
+
     useEffect(() => {
         if (activeTab === "orders" && authUser) {
             const fetchGrievancesAndReturns = async () => {
@@ -148,6 +152,33 @@ const ProfilePage = () => {
             fetchGrievancesAndReturns();
         }
     }, [activeTab, authUser]);
+
+    useEffect(() => {
+        if (activeTab === "credit_notes" && authUser) {
+            const fetchCreditNotes = async () => {
+                setLoadingCNs(true);
+                try {
+                    const userId = authUser.id || (authUser as any)._id;
+                    const res = await fetch(`${API_BASE}/api/art/credit-notes?customer=${userId}&communicationStatus=Sent`, {
+                        headers: {
+                            'Authorization': `Bearer ${token}`
+                        }
+                    });
+                    if (res.ok) {
+                        const data = await res.json();
+                        if (data.success) {
+                            setCreditNotes(data.data || []);
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to fetch credit notes", e);
+                } finally {
+                    setLoadingCNs(false);
+                }
+            };
+            fetchCreditNotes();
+        }
+    }, [activeTab, authUser, token]);
 
     const handleRaiseGrievance = (orderId: string) => {
         setGrievanceOrderId(orderId);
@@ -1049,6 +1080,7 @@ const ProfilePage = () => {
                                         { id: "orders", label: "My Orders", icon: Package },
                                         { id: "subscriptions", label: "My Subscriptions", icon: RotateCw },
                                         { id: "addresses", label: "Addresses", icon: MapPin },
+                                        { id: "credit_notes", label: "Credit Notes", icon: Wallet },
                                         ...(user?.poMandatory ? [{
                                             id: "po_module",
                                             label: "Purchase Order",
@@ -1882,9 +1914,115 @@ const ProfilePage = () => {
                                     </div>
                                 )}
 
+                                {/* CREDIT NOTES TAB */}
+                                {activeTab === "credit_notes" && (
+                                    <div className="space-y-8">
+                                        <div className="text-center mb-2">
+                                            <h2 className="text-2xl font-bold text-gray-900 mb-2">My Credit Notes</h2>
+                                            <p className="text-gray-600">View and download your refund and adjustment credit notes</p>
+                                        </div>
 
+                                        {loadingCNs && (
+                                            <div className="flex flex-col items-center justify-center py-16">
+                                                <div className="relative">
+                                                    <div className="w-16 h-16 border-4 border-amber-500/20 rounded-full" />
+                                                    <div className="w-16 h-16 border-4 border-amber-600 border-t-transparent rounded-full animate-spin absolute top-0" />
+                                                </div>
+                                                <p className="text-gray-600 mt-4 font-medium">Loading credit notes...</p>
+                                            </div>
+                                        )}
 
+                                        {!loadingCNs && creditNotes.length === 0 && (
+                                            <div className="flex flex-col items-center justify-center py-16 px-4">
+                                                <div className="w-24 h-24 rounded-full bg-amber-50 flex items-center justify-center mb-6">
+                                                    <Wallet className="w-12 h-12 text-amber-500" />
+                                                </div>
+                                                <h3 className="text-xl font-semibold text-gray-900 mb-2">No credit notes found</h3>
+                                                <p className="text-gray-600 text-center max-w-md">
+                                                    You don't have any credit notes generated for your account.
+                                                </p>
+                                            </div>
+                                        )}
 
+                                        {!loadingCNs && creditNotes.length > 0 && (
+                                            <div className="space-y-6">
+                                                {creditNotes.map((cn, index) => (
+                                                    <div
+                                                        key={cn._id || index}
+                                                        className="rounded-xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow duration-200 overflow-hidden animate-fadeIn"
+                                                    >
+                                                        {/* Header */}
+                                                        <div className="bg-gradient-to-r from-amber-50/50 to-white px-6 py-4 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                                                            <div>
+                                                                <div className="flex items-center gap-3">
+                                                                    <div className="w-2 h-2 rounded-full bg-emerald-500" />
+                                                                    <h3 className="text-lg font-semibold text-gray-900">
+                                                                        {cn.cnNumber}
+                                                                    </h3>
+                                                                </div>
+                                                                <p className="text-sm text-gray-500 mt-1">
+                                                                    Issued on {new Date(cn.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                                </p>
+                                                            </div>
+                                                            <div className="flex items-center gap-3 w-full sm:w-auto justify-between sm:justify-end">
+                                                                <span className="font-bold text-lg text-emerald-600">
+                                                                    ₹{cn.amount?.toFixed(2)}
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => {
+                                                                        import('@/lib/utils/credit-note-generator').then(module => {
+                                                                            module.generateCreditNotePDF(cn);
+                                                                        }).catch(err => {
+                                                                            console.error('Failed to load PDF generator', err);
+                                                                        });
+                                                                    }}
+                                                                    className="px-4 py-2 text-xs font-semibold text-white bg-amber-600 hover:bg-amber-700 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                                                                >
+                                                                    <FileText className="w-3.5 h-3.5" />
+                                                                    Download PDF
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                        {/* Details */}
+                                                        <div className="p-6 space-y-4">
+                                                            <div>
+                                                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Reason for Credit</h4>
+                                                                <p className="text-sm text-gray-700">{cn.reason || "Return adjustment"}</p>
+                                                            </div>
+                                                            {cn.items && cn.items.length > 0 && (
+                                                                <div>
+                                                                    <h4 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Adjusted Items</h4>
+                                                                    <div className="border border-gray-100 rounded-xl overflow-hidden">
+                                                                        <table className="w-full text-left text-xs">
+                                                                            <thead className="bg-gray-50 text-gray-500 font-semibold border-b border-gray-100">
+                                                                                <tr>
+                                                                                    <th className="px-4 py-3">Description</th>
+                                                                                    <th className="px-4 py-3 text-center">Qty</th>
+                                                                                    <th className="px-4 py-3 text-right">Rate</th>
+                                                                                    <th className="px-4 py-3 text-right">Total</th>
+                                                                                </tr>
+                                                                            </thead>
+                                                                            <tbody className="divide-y divide-gray-100 text-gray-700">
+                                                                                {cn.items.map((item: any, idx: number) => (
+                                                                                    <tr key={idx}>
+                                                                                        <td className="px-4 py-3 font-medium">{item.description}</td>
+                                                                                        <td className="px-4 py-3 text-center">{item.quantity}</td>
+                                                                                        <td className="px-4 py-3 text-right">₹{item.rate?.toFixed(2)}</td>
+                                                                                        <td className="px-4 py-3 text-right">₹{item.amount?.toFixed(2)}</td>
+                                                                                    </tr>
+                                                                                ))}
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         </main>
                     </div>
