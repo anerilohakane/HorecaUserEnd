@@ -504,13 +504,16 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
           ...frequent.map((id: any) => String(id))
         ]));
         setMappedIds(combined);
-        setHasMapping(mapped.length > 0);
+        const mappedExists = mapped.length > 0;
+        setHasMapping(mappedExists);
+        setProductTab(mappedExists ? 'mapped' : 'all');
       })
       .catch(err => console.error("Failed to load customer mappings/frequent items:", err))
       .finally(() => setLoadingMapping(false));
     } else {
       setMappedIds([]);
       setHasMapping(false);
+      setProductTab('all');
     }
   }, [user?.id, token]);
 
@@ -538,6 +541,10 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
         setError(null);
 
         const url = new URL(buildApiUrl('api/products'), typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+
+        if (user && productTab === 'all') {
+          url.searchParams.set('showAll', 'true');
+        }
 
         // Category
         if (selectedCategory && selectedCategory !== 'all') {
@@ -617,7 +624,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [selectedCategory, selectedPriceRange, selectedRating, initialProducts, user, token]);
+  }, [selectedCategory, selectedPriceRange, selectedRating, initialProducts, user, token, productTab]);
 
   // Handlers
   const onCategoryChange = (categoryId: string) => {
@@ -730,11 +737,37 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
         <span className="text-gray-800">Products</span>
       </div>
 
+      {/* Product Tabs (Only if logged in) */}
+      {user && (
+        <div className="flex border-b-2 border-slate-100 mb-8 gap-8">
+          <button
+            onClick={() => setProductTab('mapped')}
+            className={`pb-4 text-sm sm:text-base font-extrabold border-b-4 transition-all uppercase tracking-widest relative -mb-[2px] ${
+              productTab === 'mapped'
+                ? 'border-amber-600 text-amber-600'
+                : 'border-transparent text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            Your Products
+          </button>
+          <button
+            onClick={() => setProductTab('all')}
+            className={`pb-4 text-sm sm:text-base font-extrabold border-b-4 transition-all uppercase tracking-widest relative -mb-[2px] ${
+              productTab === 'all'
+                ? 'border-amber-600 text-amber-600'
+                : 'border-transparent text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            All Products
+          </button>
+        </div>
+      )}
+
       {/* Header Row */}
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 inline-block mr-3">
-            {user ? 'Your Products' : 'All Products'}
+            {productTab === 'mapped' ? 'Your Products' : 'All Products'}
           </h1>
           <span className="text-gray-500 text-lg">
             ({processedProducts.length} items)
