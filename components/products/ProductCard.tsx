@@ -15,6 +15,7 @@ interface ProductCardProps {
   initialWishlistState?: boolean;
   onRemove?: (id: string) => void;
   showReorder?: boolean;
+  isEnquiryOnly?: boolean;
 }
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app";
@@ -58,7 +59,8 @@ export default function ProductCard({
   product: incoming,
   initialWishlistState = false,
   onRemove,
-  showReorder = false
+  showReorder = false,
+  isEnquiryOnly = false
 }: ProductCardProps) {
   // All state declarations first
   const [isAdding, setIsAdding] = useState(false);
@@ -73,7 +75,30 @@ export default function ProductCard({
   const [reviews, setReviews] = useState<any[]>([]);
   const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
   const [isPriceRequestModalOpen, setIsPriceRequestModalOpen] = useState(false);
+  
+  // Enquiry states
+  const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
+  const [submittingEnquiry, setSubmittingEnquiry] = useState(false);
+  
   const { user, token } = useAuth();
+
+  const [enquiryForm, setEnquiryForm] = useState({
+    name: user?.name || '',
+    phone: user?.phone || '',
+    email: user?.email || '',
+    notes: ''
+  });
+
+  useEffect(() => {
+    if (user) {
+      setEnquiryForm(prev => ({
+        ...prev,
+        name: prev.name || user.name || '',
+        phone: prev.phone || user.phone || '',
+        email: prev.email || user.email || ''
+      }));
+    }
+  }, [user]);
 
   // Helper function defined early
   const looksPartial = (p: Partial<Product> | null | undefined) =>
@@ -206,10 +231,55 @@ export default function ProductCard({
     }
   };
 
+  const handleEnquiryClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    setIsEnquiryModalOpen(true);
+  };
+
+  const handleEnquirySubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (submittingEnquiry) return;
+    setSubmittingEnquiry(true);
+    try {
+      const baseUrl = API_BASE || "https://horeca-backend-six.vercel.app";
+      const res = await fetch(`${baseUrl}/api/cct/enquiry`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          productName: effectiveProduct.name,
+          productSku: (effectiveProduct as any).sku,
+          customerName: enquiryForm.name,
+          customerPhone: enquiryForm.phone,
+          customerEmail: enquiryForm.email,
+          notes: enquiryForm.notes
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        sileo.success({ title: "Enquiry Submitted", description: "Our support team will get in touch with you shortly." });
+        setIsEnquiryModalOpen(false);
+        setEnquiryForm(prev => ({ ...prev, notes: '' }));
+      } else {
+        sileo.error({ title: "Submission Failed", description: data.error || "Failed to register enquiry." });
+      }
+    } catch (err) {
+      console.error(err);
+      sileo.error({ title: "Submission Failed", description: "A network error occurred." });
+    } finally {
+      setSubmittingEnquiry(false);
+    }
+  };
+
   // Cart handler
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
+
+    if (isEnquiryOnly) {
+      sileo.error({ title: "Enquiry Only", description: "This product is only available for enquiry." });
+      return;
+    }
 
     if (!effectiveProduct?.id || isAdding) return;
 
@@ -569,23 +639,32 @@ export default function ProductCard({
             )}
           </div>
 
-          <button
-            onClick={effectiveProduct.inStock ? handleAddToCart : handleNotifyMe}
-            disabled={isAdding || !API_BASE}
-            className={`px-4 py-1.5 rounded border text-xs font-bold transition-all uppercase z-20
-              ${!effectiveProduct.inStock
-                ? 'bg-orange-50 border-orange-200 text-[#D97706] hover:bg-orange-100'
-                : isAdding
-                  ? 'bg-orange-50 border-orange-500 text-orange-600'
-                  : 'bg-white border-orange-400 text-orange-500 hover:bg-orange-50'
-              }`}
-          >
-            {effectiveProduct.inStock ? (isAdding ? 'ADD...' : 'ADD +') : 'Notify Me'}
-          </button>
+          {isEnquiryOnly ? (
+            <button
+              onClick={handleEnquiryClick}
+              className="px-4 py-1.5 rounded border text-xs font-bold transition-all uppercase z-20 bg-blue-50 border-blue-400 text-blue-500 hover:bg-blue-100"
+            >
+              Enquire
+            </button>
+          ) : (
+            <button
+              onClick={effectiveProduct.inStock ? handleAddToCart : handleNotifyMe}
+              disabled={isAdding || !API_BASE}
+              className={`px-4 py-1.5 rounded border text-xs font-bold transition-all uppercase z-20
+                ${!effectiveProduct.inStock
+                  ? 'bg-orange-50 border-orange-200 text-[#D97706] hover:bg-orange-100'
+                  : isAdding
+                    ? 'bg-orange-50 border-orange-500 text-orange-600'
+                    : 'bg-white border-orange-400 text-orange-500 hover:bg-orange-50'
+                }`}
+            >
+              {effectiveProduct.inStock ? (isAdding ? 'ADD...' : 'ADD +') : 'Notify Me'}
+            </button>
+          )}
         </div>
 
         {/* Request Better Price Button (Only for Tier A) */}
-        {user?.category === 'A' && (
+        {user?.category === 'A' && !isEnquiryOnly && (
           <button 
             onClick={(e) => {
               e.preventDefault();
@@ -618,6 +697,75 @@ export default function ProductCard({
           isOpen={isPriceRequestModalOpen}
           onClose={() => setIsPriceRequestModalOpen(false)}
         />
+      )}
+
+      {isEnquiryModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsEnquiryModalOpen(false)} />
+          <div className="relative bg-white max-w-md w-full rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Product Enquiry</h3>
+            <p className="text-xs text-gray-500 mb-4">
+              Interested in <span className="font-semibold text-gray-800">{effectiveProduct.name}</span>? Enquire now to get custom quotes and mapping permissions.
+            </p>
+            <form onSubmit={handleEnquirySubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Your Name</label>
+                <input
+                  type="text"
+                  required
+                  value={enquiryForm.name}
+                  onChange={(e) => setEnquiryForm(prev => ({ ...prev, name: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Contact Phone</label>
+                <input
+                  type="tel"
+                  required
+                  value={enquiryForm.phone}
+                  onChange={(e) => setEnquiryForm(prev => ({ ...prev, phone: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email (Optional)</label>
+                <input
+                  type="email"
+                  value={enquiryForm.email}
+                  onChange={(e) => setEnquiryForm(prev => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Message / Notes</label>
+                <textarea
+                  value={enquiryForm.notes}
+                  onChange={(e) => setEnquiryForm(prev => ({ ...prev, notes: e.target.value }))}
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500"
+                  placeholder="Tell us what you need (e.g. quantity, customized requirements)..."
+                />
+              </div>
+              <div className="flex gap-3 justify-end pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsEnquiryModalOpen(false)}
+                  className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={submittingEnquiry}
+                  className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                >
+                  {submittingEnquiry ? "Submitting..." : "Submit Enquiry"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div >
   );

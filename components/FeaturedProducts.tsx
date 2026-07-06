@@ -129,6 +129,7 @@ import { featuredProducts as fallbackFeatured } from '@/lib/data';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import ProductCard from './products/ProductCard';
+import { useAuth } from '@/lib/context/AuthContext';
 
 // API Base URL
 const API_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
@@ -179,6 +180,7 @@ function mapRawToCard(raw: any) {
 // ----------------------------------
 
 export default function FeaturedProducts() {
+  const { user, token } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -192,7 +194,12 @@ export default function FeaturedProducts() {
     (async () => {
       try {
         const url = buildApiUrl("api/products?featured=true&limit=8");
-        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        const res = await fetch(url, { 
+          headers: { 
+            Accept: "application/json",
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          } 
+        });
 
         if (!res.ok) throw new Error("Failed to load");
 
@@ -218,7 +225,7 @@ export default function FeaturedProducts() {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [user, token]);
 
   const displayed = items ?? [];
 

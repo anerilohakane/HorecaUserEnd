@@ -465,6 +465,12 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   const [loading, setLoading] = useState<boolean>(initialProducts.length === 0);
   const [error, setError] = useState<string | null>(null);
 
+  // Mapped products state
+  const [productTab, setProductTab] = useState<'all' | 'mapped'>('all');
+  const [mappedIds, setMappedIds] = useState<string[]>([]);
+  const [hasMapping, setHasMapping] = useState<boolean>(false);
+  const [loadingMapping, setLoadingMapping] = useState<boolean>(false);
+
   // Filters
   const [selectedCategory, setSelectedCategory] = useState<string>(initCategory);
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>('all');
@@ -472,6 +478,41 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   const [searchQuery, setSearchQuery] = useState<string>(searchParams?.get('q') || '');
   const [sortBy, setSortBy] = useState<SortOption>('popular');
   const [showFilters, setShowFilters] = useState(false);
+
+  useEffect(() => {
+    if (user?.id) {
+      setLoadingMapping(true);
+      Promise.all([
+        fetch(`${API_BASE.replace(/\/+$/, '')}/api/customers/${user.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }).then(res => res.json().catch(() => ({ success: false }))),
+        fetch(`${API_BASE.replace(/\/+$/, '')}/api/analytics/frequent-items?userId=${user.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }).then(res => res.json().catch(() => ({ success: false })))
+      ])
+      .then(([customerData, frequentData]) => {
+        const mapped = customerData.success && customerData.data?.mappedProducts 
+          ? customerData.data.mappedProducts 
+          : [];
+        const frequent = frequentData.success && Array.isArray(frequentData.data)
+          ? frequentData.data.map((p: any) => p._id || p.id || p.productId).filter(Boolean)
+          : [];
+        
+        // Combine unique IDs
+        const combined = Array.from(new Set([
+          ...mapped.map((id: any) => String(id)),
+          ...frequent.map((id: any) => String(id))
+        ]));
+        setMappedIds(combined);
+        setHasMapping(mapped.length > 0);
+      })
+      .catch(err => console.error("Failed to load customer mappings/frequent items:", err))
+      .finally(() => setLoadingMapping(false));
+    } else {
+      setMappedIds([]);
+      setHasMapping(false);
+    }
+  }, [user?.id, token]);
 
   // Sync searchQuery when URL changes
   useEffect(() => {
@@ -481,8 +522,8 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
 
   // Fetch products
   useEffect(() => {
-    // If SSR provided products and nothing changed, skip fetch
-    if (initialProducts.length > 0 && selectedCategory === 'all' && selectedPriceRange === 'all' && selectedRating === 0) {
+    // If SSR provided products and nothing changed, skip fetch (only for guests)
+    if (!user && initialProducts.length > 0 && selectedCategory === 'all' && selectedPriceRange === 'all' && selectedRating === 0) {
       setProducts(initialProducts);
       setLoading(false);
       return;
@@ -576,7 +617,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
       controller.abort();
       clearTimeout(timeout);
     };
-  }, [selectedCategory, selectedPriceRange, selectedRating, initialProducts]);
+  }, [selectedCategory, selectedPriceRange, selectedRating, initialProducts, user, token]);
 
   // Handlers
   const onCategoryChange = (categoryId: string) => {
@@ -654,6 +695,13 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
           default: return true;
         }
       }
+
+      // Mapped products filter
+      if (user && hasMapping) {
+        const pId = String(p._id || p.id);
+        if (!mappedIds.includes(pId)) return false;
+      }
+
       return true;
     });
 
@@ -671,7 +719,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
     });
 
     return result;
-  }, [products, selectedCategory, selectedPriceRange, selectedRating, sortBy, searchQuery]);
+  }, [products, selectedCategory, selectedPriceRange, selectedRating, sortBy, searchQuery, productTab, mappedIds, hasMapping]);
 
   return (
     <div className="max-w-[1400px] mx-auto px-2 sm:px-4 py-4">
@@ -686,7 +734,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 inline-block mr-3">
-            All Products
+            {user ? 'Your Products' : 'All Products'}
           </h1>
           <span className="text-gray-500 text-lg">
             ({processedProducts.length} items)
@@ -798,7 +846,10 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <ProductCard product={product} />
+                      <ProductCard 
+                        product={product} 
+                        isEnquiryOnly={user ? !mappedIds.includes(String(product._id || product.id)) : false} 
+                      />
                     </motion.div>
                   );
                 })}

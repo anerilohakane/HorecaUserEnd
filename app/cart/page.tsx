@@ -3,6 +3,7 @@
 "use client";
 
 import { useCart } from '@/lib/context/CartContext';
+import { useAuth } from '@/lib/context/AuthContext';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CartItem from '@/components/cart/CartItem';
@@ -52,6 +53,7 @@ function mapRawToProduct(raw: any): Product | null {
 
 export default function CartPage() {
   const { items, updateQuantity, removeItem, clearCart, itemCount, subtotal } = useCart();
+  const { token } = useAuth();
   const [recommendations, setRecommendations] = useState<Product[]>([]);
   const [loadingRecs, setLoadingRecs] = useState(false);
   const [apiBase, setApiBase] = useState("");
@@ -92,7 +94,9 @@ export default function CartPage() {
           promises = categories.map(async (category) => {
             try {
               const url = `${BaseURL}/api/products?category=${encodeURIComponent(String(category))}&limit=4`;
-              const res = await fetch(url);
+              const res = await fetch(url, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              });
               if (!res.ok) return [];
               const json = await res.json();
               const list = json.products || json.data?.items || json.data || [];
@@ -121,7 +125,9 @@ export default function CartPage() {
           console.log("🔄 Triggering Fallback Recommendation...");
           try {
             const url = `${BaseURL}/api/products?limit=12`;
-            const res = await fetch(url);
+            const res = await fetch(url, {
+              headers: token ? { Authorization: `Bearer ${token}` } : {},
+            });
             if (res.ok) {
               const json = await res.json();
               const rawGeneral = (json.products || json.data?.items || json.data || []);

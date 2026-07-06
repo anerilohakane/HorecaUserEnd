@@ -229,7 +229,9 @@ export default function Header() {
     if (!query.trim()) { setSearchResults([]); setIsSearching(false); return; }
     setIsSearching(true);
     try {
-      const res = await fetch(`${API_BASE}/api/products?q=${encodeURIComponent(query)}&limit=5`);
+      const res = await fetch(`${API_BASE}/api/products?q=${encodeURIComponent(query)}&limit=5`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
       const data = await res.json();
       setSearchResults(data.success && Array.isArray(data.data?.items) ? data.data.items : []);
     } catch {

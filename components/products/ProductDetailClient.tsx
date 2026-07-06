@@ -20,6 +20,7 @@ import {
     Shield,
     RotateCcw,
     Award,
+    AlertTriangle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useCart } from '@/lib/context/CartContext';
@@ -49,6 +50,52 @@ export default function ProductDetailClient({
     const [wishlistError, setWishlistError] = useState<string | null>(null);
     const { user, token } = useAuth();
     const [shareMessage, setShareMessage] = useState<string | null>(null);
+
+    // Mapped products state
+    const [mappedIds, setMappedIds] = useState<string[]>([]);
+    const [hasMapping, setHasMapping] = useState<boolean>(false);
+    const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
+    const [submittingEnquiry, setSubmittingEnquiry] = useState(false);
+    const [enquiryForm, setEnquiryForm] = useState({
+        name: user?.name || '',
+        phone: user?.phone || '',
+        email: user?.email || '',
+        notes: ''
+    });
+
+    useEffect(() => {
+        if (user) {
+            setEnquiryForm(prev => ({
+                ...prev,
+                name: prev.name || user.name || '',
+                phone: prev.phone || user.phone || '',
+                email: prev.email || user.email || ''
+            }));
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (user?.id) {
+            const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+            fetch(`${API_BASE}/api/customers/${user.id}`, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {}
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.data) {
+                    const mapped = data.data.mappedProducts || [];
+                    setMappedIds(mapped);
+                    setHasMapping(mapped.length > 0);
+                }
+            })
+            .catch(err => console.error("Failed to load customer mapping:", err));
+        } else {
+            setMappedIds([]);
+            setHasMapping(false);
+        }
+    }, [user?.id, token]);
+
+    const isEnquiryOnly = !!(user && product && !mappedIds.includes(String(product._id || product.id)));
 
     // Price Negotiation State
     const [isPriceRequestModalOpen, setIsPriceRequestModalOpen] = useState(false);
@@ -447,8 +494,48 @@ export default function ProductDetailClient({
         fetchReviews();
     };
 
+    const handleEnquirySubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!product || submittingEnquiry) return;
+        setSubmittingEnquiry(true);
+        try {
+            const baseUrl = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+            const res = await fetch(`${baseUrl}/api/cct/enquiry`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    productName: product.name,
+                    productSku: (product as any).sku,
+                    customerName: enquiryForm.name,
+                    customerPhone: enquiryForm.phone,
+                    customerEmail: enquiryForm.email,
+                    notes: enquiryForm.notes
+                })
+            });
+            const data = await res.json();
+            if (data.success) {
+                sileo.success({ title: "Enquiry Submitted", description: "Our support team will get in touch with you shortly." });
+                setIsEnquiryModalOpen(false);
+                setEnquiryForm(prev => ({ ...prev, notes: '' }));
+            } else {
+                sileo.error({ title: "Submission Failed", description: data.error || "Failed to register enquiry." });
+            }
+        } catch (err) {
+            console.error(err);
+            sileo.error({ title: "Submission Failed", description: "A network error occurred." });
+        } finally {
+            setSubmittingEnquiry(false);
+        }
+    };
+
     const handleAddToCart = async () => {
         if (!product) return;
+
+        // Enforce mapping check
+        if (user && !mappedIds.includes(String(product._id || product.id))) {
+            sileo.error({ title: "Enquiry Only", description: "This product is only available for enquiry." });
+            return;
+        }
 
         // 1) CLIENT-SIDE STOCK CHECK
         if (!product.inStock || (product.stockQuantity !== undefined && product.stockQuantity <= 0)) {
@@ -584,6 +671,25 @@ export default function ProductDetailClient({
 
     // Reviews now fetched from API
 
+    if (user && product && mappedIds.length > 0 && !mappedIds.includes(String(product._id || product.id))) {
+        return (
+            <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
+                <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-xl max-w-md w-full text-center">
+                    <div className="w-20 h-20 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <AlertTriangle className="w-10 h-10" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-900 mb-2">Product Not Available</h2>
+                    <p className="text-slate-500 mb-8">This product is not mapped to your account and is not available for purchase or viewing.</p>
+                    <Link 
+                        href="/products"
+                        className="w-full py-4 bg-[#D97706] text-white rounded-2xl font-bold hover:bg-[#b45f06] transition-all flex items-center justify-center gap-2"
+                    >
+                        Browse Your Products
+                    </Link>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <motion.div
@@ -715,37 +821,46 @@ export default function ProductDetailClient({
                         </div>
 
                         {/* Quantity Selector */}
-                        <div>
-                            <label className="block text-sm font-medium text-[#111827] mb-2">
-                                Quantity
-                            </label>
-                            <div className="flex items-center gap-4">
-                                <div className="flex items-center border border-gray-300 rounded-full">
-                                    <button
-                                        onClick={decrementQuantity}
-                                        className="p-3 hover:bg-gray-100 transition-colors rounded-l-full"
-                                        disabled={quantity <= product.minOrder}
-                                    >
-                                        <Minus size={18} />
-                                    </button>
-                                    <span className="px-6 font-semibold">{quantity}</span>
-                                    <button
-                                        onClick={incrementQuantity}
-                                        className="p-3 hover:bg-gray-100 transition-colors rounded-r-full"
-                                    >
-                                        <Plus size={18} />
-                                    </button>
+                        {!isEnquiryOnly && (
+                            <div>
+                                <label className="block text-sm font-medium text-[#111827] mb-2">
+                                    Quantity
+                                </label>
+                                <div className="flex items-center gap-4">
+                                    <div className="flex items-center border border-gray-300 rounded-full">
+                                        <button
+                                            onClick={decrementQuantity}
+                                            className="p-3 hover:bg-gray-100 transition-colors rounded-l-full"
+                                            disabled={quantity <= product.minOrder}
+                                        >
+                                            <Minus size={18} />
+                                        </button>
+                                        <span className="px-6 font-semibold">{quantity}</span>
+                                        <button
+                                            onClick={incrementQuantity}
+                                            className="p-3 hover:bg-gray-100 transition-colors rounded-r-full"
+                                        >
+                                            <Plus size={18} />
+                                        </button>
+                                    </div>
+                                    <span className="text-gray-600">
+                                        Total: <span className="font-bold text-[#111827]">₹{totalPrice.toFixed(0)}</span>
+                                    </span>
                                 </div>
-                                <span className="text-gray-600">
-                                    Total: <span className="font-bold text-[#111827]">₹{totalPrice.toFixed(0)}</span>
-                                </span>
                             </div>
-                        </div>
+                        )}
 
                         {/* Action Buttons */}
                         <div className="flex flex-col sm:flex-row gap-3">
                             <div className="flex-1 flex gap-3">
-                                {product.inStock ? (
+                                {isEnquiryOnly ? (
+                                    <button
+                                        onClick={() => setIsEnquiryModalOpen(true)}
+                                        className="flex-1 py-4 px-6 rounded-xl border-2 border-blue-600 bg-blue-600 text-white font-bold hover:bg-blue-700 transition-colors flex items-center justify-center gap-2 uppercase tracking-wide"
+                                    >
+                                        Enquire Now
+                                    </button>
+                                ) : product.inStock ? (
                                     <button
                                         onClick={handleAddToCart}
                                         disabled={isAdding}
@@ -767,7 +882,7 @@ export default function ProductDetailClient({
                                     </button>
                                 )}
 
-                                {user && eligibleTiers.includes(user.category || 'A') && (
+                                {user && !isEnquiryOnly && eligibleTiers.includes(user.category || 'A') && (
                                     <button
                                         onClick={() => setIsPriceRequestModalOpen(true)}
                                         className="flex-1 py-4 px-4 rounded-xl border-2 border-slate-900 bg-slate-900 text-white font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 uppercase tracking-wide hover:bg-slate-800"
@@ -959,6 +1074,75 @@ export default function ProductDetailClient({
                     product={product}
                     currentPrice={displayPrice}
                 />
+
+                {isEnquiryModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+                        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsEnquiryModalOpen(false)} />
+                        <div className="relative bg-white max-w-md w-full rounded-2xl p-6 shadow-2xl animate-in zoom-in-95 duration-200">
+                            <h3 className="text-lg font-bold text-gray-900 mb-2">Product Enquiry</h3>
+                            <p className="text-xs text-gray-500 mb-4">
+                                Interested in <span className="font-semibold text-gray-800">{product.name}</span>? Enquire now to get custom quotes and mapping permissions.
+                            </p>
+                            <form onSubmit={handleEnquirySubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Your Name</label>
+                                    <input
+                                        type="text"
+                                        required
+                                        value={enquiryForm.name}
+                                        onChange={(e) => setEnquiryForm(prev => ({ ...prev, name: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Contact Phone</label>
+                                    <input
+                                        type="tel"
+                                        required
+                                        value={enquiryForm.phone}
+                                        onChange={(e) => setEnquiryForm(prev => ({ ...prev, phone: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Email (Optional)</label>
+                                    <input
+                                        type="email"
+                                        value={enquiryForm.email}
+                                        onChange={(e) => setEnquiryForm(prev => ({ ...prev, email: e.target.value }))}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Message / Notes</label>
+                                    <textarea
+                                        value={enquiryForm.notes}
+                                        onChange={(e) => setEnquiryForm(prev => ({ ...prev, notes: e.target.value }))}
+                                        rows={3}
+                                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:border-orange-500"
+                                        placeholder="Tell us what you need (e.g. quantity, customized requirements)..."
+                                    />
+                                </div>
+                                <div className="flex gap-3 justify-end pt-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEnquiryModalOpen(false)}
+                                        className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={submittingEnquiry}
+                                        className="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-xs font-bold transition-colors disabled:opacity-50"
+                                    >
+                                        {submittingEnquiry ? "Submitting..." : "Submit Enquiry"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
         </motion.div>
     );
