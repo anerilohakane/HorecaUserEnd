@@ -183,6 +183,42 @@ export default function FeaturedProducts() {
   const { user, token } = useAuth();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mappedIds, setMappedIds] = useState<string[]>([]);
+
+  // -------------------------------
+  // 📌 LOAD CUSTOMER MAPPINGS
+  // -------------------------------
+  useEffect(() => {
+    if (user?.id) {
+      const base = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").trim();
+      Promise.all([
+        fetch(`${base.replace(/\/+$/, '')}/api/customers/${user.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }).then(res => res.json().catch(() => ({ success: false }))),
+        fetch(`${base.replace(/\/+$/, '')}/api/analytics/frequent-items?userId=${user.id}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {}
+        }).then(res => res.json().catch(() => ({ success: false })))
+      ])
+      .then(([customerData, frequentData]) => {
+        const mapped = customerData.success && customerData.data?.mappedProducts 
+          ? customerData.data.mappedProducts 
+          : [];
+        const frequent = frequentData.success && Array.isArray(frequentData.data)
+          ? frequentData.data.map((p: any) => p._id || p.id || p.productId).filter(Boolean)
+          : [];
+        
+        // Combine unique IDs
+        const combined = Array.from(new Set([
+          ...mapped.map((id: any) => String(id)),
+          ...frequent.map((id: any) => String(id))
+        ]));
+        setMappedIds(combined);
+      })
+      .catch(err => console.error("Failed to load customer mappings/frequent items:", err));
+    } else {
+      setMappedIds([]);
+    }
+  }, [user?.id, token]);
 
   // -------------------------------
   // 📌 LOAD FEATURED PRODUCTS
@@ -213,10 +249,10 @@ export default function FeaturedProducts() {
 
         const mapped = list.map(mapRawToCard).filter(Boolean);
 
-        if (mounted) setItems(mapped.length > 0 ? mapped : fallbackFeatured);
+        if (mounted) setItems(mapped.length > 0 ? mapped : (user ? [] : fallbackFeatured));
       } catch (err) {
         console.error("Featured fetch error", err);
-        if (mounted) setItems(fallbackFeatured);
+        if (mounted) setItems(user ? [] : fallbackFeatured);
       } finally {
         if (mounted) setLoading(false);
       }
@@ -228,6 +264,14 @@ export default function FeaturedProducts() {
   }, [user, token]);
 
   const displayed = items ?? [];
+  console.log("🔍 [FeaturedProducts DEBUG] mappedIds:", mappedIds);
+  console.log("🔍 [FeaturedProducts DEBUG] items:", displayed.map(p => ({ 
+    name: p.name, 
+    id: p.id, 
+    _id: p._id, 
+    rawId: p.productId,
+    isMapped: mappedIds.includes(String(p._id || p.id)) 
+  })));
 
   return (
     <section className="py-14 bg-[#FAFAF7]">
@@ -255,7 +299,11 @@ export default function FeaturedProducts() {
               <div key={i} className="aspect-[3/4] bg-gray-100 rounded-2xl animate-pulse" />
             ))
             : displayed.map((product) => (
-              <ProductCard key={product.id} product={product} />
+              <ProductCard 
+                key={product.id} 
+                product={product} 
+                isEnquiryOnly={user ? !mappedIds.includes(String(product._id || product.id)) : false}
+              />
             ))}
         </div>
 

@@ -704,7 +704,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
       }
 
       // Mapped products filter
-      if (user && hasMapping) {
+      if (user && productTab === 'mapped') {
         const pId = String(p._id || p.id);
         if (!mappedIds.includes(pId)) return false;
       }
