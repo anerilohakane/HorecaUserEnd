@@ -66,6 +66,7 @@ const ProfilePage = () => {
 
     // const [orders, setOrders] = useState([]);
     const [orders, setOrders] = useState<any[]>([]);
+    const [dispatchRecordsMap, setDispatchRecordsMap] = useState<Record<string, any>>({});
     const [ordersLoading, setOrdersLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('personal');
     const [expandedModule, setExpandedModule] = useState<string | null>(null);
@@ -867,6 +868,34 @@ const ProfilePage = () => {
 
 
                 setOrders(ordersWithImages);
+
+                // Fetch dispatch records for these orders
+                try {
+                    const orderIds = ordersWithImages.map((o: any) => o.orderNumber).filter(Boolean);
+                    if (orderIds.length > 0) {
+                        const chunkedIds = [];
+                        for (let i = 0; i < orderIds.length; i += 50) {
+                            chunkedIds.push(orderIds.slice(i, i + 50));
+                        }
+                        const allDispatch = [];
+                        for (const chunk of chunkedIds) {
+                            const dispRes = await fetch(`${API_BASE}/api/order-dispatch?orderIds=${chunk.join(',')}`);
+                            if (dispRes.ok) {
+                                const dispJson = await dispRes.json();
+                                if (dispJson.success && dispJson.records) {
+                                    allDispatch.push(...dispJson.records);
+                                }
+                            }
+                        }
+                        const dispMap: Record<string, any> = {};
+                        allDispatch.forEach((r: any) => {
+                            dispMap[r.orderId] = r;
+                        });
+                        setDispatchRecordsMap(dispMap);
+                    }
+                } catch (e) {
+                    console.error('Failed to fetch dispatch records:', e);
+                }
             } else {
                 console.warn("⚠ Unexpected ORDER format:", json);
                 setOrders([]);
@@ -1565,6 +1594,41 @@ const ProfilePage = () => {
                                                                 </div>
                                                             </div>
                                                         </div>
+
+                                                        {/* Dispatch Progress Box */}
+                                                        {(() => {
+                                                            const oId = String(ord.id || ord._id || ord.orderId);
+                                                            const dispRecord = dispatchRecordsMap[oId];
+                                                            if (!dispRecord) return null;
+                                                            return (
+                                                                <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
+                                                                    <div className="flex items-center justify-between text-xs mb-2">
+                                                                        <span className="font-bold text-gray-500 uppercase tracking-wider">Dispatch Progress</span>
+                                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase border ${dispRecord.status === 'partial'
+                                                                            ? 'bg-orange-50 text-orange-700 border-orange-200'
+                                                                            : 'bg-green-50 text-green-700 border-green-200'
+                                                                            }`}>
+                                                                            {dispRecord.status === 'partial' ? 'Partial Dispatch' : 'Fully Dispatched'}
+                                                                        </span>
+                                                                    </div>
+                                                                    <div className="flex items-center justify-between text-xs text-gray-700 font-semibold mb-2">
+                                                                        <span>📦 Dispatched: {dispRecord.dispatchedQuantity} / {dispRecord.totalQuantity}</span>
+                                                                        <span className="text-gray-400">⏳ Pending: {dispRecord.pendingQuantity}</span>
+                                                                    </div>
+                                                                    {dispRecord.totalQuantity > 0 && (
+                                                                        <div className="w-full bg-gray-200/70 rounded-full h-2 overflow-hidden mb-1">
+                                                                            <div
+                                                                                className={`h-2 rounded-full transition-all duration-300 ${dispRecord.status === 'partial' ? 'bg-orange-500' : 'bg-green-500'}`}
+                                                                                style={{ width: `${(dispRecord.dispatchedQuantity / dispRecord.totalQuantity) * 100}%` }}
+                                                                            />
+                                                                        </div>
+                                                                    )}
+                                                                    {dispRecord.status === 'partial' && dispRecord.reason && (
+                                                                        <p className="text-[10px] text-orange-600 font-bold italic truncate mt-1">Reason: {dispRecord.reason}</p>
+                                                                    )}
+                                                                </div>
+                                                            );
+                                                        })()}
 
                                                         {/* Shipping Address */}
                                                         {ord.shippingAddress && (

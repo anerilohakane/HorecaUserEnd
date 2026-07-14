@@ -302,7 +302,7 @@ export default function FeaturedProducts() {
               <ProductCard 
                 key={product.id} 
                 product={product} 
-                isEnquiryOnly={user ? !mappedIds.includes(String(product._id || product.id)) : false}
+                isEnquiryOnly={user ? ((user.category || 'C') === 'C' ? !mappedIds.includes(String(product._id || product.id)) : false) : false}
               />
             ))}
         </div>

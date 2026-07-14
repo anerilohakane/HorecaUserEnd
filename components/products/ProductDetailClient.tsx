@@ -95,7 +95,7 @@ export default function ProductDetailClient({
         }
     }, [user?.id, token]);
 
-    const isEnquiryOnly = !!(user && product && !mappedIds.includes(String(product._id || product.id)));
+    const isEnquiryOnly = !!(user && (user.category || 'C') === 'C' && product && !mappedIds.includes(String(product._id || product.id)));
 
     // Price Negotiation State
     const [isPriceRequestModalOpen, setIsPriceRequestModalOpen] = useState(false);
@@ -532,7 +532,7 @@ export default function ProductDetailClient({
         if (!product) return;
 
         // Enforce mapping check
-        if (user && !mappedIds.includes(String(product._id || product.id))) {
+        if (user && (user.category || 'C') === 'C' && !mappedIds.includes(String(product._id || product.id))) {
             sileo.error({ title: "Enquiry Only", description: "This product is only available for enquiry." });
             return;
         }
@@ -671,7 +671,7 @@ export default function ProductDetailClient({
 
     // Reviews now fetched from API
 
-    if (user && product && mappedIds.length > 0 && !mappedIds.includes(String(product._id || product.id))) {
+    if (user && (user.category || 'C') === 'C' && product && mappedIds.length > 0 && !mappedIds.includes(String(product._id || product.id))) {
         return (
             <div className="min-h-screen bg-slate-50 flex items-center justify-center p-8">
                 <div className="bg-white p-8 rounded-3xl border border-gray-200 shadow-xl max-w-md w-full text-center">

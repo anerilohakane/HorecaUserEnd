@@ -704,7 +704,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
       }
 
       // Mapped products filter
-      if (user && productTab === 'mapped') {
+      if (user && (user.category || 'C') === 'C' && productTab === 'mapped') {
         const pId = String(p._id || p.id);
         if (!mappedIds.includes(pId)) return false;
       }
@@ -737,8 +737,8 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
         <span className="text-gray-800">Products</span>
       </div>
 
-      {/* Product Tabs (Only if logged in) */}
-      {user && (
+      {/* Product Tabs (Only if logged in and Category C) */}
+      {user && (user.category || 'C') === 'C' && (
         <div className="flex border-b-2 border-slate-100 mb-8 gap-8">
           <button
             onClick={() => setProductTab('mapped')}
@@ -767,7 +767,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 inline-block mr-3">
-            {productTab === 'mapped' ? 'Your Products' : 'All Products'}
+            {user && (user.category || 'C') !== 'C' ? 'All Products' : (productTab === 'mapped' ? 'Your Products' : 'All Products')}
           </h1>
           <span className="text-gray-500 text-lg">
             ({processedProducts.length} items)
@@ -881,7 +881,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
                     >
                       <ProductCard 
                         product={product} 
-                        isEnquiryOnly={user ? !mappedIds.includes(String(product._id || product.id)) : false} 
+                        isEnquiryOnly={user ? ((user.category || 'C') === 'C' ? !mappedIds.includes(String(product._id || product.id)) : false) : false} 
                       />
                     </motion.div>
                   );
