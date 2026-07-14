@@ -1597,35 +1597,98 @@ const ProfilePage = () => {
 
                                                         {/* Dispatch Progress Box */}
                                                         {(() => {
-                                                            const oId = String(ord.id || ord._id || ord.orderId);
+                                                            const oId = String(ord.orderNumber || ord.id || ord._id);
                                                             const dispRecord = dispatchRecordsMap[oId];
                                                             if (!dispRecord) return null;
+                                                            
+                                                            const isRationalized = dispRecord.pendingQuantity > 0 || dispRecord.status === 'partial';
+                                                            
                                                             return (
-                                                                <div className="px-6 py-4 bg-gray-50 border-b border-gray-100">
-                                                                    <div className="flex items-center justify-between text-xs mb-2">
-                                                                        <span className="font-bold text-gray-500 uppercase tracking-wider">Dispatch Progress</span>
-                                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase border ${dispRecord.status === 'partial'
-                                                                            ? 'bg-orange-50 text-orange-700 border-orange-200'
-                                                                            : 'bg-green-50 text-green-700 border-green-200'
-                                                                            }`}>
-                                                                            {dispRecord.status === 'partial' ? 'Partial Dispatch' : 'Fully Dispatched'}
-                                                                        </span>
-                                                                    </div>
-                                                                    <div className="flex items-center justify-between text-xs text-gray-700 font-semibold mb-2">
-                                                                        <span>📦 Dispatched: {dispRecord.dispatchedQuantity} / {dispRecord.totalQuantity}</span>
-                                                                        <span className="text-gray-400">⏳ Pending: {dispRecord.pendingQuantity}</span>
-                                                                    </div>
-                                                                    {dispRecord.totalQuantity > 0 && (
-                                                                        <div className="w-full bg-gray-200/70 rounded-full h-2 overflow-hidden mb-1">
-                                                                            <div
-                                                                                className={`h-2 rounded-full transition-all duration-300 ${dispRecord.status === 'partial' ? 'bg-orange-500' : 'bg-green-500'}`}
-                                                                                style={{ width: `${(dispRecord.dispatchedQuantity / dispRecord.totalQuantity) * 100}%` }}
-                                                                            />
+                                                                <div className="px-6 py-4 bg-orange-50/50 border-b border-orange-100 flex flex-col gap-3">
+                                                                    
+                                                                    {/* Rationalization Notification Alert */}
+                                                                    {isRationalized && (
+                                                                        <div className="bg-orange-100 border-l-4 border-orange-500 p-3 rounded-r-lg shadow-sm">
+                                                                            <div className="flex items-start gap-2">
+                                                                                <AlertCircle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
+                                                                                <div>
+                                                                                    <h4 className="text-sm font-bold text-orange-800">Order Rationalized</h4>
+                                                                                    <p className="text-xs text-orange-700 mt-1">
+                                                                                        Your order quantities have been adjusted by our Supply Chain Management team.
+                                                                                        {dispRecord.reason && <span className="font-semibold block mt-0.5">Reason: {dispRecord.reason}</span>}
+                                                                                    </p>
+                                                                                </div>
+                                                                            </div>
                                                                         </div>
                                                                     )}
-                                                                    {dispRecord.status === 'partial' && dispRecord.reason && (
-                                                                        <p className="text-[10px] text-orange-600 font-bold italic truncate mt-1">Reason: {dispRecord.reason}</p>
-                                                                    )}
+
+                                                                    <div className="bg-white rounded-lg p-4 border border-gray-100 shadow-sm">
+                                                                        <div className="flex items-center justify-between text-xs mb-3">
+                                                                            <span className="font-bold text-gray-600 uppercase tracking-wider flex items-center gap-1.5"><span className="w-4 h-4 text-blue-500"/> Dispatch Status</span>
+                                                                            <span className={`px-2.5 py-1 rounded text-[10px] font-black uppercase border tracking-wide ${dispRecord.status === 'partial'
+                                                                                ? 'bg-orange-50 text-orange-700 border-orange-200'
+                                                                                : dispRecord.status === 'fully_dispatched' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                                                }`}>
+                                                                                {dispRecord.status === 'partial' ? 'Partial Dispatch' : dispRecord.status === 'fully_dispatched' ? 'Fully Dispatched' : 'Pending Dispatch'}
+                                                                            </span>
+                                                                        </div>
+                                                                        
+                                                                        <div className="flex flex-col gap-1.5 mb-3 text-xs">
+                                                                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                                                                <span className="font-semibold text-gray-600">📦 Currently Dispatching:</span>
+                                                                                <span className="font-bold text-gray-800">{dispRecord.dispatchedQuantity} items</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                                                                <span className="font-semibold text-gray-500">⏳ Pending Items:</span>
+                                                                                <span className="font-bold text-gray-600">{dispRecord.pendingQuantity} items</span>
+                                                                            </div>
+                                                                            <div className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                                                                                <span className="font-semibold text-gray-500">📋 Original Order:</span>
+                                                                                <span className="font-bold text-gray-600">{dispRecord.totalQuantity} items</span>
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        {dispRecord.items && dispRecord.items.length > 0 && (
+                                                                            <div className="mt-3 mb-4">
+                                                                                <h5 className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-2">Rationalized Item Breakdown</h5>
+                                                                                <div className="space-y-1.5">
+                                                                                    {dispRecord.items.map((item: any, idx: number) => (
+                                                                                        <div key={idx} className={`rounded p-2.5 text-xs border flex flex-col gap-1.5 ${item.pendingQty > 0 ? 'bg-orange-50/50 border-orange-100' : 'bg-gray-50 border-gray-100'}`}>
+                                                                                            <div className="flex justify-between font-semibold text-gray-700 items-start gap-2">
+                                                                                                <span className="truncate">{item.name}</span>
+                                                                                                <span className="whitespace-nowrap bg-white px-2 py-0.5 rounded shadow-sm border border-gray-100 text-blue-700">
+                                                                                                    {item.dispatchQty} / {item.originalQty}
+                                                                                                </span>
+                                                                                            </div>
+                                                                                            {item.pendingQty > 0 && (
+                                                                                                <div className="flex items-center justify-between mt-0.5">
+                                                                                                    <span className="text-[10px] text-orange-700 font-bold bg-orange-100 px-1.5 py-0.5 rounded border border-orange-200">
+                                                                                                        ⚠️ {item.pendingQty} Pending
+                                                                                                    </span>
+                                                                                                    {dispRecord.reason && (
+                                                                                                        <span className="text-[10px] text-orange-600/80 italic truncate pl-2 max-w-[60%] text-right">
+                                                                                                            ({dispRecord.reason})
+                                                                                                        </span>
+                                                                                                    )}
+                                                                                                </div>
+                                                                                            )}
+                                                                                        </div>
+                                                                                    ))}
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                        
+                                                                        {dispRecord.totalQuantity > 0 && (
+                                                                            <div className="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+                                                                                <div
+                                                                                    className={`h-full rounded-full transition-all duration-500 relative ${dispRecord.status === 'partial' ? 'bg-orange-500' : dispRecord.status === 'fully_dispatched' ? 'bg-green-500' : 'bg-blue-500'}`}
+                                                                                    style={{ width: `${(dispRecord.dispatchedQuantity / dispRecord.totalQuantity) * 100}%` }}
+                                                                                >
+                                                                                    <div className="absolute top-0 right-0 bottom-0 left-0 bg-white/20 animate-pulse"></div>
+                                                                                </div>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             );
                                                         })()}
