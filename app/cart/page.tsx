@@ -76,24 +76,37 @@ export default function CartPage() {
       try {
         console.log("🛠️ Starting Recommendation Fetch...");
 
-        // Extract unique categories from cart items safely handling object/string
-        const names = items.map(item => {
+        const categoryIds = items.map(item => {
           const cat = item.product.category as any;
           if (!cat) return null;
           if (typeof cat === 'string') return cat;
+          if (typeof cat === 'object' && cat._id) return cat._id;
+          if (typeof cat === 'object' && cat.id) return cat.id;
           if (typeof cat === 'object' && cat.name) return cat.name;
           return null;
         }).filter(Boolean);
 
-        const categories = [...new Set(names)];
+        const categories = [...new Set(categoryIds)];
         console.log("📂 Extracted Categories:", categories);
 
-        // 1. Fetch products for each category
+        // Extract meaningful keywords from cart item names for cross-category relation
+        const keywords = items.map(item => {
+          const words = (item.product.name || '').split(' ');
+          // Find the first meaningful word (longer than 3 chars) to use as search query
+          const keyWord = words.find(w => w.length > 3);
+          return keyWord || words[0];
+        }).filter(Boolean);
+        const uniqueKeywords = [...new Set(keywords)].slice(0, 3);
+        console.log("🔍 Extracted Keywords for Cross-Category Search:", uniqueKeywords);
+
+        // 1. Fetch products for each category AND by keywords
         let promises: Promise<any>[] = [];
+        
+        // Category promises
         if (categories.length > 0) {
-          promises = categories.map(async (category) => {
+          promises.push(...categories.map(async (category) => {
             try {
-              const url = `${BaseURL}/api/products?category=${encodeURIComponent(String(category))}&limit=4`;
+              const url = `${BaseURL}/api/products?categoryId=${encodeURIComponent(String(category))}&limit=4`;
               const res = await fetch(url, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {},
               });
@@ -104,7 +117,25 @@ export default function CartPage() {
             } catch (e) {
               return [];
             }
-          });
+          }));
+        }
+
+        // Keyword promises (Cross-category)
+        if (uniqueKeywords.length > 0) {
+          promises.push(...uniqueKeywords.map(async (kw) => {
+            try {
+              const url = `${BaseURL}/api/products?q=${encodeURIComponent(String(kw))}&limit=4`;
+              const res = await fetch(url, {
+                headers: token ? { Authorization: `Bearer ${token}` } : {},
+              });
+              if (!res.ok) return [];
+              const json = await res.json();
+              const list = json.products || json.data?.items || json.data || [];
+              return Array.isArray(list) ? list : [];
+            } catch (e) {
+              return [];
+            }
+          }));
         }
 
         const results = await Promise.all(promises);
@@ -112,7 +143,7 @@ export default function CartPage() {
         // IMPORTANT: Map raw data to Product objects to ensure `id` exists before filtering
         let fetchedProducts = results.flat().map(mapRawToProduct).filter((p): p is Product => p !== null);
 
-        // 2. Filter out products that are already in the cart
+        // 2. Filter out products that are already in the cart and deduplicate
         const cartProductIds = new Set(items.map(item => item.product?.id).filter(Boolean));
         let filtered = fetchedProducts
           .filter((p) => !cartProductIds.has(p.id))
