@@ -26,6 +26,7 @@ interface AuthContextType {
   refreshUser: () => Promise<void>;
   isAuthenticated: boolean;
   isLoading: boolean;
+  negotiationTiers: string[];
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [negotiationTiers, setNegotiationTiers] = useState<string[]>(['A']);
 
   const refreshUser = async () => {
     try {
@@ -50,13 +52,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     async function loadSession() {
       try {
         setIsLoading(true);
-        const { token, user } = await getAuthSession();
-        if (token && user) {
-          setUser(user);
-          setToken(token);
+        const [sessionRes, settingsRes] = await Promise.allSettled([
+          getAuthSession(),
+          fetch(`${API_BASE}/api/settings?key=priceNegotiationEligibleTiers`).then(res => res.json())
+        ]);
+
+        if (sessionRes.status === 'fulfilled') {
+          const { token, user } = sessionRes.value;
+          if (token && user) {
+            setUser(user);
+            setToken(token);
+          }
+        }
+
+        if (settingsRes.status === 'fulfilled') {
+          const json = settingsRes.value;
+          if (json.success && json.data && Array.isArray(json.data)) {
+            setNegotiationTiers(json.data);
+          }
         }
       } catch (err) {
-        console.error("Failed to load session", err);
+        console.error("Failed to load session or settings", err);
       } finally {
         setIsLoading(false);
       }
@@ -192,6 +208,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshUser,
         isAuthenticated: !!user,
         isLoading,
+        negotiationTiers,
       }}
     >
       {children}

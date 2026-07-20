@@ -80,7 +80,7 @@ export default function ProductCard({
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
   const [submittingEnquiry, setSubmittingEnquiry] = useState(false);
   
-  const { user, token } = useAuth();
+  const { user, token, negotiationTiers } = useAuth();
 
   const [enquiryForm, setEnquiryForm] = useState({
     name: user?.name || '',
@@ -663,8 +663,8 @@ export default function ProductCard({
           )}
         </div>
 
-        {/* Request Better Price Button (Only for Tier A) */}
-        {user?.category === 'A' && !isEnquiryOnly && (
+        {/* Request Better Price Button (Based on dynamic negotiation tiers) */}
+        {user?.category && negotiationTiers?.includes(user.category) && !isEnquiryOnly && (
           <button 
             onClick={(e) => {
               e.preventDefault();

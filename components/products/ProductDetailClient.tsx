@@ -48,7 +48,7 @@ export default function ProductDetailClient({
     const [isWishlisting, setIsWishlisting] = useState(false);
     const [isInWishlist, setIsInWishlist] = useState(false);
     const [wishlistError, setWishlistError] = useState<string | null>(null);
-    const { user, token } = useAuth();
+    const { user, token, negotiationTiers } = useAuth();
     const [shareMessage, setShareMessage] = useState<string | null>(null);
 
     // Mapped products state
@@ -99,7 +99,6 @@ export default function ProductDetailClient({
 
     // Price Negotiation State
     const [isPriceRequestModalOpen, setIsPriceRequestModalOpen] = useState(false);
-    const [eligibleTiers, setEligibleTiers] = useState<string[]>([]);
     
     // Reviews State
     const [reviews, setReviews] = useState<Review[]>([]);
@@ -180,24 +179,7 @@ export default function ProductDetailClient({
         checkWishlist();
     }, [product?.id]);
 
-    // Fetch Eligible Tiers for Negotiation
-    useEffect(() => {
-        const fetchTiers = async () => {
-            try {
-                const base = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
-                const res = await fetch(`${base}/api/settings?key=priceNegotiationEligibleTiers`);
-                const json = await res.json();
-                if (json.success && json.data) {
-                    setEligibleTiers(json.data);
-                } else {
-                    setEligibleTiers(['A']); // Default to Tier A
-                }
-            } catch (err) {
-                console.error("Failed to fetch eligible tiers:", err);
-            }
-        };
-        fetchTiers();
-    }, []);
+
 
     const handleWishlistToggle = async () => {
         if (!product?.id || isWishlisting) return;
@@ -882,7 +864,7 @@ export default function ProductDetailClient({
                                     </button>
                                 )}
 
-                                {user && !isEnquiryOnly && eligibleTiers.includes(user.category || 'A') && (
+                                {user && !isEnquiryOnly && negotiationTiers.includes(user.category || 'A') && (
                                     <button
                                         onClick={() => setIsPriceRequestModalOpen(true)}
                                         className="flex-1 py-4 px-4 rounded-xl border-2 border-slate-900 bg-slate-900 text-white font-bold transition-all shadow-sm hover:shadow-md flex items-center justify-center gap-2 uppercase tracking-wide hover:bg-slate-800"
