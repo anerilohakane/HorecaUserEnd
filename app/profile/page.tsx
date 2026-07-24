@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import Link from 'next/link';
 import {
     User,
     Mail,
@@ -39,7 +40,7 @@ import { RotateCw } from 'lucide-react';
 import { sileo } from 'sileo';
 import Footer from '@/components/Footer';
 import RaiseGrievanceModal from '@/components/RaiseGrievanceModal';
-import { clearOrderSession } from '@/app/actions/session';
+import { clearOrderSession, setAuthSession } from '@/app/actions/session';
 import { getCurrentLocation } from '@/lib/utils/location';
 
 const formatToIST = (dateString: string | Date) => {
@@ -103,6 +104,16 @@ const ProfilePage = () => {
     const [creditNotes, setCreditNotes] = useState<any[]>([]);
     const [loadingCNs, setLoadingCNs] = useState<boolean>(false);
 
+    // Advance Payment State
+    const [topUpAmount, setTopUpAmount] = useState<string>('5000');
+
+    const handleTopUpClick = () => {
+        sileo.warning({
+            title: "Payment Gateway Integration Pending",
+            description: "Payment gateway integration is pending. Self-service advance top-up will be enabled once payment gateway is connected."
+        });
+    };
+
     useEffect(() => {
         if (activeTab === "orders" && authUser) {
             const fetchGrievancesAndReturns = async () => {
@@ -152,7 +163,7 @@ const ProfilePage = () => {
             };
             fetchGrievancesAndReturns();
         }
-    }, [activeTab, authUser]);
+    }, [activeTab, authUser?.id || (authUser as any)?._id]);
 
     useEffect(() => {
         if (activeTab === "credit_notes" && authUser) {
@@ -179,7 +190,7 @@ const ProfilePage = () => {
             };
             fetchCreditNotes();
         }
-    }, [activeTab, authUser, token]);
+    }, [activeTab, authUser?.id || (authUser as any)?._id, token]);
 
     const handleRaiseGrievance = (orderId: string) => {
         setGrievanceOrderId(orderId);
@@ -537,6 +548,7 @@ const ProfilePage = () => {
 
 
     /* ------------------------------------------------------------
+    /* ------------------------------------------------------------
        🔥 FETCH PROFILE
     ------------------------------------------------------------- */
     useEffect(() => {
@@ -547,13 +559,13 @@ const ProfilePage = () => {
                 return;
             }
 
-            // Sync local user state with authUser if needed
-            setUser((prev: any) => ({ ...prev, ...authUser }));
-            fetchSavedItemsCount();
-
             const userId = authUser.id || (authUser as any)._id;
             const phone = authUser.phone;
             const tokenValue = token;
+
+            // Sync local user state with authUser if needed
+            setUser((prev: any) => ({ ...prev, ...authUser }));
+            fetchSavedItemsCount();
 
             // List of candidate URLs to try if one fails with 404
             const candidateUrls = [
@@ -565,13 +577,16 @@ const ProfilePage = () => {
                 `${API_BASE}/api/customer?userId=${userId}`, // 6. Singular (Query param 'userId')
             ];
 
-            // If we have a phone number, try searching by it too
             if (phone) {
                 candidateUrls.push(`${API_BASE}/api/customers?phone=${encodeURIComponent(phone)}`);
             }
 
             console.log("🌍 [Profile] Starting robust profile fetch for User:", userId, "Phone:", phone);
-            setLoading(true);
+            
+            // Only set full page loading if user state isn't initialized yet
+            if (!user) {
+                setLoading(true);
+            }
 
             try {
                 // Call stats fetching functions (independent of profile fetch)
@@ -609,12 +624,11 @@ const ProfilePage = () => {
                             if (userData && typeof userData === 'object') {
                                 // 🛡️ SECURITY GUARD: Verify ID
                                 const fetchedId = userData._id || userData.id;
-                                if (fetchedId && authUser.id && fetchedId !== authUser.id) {
-                                    console.warn(`⚠️ [Profile] Skipping incorrect session data from ${url}. Expected: ${authUser.id}, received: ${fetchedId}`);
+                                if (fetchedId && userId && fetchedId !== userId) {
+                                    console.warn(`⚠️ [Profile] Skipping incorrect session data from ${url}. Expected: ${userId}, received: ${fetchedId}`);
                                     continue; // Try next endpoint
                                 }
 
-                                // Matches or is ambiguous (only phone match)
                                 validatedUserData = userData;
                                 successResponse = rawData;
                                 break; // FOUND VALID DATA
@@ -631,13 +645,15 @@ const ProfilePage = () => {
 
                 if (validatedUserData) {
                     console.log("✅ [Profile] Successfully validated user data:", validatedUserData);
-                    // MERGE strategy: Preserve existing name/email if backend record is sparse
-                    setUser((prev: any) => ({
-                        ...prev,
+                    const mergedUser = {
+                        ...authUser,
                         ...validatedUserData,
-                        id: authUser.id,   // Ensure ID/Phone are never overwritten by accident
-                        phone: authUser.phone
-                    }));
+                        id: userId,
+                        phone: authUser.phone,
+                        advanceBalance: validatedUserData.advanceBalance ?? authUser?.advanceBalance ?? 0,
+                        cnBalance: validatedUserData.cnBalance ?? authUser?.cnBalance ?? 0
+                    };
+                    setUser(mergedUser);
 
                     setProfileForm((prev: any) => ({
                         ...prev,
@@ -649,7 +665,6 @@ const ProfilePage = () => {
 
                 if (!validatedUserData && isAuthenticated) {
                     console.error("🔥 [Profile] ALL endpoints failed. Last error:", lastErrorText);
-                    sileo.error({ title: "Unable to load profile", description: "The server could not find your customer record. Please contact support." });
                 }
             } catch (error) {
                 console.error("🔥 [Profile] CRITICAL ERROR in loadProfile:", error);
@@ -660,7 +675,7 @@ const ProfilePage = () => {
         };
 
         loadProfile();
-    }, [isAuthenticated, authUser, token, activeTab]);
+    }, [isAuthenticated, authUser?.id || (authUser as any)?._id, token]);
 
 
 
@@ -1069,7 +1084,7 @@ const ProfilePage = () => {
                                     </div>
 
                                     {/* Stats */}
-                                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-3 gap-6 text-center">
+                                    <div className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
                                         <div>
                                             <p className="text-2xl font-bold text-gray-900">{orders.length}</p>
                                             <p className="text-sm text-gray-600">Orders</p>
@@ -1084,6 +1099,18 @@ const ProfilePage = () => {
                                         <div>
                                             <p className="text-2xl font-bold text-gray-900">{reviewsCount}</p>
                                             <p className="text-sm text-gray-600">Reviews</p>
+                                        </div>
+
+                                        <div 
+                                            onClick={() => setActiveTab("advance_payment")} 
+                                            className="cursor-pointer bg-amber-50 hover:bg-amber-100/80 p-2 rounded-xl transition-all border border-amber-200"
+                                        >
+                                            <p className="text-2xl font-bold text-amber-600">
+                                                ₹{Number(user.advanceBalance || 0).toLocaleString('en-IN')}
+                                            </p>
+                                            <p className="text-xs font-semibold text-amber-900 flex items-center justify-center gap-1 mt-0.5">
+                                                <Wallet className="w-3.5 h-3.5 text-amber-600" /> Advance Balance
+                                            </p>
                                         </div>
                                     </div>
                                 </div>
@@ -1107,6 +1134,7 @@ const ProfilePage = () => {
                                     {[
                                         { id: "personal", label: "Personal Info", icon: User },
                                         { id: "orders", label: "My Orders", icon: Package },
+                                        { id: "advance_payment", label: "Advance Payment", icon: Wallet },
                                         { id: "subscriptions", label: "My Subscriptions", icon: RotateCw },
                                         { id: "addresses", label: "Addresses", icon: MapPin },
                                         { id: "credit_notes", label: "Credit Notes", icon: Wallet },
@@ -1202,8 +1230,102 @@ const ProfilePage = () => {
                         <main className="flex-1 min-w-0">
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
 
-                                {/* PERSONAL INFO (same) */}
-                                {activeTab === "personal" && (
+                                 {/* ADVANCE PAYMENT TAB */}
+                                 {activeTab === "advance_payment" && (
+                                     <div className="space-y-8">
+                                         {/* HEADER */}
+                                         <div className="flex items-center justify-between border-b pb-4">
+                                             <div>
+                                                 <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                                                     <Wallet className="w-6 h-6 text-amber-600" /> Advance Payment Account
+                                                 </h2>
+                                                 <p className="text-sm text-gray-500 mt-1">Manage your pre-deposited advance funds & top up your balance</p>
+                                             </div>
+                                             <span className="px-3 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold rounded-full flex items-center gap-1.5">
+                                                 <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> Active & Ready
+                                             </span>
+                                         </div>
+
+                                         {/* BALANCE DISPLAY CARD */}
+                                         <div className="bg-gradient-to-br from-amber-600 via-amber-500 to-yellow-500 rounded-2xl p-8 text-white shadow-lg relative overflow-hidden">
+                                             <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                                                 <div>
+                                                     <p className="text-amber-100 text-xs font-bold uppercase tracking-wider">Current Available Advance Balance</p>
+                                                     <h3 className="text-4xl font-black mt-2">₹ {Number(user.advanceBalance || 0).toLocaleString('en-IN')}</h3>
+                                                     <p className="text-xs text-amber-100/90 mt-2 max-w-md">
+                                                         Use your pre-deposited advance balance at checkout for instant 1-click order dispatches without needing cash or card payments.
+                                                     </p>
+                                                 </div>
+                                                 <div className="bg-white/15 backdrop-blur-md rounded-xl p-4 border border-white/20 text-center flex flex-col items-center justify-center">
+                                                     <Wallet className="w-8 h-8 text-white mb-1" />
+                                                     <span className="text-xs font-semibold">1-Click Checkout Enabled</span>
+                                                 </div>
+                                             </div>
+                                         </div>
+
+                                         {/* TOP UP / ADD FUNDS FORM WITH PENDING PAYMENT GATEWAY NOTIFICATION */}
+                                         <div className="bg-gray-50 rounded-2xl p-6 border border-gray-200 space-y-5">
+                                             <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                                                 <Plus className="w-5 h-5 text-amber-600" /> Add Advance Funds / Top Up Balance
+                                             </h3>
+                                             
+                                             {/* Quick Preset Buttons */}
+                                             <div>
+                                                 <label className="text-xs font-semibold text-gray-600 mb-2 block">Quick Select Amount:</label>
+                                                 <div className="flex flex-wrap gap-3">
+                                                     {[2000, 5000, 10000, 25000, 50000].map((amt) => (
+                                                         <button
+                                                             key={amt}
+                                                             type="button"
+                                                             onClick={() => {
+                                                                 setTopUpAmount(String(amt));
+                                                                 handleTopUpClick();
+                                                             }}
+                                                             className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all border ${
+                                                                 topUpAmount === String(amt)
+                                                                     ? 'bg-amber-600 text-white border-amber-600 shadow-sm'
+                                                                     : 'bg-white text-gray-700 border-gray-300 hover:border-amber-500'
+                                                             }`}
+                                                         >
+                                                             + ₹{amt.toLocaleString('en-IN')}
+                                                         </button>
+                                                     ))}
+                                                 </div>
+                                             </div>
+
+                                             {/* Custom Input & Action Button */}
+                                             <div className="space-y-4 pt-2">
+                                                 <label className="text-xs font-semibold text-gray-600 block">Enter Custom Amount (₹):</label>
+                                                 <div className="flex flex-col sm:flex-row items-center gap-4">
+                                                     <div className="relative flex-1 w-full">
+                                                         <span className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-gray-400">₹</span>
+                                                         <input
+                                                             type="number"
+                                                             min="100"
+                                                             step="500"
+                                                             value={topUpAmount}
+                                                             onChange={(e) => setTopUpAmount(e.target.value)}
+                                                             className="w-full pl-9 pr-4 py-3 bg-white border border-gray-300 rounded-xl text-gray-900 font-bold focus:ring-2 focus:ring-amber-500 focus:border-amber-500 outline-none"
+                                                             placeholder="e.g. 5000"
+                                                         />
+                                                     </div>
+
+                                                     <button
+                                                         type="button"
+                                                         onClick={handleTopUpClick}
+                                                         className="w-full sm:w-auto px-8 py-3.5 bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-2"
+                                                     >
+                                                         <Plus className="w-4 h-4" />
+                                                         Add ₹{Number(topUpAmount || 0).toLocaleString('en-IN')} Advance Funds
+                                                     </button>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     </div>
+                                 )}
+
+                                 {/* PERSONAL INFO (same) */}
+                                 {activeTab === "personal" && (
                                     <div className="space-y-8">
                                         {/* HEADER */}
                                         <div className="flex items-center justify-between">
@@ -2047,6 +2169,29 @@ const ProfilePage = () => {
                                         <div className="text-center mb-2">
                                             <h2 className="text-2xl font-bold text-gray-900 mb-2">My Credit Notes</h2>
                                             <p className="text-gray-600">View and download your refund and adjustment credit notes</p>
+                                        </div>
+
+                                        {/* Total Available CN Balance Card */}
+                                        <div className="bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-200/80 rounded-2xl p-6 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="w-12 h-12 rounded-xl bg-emerald-600 text-white flex items-center justify-center shadow-sm">
+                                                    <Wallet className="w-6 h-6" />
+                                                </div>
+                                                <div>
+                                                    <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider">Total Available CN Balance</p>
+                                                    <p className="text-3xl font-black text-emerald-950 mt-0.5">
+                                                        ₹{Number(user?.cnBalance ?? authUser?.cnBalance ?? creditNotes.reduce((s: number, c: any) => s + Number(c.amount || 0), 0)).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                                                    </p>
+                                                    <p className="text-xs text-emerald-700 font-medium mt-0.5">Available for instant use at checkout</p>
+                                                </div>
+                                            </div>
+                                            <Link
+                                                href="/checkout"
+                                                className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm active:scale-95 self-start sm:self-auto"
+                                            >
+                                                <ShoppingBag className="w-4 h-4" />
+                                                Use at Checkout
+                                            </Link>
                                         </div>
 
                                         {loadingCNs && (

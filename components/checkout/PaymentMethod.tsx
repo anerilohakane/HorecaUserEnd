@@ -2,23 +2,40 @@
 
 import { useState } from 'react';
 import { PaymentMethod as PaymentMethodType } from '@/lib/types/checkout';
-import { CreditCard, Smartphone, Building2, Banknote, CheckCircle, Receipt } from 'lucide-react';
+import { CreditCard, Smartphone, Building2, Banknote, CheckCircle, Receipt, Wallet, AlertCircle } from 'lucide-react';
+import { useAuth } from '@/lib/context/AuthContext';
 
 interface PaymentMethodProps {
   onSubmit: (method: PaymentMethodType) => void;
   initialMethod?: PaymentMethodType;
+  orderTotal?: number;
 }
 
-export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethodProps) {
-  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodType>(initialMethod || 'cod');
+export default function PaymentMethod({ onSubmit, initialMethod, orderTotal = 0 }: PaymentMethodProps) {
+  const [selectedMethod, setSelectedMethod] = useState<PaymentMethodType>(initialMethod || 'advance');
+  const { user } = useAuth();
+
+  const advanceBalance = Number(user?.advanceBalance || 0);
+  const cnBalance = Number(user?.cnBalance || 0);
+
+  const isAdvanceInsufficient = selectedMethod === 'advance' && orderTotal > 0 && advanceBalance < orderTotal;
+  const isCnInsufficient = selectedMethod === 'cn' && orderTotal > 0 && cnBalance < orderTotal;
+  const isPaymentBlocked = isAdvanceInsufficient || isCnInsufficient;
 
   const paymentMethods = [
+    {
+      id: 'advance' as PaymentMethodType,
+      name: 'Advance Payment',
+      description: `Pay instantly using your advance balance (Available: ₹${advanceBalance.toLocaleString('en-IN')})`,
+      icon: Wallet,
+      popular: true,
+    },
     {
       id: 'cod' as PaymentMethodType,
       name: 'Cash on Delivery',
       description: 'Pay with cash when you receive your order',
       icon: Banknote,
-      popular: true,
+      popular: false,
     },
     {
       id: 'upi' as PaymentMethodType,
@@ -44,7 +61,7 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
     {
       id: 'cn' as PaymentMethodType,
       name: 'Credit Note (CN)',
-      description: 'Place order using Credit Note',
+      description: `Place order using Credit Note (Available: ₹${cnBalance.toLocaleString('en-IN')})`,
       icon: Receipt,
       popular: false,
     },
@@ -52,6 +69,9 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (isPaymentBlocked) {
+      return;
+    }
     onSubmit(selectedMethod);
   };
 
@@ -120,6 +140,35 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
                     )}
                   </div>
 
+                  {/* Additional Info for Advance Payment */}
+                  {isSelected && method.id === 'advance' && (
+                    <div className="mt-4 pt-4 border-t border-[#D97706]/20 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Available Advance Balance:</span>
+                        <span className="font-bold text-[#111827]">₹ {advanceBalance.toLocaleString('en-IN')}</span>
+                      </div>
+                      {orderTotal > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Required Order Total:</span>
+                          <span className="font-bold text-[#D97706]">₹ {orderTotal.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+
+                      {isAdvanceInsufficient ? (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-xs text-red-700 font-medium">
+                          <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                          <span>
+                            Insufficient Advance Balance. You need ₹ {(orderTotal - advanceBalance).toLocaleString('en-IN')} more to place this order using Advance Payment. Please top up your advance balance or select Cash on Delivery / UPI.
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-emerald-700 font-medium bg-emerald-50 p-2.5 rounded-lg border border-emerald-200 mt-2">
+                          ✓ Sufficient Advance Balance available. ₹ {orderTotal.toLocaleString('en-IN')} will be deducted from your advance account upon placing order.
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   {/* Additional Info for Selected Method */}
                   {isSelected && method.id === 'cod' && (
                     <div className="mt-4 pt-4 border-t border-[#D97706]/20">
@@ -129,7 +178,7 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
                         </div>
                         <p>
                           Please keep exact change ready. Our delivery partner will collect ₹{' '}
-                          <span className="font-semibold">amount</span> at the time of delivery.
+                          <span className="font-semibold">{orderTotal > 0 ? orderTotal.toLocaleString('en-IN') : 'amount'}</span> at the time of delivery.
                         </p>
                       </div>
                     </div>
@@ -168,10 +217,30 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
                   )}
 
                   {isSelected && method.id === 'cn' && (
-                    <div className="mt-4 pt-4 border-t border-[#D97706]/20">
-                      <p className="text-sm text-gray-700 mb-3">
-                        Your order will be processed via Credit Note without an immediate transaction.
-                      </p>
+                    <div className="mt-4 pt-4 border-t border-[#D97706]/20 space-y-2">
+                      <div className="flex items-center justify-between text-sm">
+                        <span className="text-gray-600">Available Credit Note (CN) Balance:</span>
+                        <span className="font-bold text-[#111827]">₹ {cnBalance.toLocaleString('en-IN')}</span>
+                      </div>
+                      {orderTotal > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600">Required Order Total:</span>
+                          <span className="font-bold text-[#D97706]">₹ {orderTotal.toLocaleString('en-IN')}</span>
+                        </div>
+                      )}
+
+                      {isCnInsufficient ? (
+                        <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-xl flex items-start gap-2 text-xs text-red-700 font-medium">
+                          <AlertCircle size={16} className="text-red-500 flex-shrink-0 mt-0.5" />
+                          <span>
+                            Insufficient Credit Note Balance. You need ₹ {(orderTotal - cnBalance).toLocaleString('en-IN')} more CN balance to place this order using Credit Note. Please select another payment method or contact support.
+                          </span>
+                        </div>
+                      ) : (
+                        <p className="text-xs text-emerald-700 font-medium bg-emerald-50 p-2.5 rounded-lg border border-emerald-200 mt-2">
+                          ✓ Sufficient Credit Note Balance available. ₹ {orderTotal.toLocaleString('en-IN')} will be deducted from your CN account upon placing order.
+                        </p>
+                      )}
                     </div>
                   )}
                 </div>
@@ -197,9 +266,18 @@ export default function PaymentMethod({ onSubmit, initialMethod }: PaymentMethod
       {/* Submit Button */}
       <button
         type="submit"
-        className="w-full bg-[#D97706] text-white py-4 rounded-full hover:bg-[#B45309] transition-all font-semibold shadow-md hover:shadow-lg"
+        disabled={isPaymentBlocked}
+        className={`w-full py-4 rounded-full font-semibold shadow-md transition-all ${
+          isPaymentBlocked
+            ? 'bg-gray-300 text-gray-500 cursor-not-allowed shadow-none'
+            : 'bg-[#D97706] text-white hover:bg-[#B45309] hover:shadow-lg'
+        }`}
       >
-        Review Order
+        {isAdvanceInsufficient
+          ? 'Insufficient Advance Balance'
+          : isCnInsufficient
+          ? 'Insufficient Credit Note Balance'
+          : 'Review Order'}
       </button>
     </form>
   );

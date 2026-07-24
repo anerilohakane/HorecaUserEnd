@@ -302,6 +302,19 @@ const OrderDetailsPage = () => {
                                             <span className="font-medium text-gray-300">Total Amount</span>
                                             <span className="font-bold text-lg">₹{order.total}</span>
                                         </div>
+
+                                        {['advance', 'advance_payment', 'wallet'].includes(order.paymentMethod?.toLowerCase() || order.payment?.method?.toLowerCase()) && (
+                                            <div className="mt-3 p-4 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+                                                    <div>
+                                                        <p className="text-xs font-bold text-emerald-900">Paid amount from Advance Payment</p>
+                                                        <p className="text-[10px] text-emerald-700">Deducted from customer advance balance</p>
+                                                    </div>
+                                                </div>
+                                                <span className="font-black text-emerald-700 text-base">₹{order.total}</span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Delivery Address */}

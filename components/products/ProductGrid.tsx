@@ -461,9 +461,14 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
   const searchParams = useSearchParams();
   const initCategory = searchParams?.get('category') || 'all';
 
+  const [mounted, setMounted] = useState(false);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [loading, setLoading] = useState<boolean>(initialProducts.length === 0);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Mapped products state
   const [productTab, setProductTab] = useState<'all' | 'mapped'>('all');
@@ -738,7 +743,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
       </div>
 
       {/* Product Tabs (Only if logged in and Category C) */}
-      {user && (user.category || 'C') === 'C' && (
+      {mounted && user && (user.category || 'C') === 'C' && (
         <div className="flex border-b-2 border-slate-100 mb-8 gap-8">
           <button
             onClick={() => setProductTab('mapped')}
@@ -767,7 +772,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-6">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 inline-block mr-3">
-            {user && (user.category || 'C') !== 'C' ? 'All Products' : (productTab === 'mapped' ? 'Your Products' : 'All Products')}
+            {mounted && user && (user.category || 'C') !== 'C' ? 'All Products' : (mounted && productTab === 'mapped' ? 'Your Products' : 'All Products')}
           </h1>
           <span className="text-gray-500 text-lg">
             ({processedProducts.length} items)

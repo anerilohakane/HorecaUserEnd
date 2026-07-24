@@ -15,7 +15,7 @@ export interface ShippingAddress {
 }
 
 // Payment Method Type
-export type PaymentMethod = 'cod' | 'upi' | 'card' | 'netbanking' | 'cn';
+export type PaymentMethod = 'cod' | 'upi' | 'card' | 'netbanking' | 'cn' | 'advance';
 
 // Order Type
 export interface Order {

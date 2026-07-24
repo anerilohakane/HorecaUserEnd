@@ -2,7 +2,7 @@
 
 import {
   Search, Heart, User, Bell, X, MapPin, Loader2,
-  ChevronDown, Package, Phone, Mail
+  ChevronDown, Package, Phone, Mail, Wallet
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -476,6 +476,15 @@ export default function Header() {
               {/* Login/Signup OR User Avatar */}
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">
+                  <Link 
+                    href="/profile"
+                    className="hidden sm:flex items-center gap-1.5 px-3 py-1 bg-amber-50 hover:bg-amber-100/80 border border-amber-200 rounded-full transition-colors"
+                    title="View Advance Payment Account"
+                  >
+                    <Wallet size={14} className="text-[#D97706]" />
+                    <span className="text-xs font-bold text-gray-900">₹{Number(user?.advanceBalance || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}</span>
+                  </Link>
+
                   <Link href="/profile">
                     <div className="w-8 h-8 bg-[#D97706]/10 rounded-full flex items-center justify-center hover:bg-[#D97706]/20 transition-colors">
                       <User size={15} className="text-[#D97706]" />

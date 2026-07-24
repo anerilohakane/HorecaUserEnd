@@ -240,6 +240,7 @@ export default function CheckoutPage() {
                   <PaymentMethod
                     onSubmit={handlePaymentSubmit}
                     initialMethod={paymentMethod}
+                    orderTotal={total}
                   />
                 </div>
               )}

@@ -308,7 +308,7 @@ export default function OrderReview({
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [successOrder, setSuccessOrder] = useState<any>(null);
   const { clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const router = useRouter();
 
   // Defensive check: if grandTotal is below MOV and movApplied wasn't flagged,
@@ -329,6 +329,7 @@ export default function OrderReview({
     card: "Credit/Debit Card",
     netbanking: "Net Banking",
     cn: "Credit Note (CN)",
+    advance: "Advance Payment",
   };
 
   // ---------------------------------------------------------
@@ -343,6 +344,32 @@ export default function OrderReview({
         sileo.warning({ title: "Logged Out", description: "Please log in to place an order." });
         setIsPlacingOrder(false);
         return;
+      }
+
+      // Check Advance Payment balance requirement
+      if (paymentMethod === 'advance') {
+        const userAdvance = Number(user?.advanceBalance || 0);
+        if (userAdvance < total) {
+          sileo.error({
+            title: "Insufficient Advance Balance",
+            description: `Your advance balance (₹${userAdvance.toLocaleString('en-IN')}) is less than required total (₹${total.toLocaleString('en-IN')}). Please select another payment method or top up advance balance.`,
+          });
+          setIsPlacingOrder(false);
+          return;
+        }
+      }
+
+      // Check Credit Note (CN) balance requirement
+      if (paymentMethod === 'cn') {
+        const userCn = Number(user?.cnBalance || 0);
+        if (userCn < total) {
+          sileo.error({
+            title: "Insufficient CN Balance",
+            description: `Your Credit Note (CN) balance (₹${userCn.toLocaleString('en-IN')}) is less than required total (₹${total.toLocaleString('en-IN')}). Please select another payment method or contact support.`,
+          });
+          setIsPlacingOrder(false);
+          return;
+        }
       }
 
       // 🌐 AUTOMATIC LOCATION CAPTURE
@@ -424,6 +451,13 @@ export default function OrderReview({
 
       // Clear MOV session flag after successful order
       sessionStorage.removeItem('mov_applied');
+
+      // Refresh customer financial balance (CN or Advance Payment) in AuthContext session
+      try {
+        await refreshUser();
+      } catch (rErr) {
+        console.error("Failed to refresh user balance after order:", rErr);
+      }
 
       setSuccessOrder(data.order);
       setShowSuccessModal(true);

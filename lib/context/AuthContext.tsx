@@ -13,6 +13,8 @@ interface User {
   name: string | null;
   email: string | null;
   category: string | null;
+  advanceBalance?: number;
+  cnBalance?: number;
 }
 
 interface AuthContextType {
@@ -39,9 +41,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshUser = async () => {
     try {
-      const { user } = await getAuthSession();
-      if (user) {
-        setUser(user);
+      const { token: currentToken, user: currentUser } = await getAuthSession();
+      const userId = currentUser?.id || (currentUser as any)?._id;
+      const activeToken = currentToken || token;
+      
+      if (userId) {
+        const res = await fetch(`${API_BASE}/api/customers/${userId}`, {
+          headers: activeToken ? { Authorization: `Bearer ${activeToken}`, Accept: 'application/json' } : { Accept: 'application/json' }
+        });
+        if (res.ok) {
+          const json = await res.json();
+          if (json.success && json.data) {
+            const freshUser = {
+              id: json.data._id || json.data.id || userId,
+              phone: json.data.phone || currentUser?.phone,
+              name: json.data.name ?? currentUser?.name ?? null,
+              email: json.data.email ?? currentUser?.email ?? null,
+              businessName: json.data.businessName ?? currentUser?.businessName ?? null,
+              category: json.data.category ?? currentUser?.category ?? "C",
+              advanceBalance: Number(json.data.advanceBalance ?? currentUser?.advanceBalance ?? 0),
+              cnBalance: Number(json.data.cnBalance ?? currentUser?.cnBalance ?? 0),
+              poMandatory: json.data.poMandatory ?? false
+            };
+            setUser(freshUser);
+            if (activeToken) {
+              await setAuthSession(activeToken, freshUser);
+            }
+            return;
+          }
+        }
+      }
+      if (currentUser) {
+        setUser(currentUser);
       }
     } catch (err) {
       console.error("Failed to refresh user", err);
@@ -58,10 +89,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         ]);
 
         if (sessionRes.status === 'fulfilled') {
-          const { token, user } = sessionRes.value;
-          if (token && user) {
-            setUser(user);
-            setToken(token);
+          const { token: loadedToken, user: loadedUser } = sessionRes.value;
+          if (loadedToken && loadedUser) {
+            setUser(loadedUser);
+            setToken(loadedToken);
+
+            // 🔄 Fetch live customer profile from database to sync advance & CN balance & profile fields
+            const userId = loadedUser.id || (loadedUser as any)._id;
+            if (userId) {
+              fetch(`${API_BASE}/api/customers/${userId}`, {
+                headers: { Authorization: `Bearer ${loadedToken}`, Accept: 'application/json' }
+              })
+                .then(r => r.json())
+                .then(async json => {
+                  if (json.success && json.data) {
+                    const freshUser = {
+                      id: json.data._id || json.data.id || userId,
+                      phone: json.data.phone || loadedUser.phone,
+                      name: json.data.name ?? loadedUser.name ?? null,
+                      email: json.data.email ?? loadedUser.email ?? null,
+                      businessName: json.data.businessName ?? loadedUser.businessName ?? null,
+                      category: json.data.category ?? loadedUser.category ?? "C",
+                      advanceBalance: Number(json.data.advanceBalance ?? loadedUser.advanceBalance ?? 0),
+                      cnBalance: Number(json.data.cnBalance ?? loadedUser.cnBalance ?? 0),
+                      poMandatory: json.data.poMandatory ?? false
+                    };
+                    setUser(freshUser);
+                    await setAuthSession(loadedToken, freshUser);
+                  }
+                })
+                .catch(e => console.error("Live user sync error:", e));
+            }
           }
         }
 
@@ -123,7 +181,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       phone: userData.phone,
       name: userData.name ?? null,
       email: userData.email ?? null,
+      businessName: userData.businessName ?? null,
       category: userData.category ?? "C",
+      advanceBalance: Number(userData.advanceBalance ?? 0),
+      cnBalance: Number(userData.cnBalance ?? 0),
     };
 
     await setAuthSession(token, normalizedUser);
@@ -151,7 +212,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       phone: userData.phone,
       name: userData.name ?? null,
       email: userData.email ?? null,
+      businessName: userData.businessName ?? null,
       category: userData.category ?? "C",
+      advanceBalance: Number(userData.advanceBalance ?? 0),
+      cnBalance: Number(userData.cnBalance ?? 0),
     };
 
     await setAuthSession(token, normalizedUser);
@@ -179,6 +243,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       name: userData.name ?? null,
       email: userData.email ?? null,
       category: userData.category ?? "C",
+      advanceBalance: userData.advanceBalance ?? 0,
     };
 
     await setAuthSession(token, normalizedUser);
