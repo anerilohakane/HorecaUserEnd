@@ -19,6 +19,8 @@ export interface Product {
   gst?: number;
   tags: string[];
   // Dynamic fields
+  isColdStorage?: boolean;
+  temperature?: string;
   specifications?: { name: string; value: string }[];
   storage?: string;
   shelfLife?: string;

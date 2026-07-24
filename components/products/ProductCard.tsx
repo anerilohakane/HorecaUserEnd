@@ -2,7 +2,7 @@
 
 import { useAuth } from '@/lib/context/AuthContext';
 import { Product } from '@/lib/types/product';
-import { Star, Plus, Heart, RotateCw } from 'lucide-react';
+import { Star, Plus, Heart, RotateCw, Snowflake } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState, useMemo } from 'react';
@@ -51,6 +51,8 @@ function mapRawToProduct(raw: any): Product | null {
     inStock: typeof raw.inStock === 'boolean' ? raw.inStock : (typeof raw.stockQuantity === 'number' ? raw.stockQuantity > 0 : true),
     stockQuantity: typeof raw.stockQuantity === 'number' ? raw.stockQuantity : undefined,
     categoryPrices: raw.categoryPrices,
+    isColdStorage: typeof raw.isColdStorage === 'boolean' ? raw.isColdStorage : false,
+    temperature: raw.temperature ?? null,
     ...(raw as any),
   } as Product;
 }
@@ -602,11 +604,17 @@ export default function ProductCard({
 
       {/* Product Info */}
       <div className="p-3">
-        {/* Veg Indicator */}
-        <div className="mb-1">
+        {/* Veg & Cold Storage Indicators */}
+        <div className="mb-1 flex items-center justify-between gap-1 flex-wrap">
           <div className="border border-green-600 p-[2px] w-4 h-4 flex items-center justify-center rounded-[2px]">
             <div className="w-2 h-2 bg-green-600 rounded-full"></div>
           </div>
+          {effectiveProduct.isColdStorage && (
+            <span className="inline-flex items-center gap-1 bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-2xs">
+              <Snowflake size={11} className="text-sky-500 shrink-0" />
+              Cold Storage ({effectiveProduct.temperature || '-18°C'})
+            </span>
+          )}
         </div>
 
         {/* Title */}

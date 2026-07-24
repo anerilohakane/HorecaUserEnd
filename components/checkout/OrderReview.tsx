@@ -251,7 +251,7 @@
 import { use, useState, useEffect } from "react";
 import { ShippingAddress, PaymentMethod as PaymentMethodType } from "@/lib/types/checkout";
 import { CartItem } from "@/lib/types/cart";
-import { MapPin, CreditCard, Package, Edit2, Truck, AlertTriangle } from "lucide-react";
+import { MapPin, CreditCard, Package, Edit2, Truck, AlertTriangle, Snowflake, Thermometer } from "lucide-react";
 import Image from "next/image";
 import { useCart } from "@/lib/context/CartContext";
 import { useAuth } from "@/lib/context/AuthContext";
@@ -310,6 +310,36 @@ export default function OrderReview({
   const { clearCart } = useCart();
   const { user, refreshUser } = useAuth();
   const router = useRouter();
+
+  // Helper to determine if product requires cold storage (via DB flag or perishable keywords)
+  const checkIsColdProduct = (product: any): boolean => {
+    if (!product) return false;
+    if (product.isColdStorage === true || product.isColdStorage === "true") return true;
+    const coldKeywords = ["paneer", "butter", "milk", "cheese", "curd", "cream", "ice cream", "frozen", "meat", "fish", "chicken", "mutton", "seafood", "cold", "dairy"];
+    const nameLower = (product.name || "").toLowerCase();
+    const catLower = (product.category || "").toLowerCase();
+    return coldKeywords.some(kw => nameLower.includes(kw) || catLower.includes(kw));
+  };
+
+  // Per-item Cold Storage preferences
+  const [itemColdStorageState, setItemColdStorageState] = useState<Record<string, { isRequired: boolean; requestedTemp: string }>>({});
+
+  // Initialize per-item cold storage defaults when items change
+  useEffect(() => {
+    const initialState: Record<string, { isRequired: boolean; requestedTemp: string }> = {};
+    items.forEach(item => {
+      if (checkIsColdProduct(item.product)) {
+        initialState[item.product.id] = {
+          isRequired: true,
+          requestedTemp: item.product?.temperature || (item.product?.name?.toLowerCase().includes("paneer") || item.product?.name?.toLowerCase().includes("dairy") || item.product?.name?.toLowerCase().includes("milk") ? "2°C to 8°C" : "-18°C")
+        };
+      }
+    });
+    setItemColdStorageState(initialState);
+  }, [items]);
+
+  const coldStorageItems = items.filter(item => checkIsColdProduct(item.product));
+  const hasColdStorageItems = coldStorageItems.length > 0;
 
   // Defensive check: if grandTotal is below MOV and movApplied wasn't flagged,
   // notify via sileo (edge case: user navigated directly to /checkout)
@@ -380,14 +410,28 @@ export default function OrderReview({
         console.warn("Location capture failed (denied or timed out), proceeding with address defaults.");
       }
 
-      // Convert cart items to backend format using category price
-      const formattedItems = items.map((item) => ({
-        product: item.product.id,
-        quantity: item.quantity,
-        unitPrice: (item as any).price ?? item.product.price,
-        image: item.product.image || "",
-        attributes: item.selectedAttributes || {},
-      }));
+      // Convert cart items to backend format with PER-PRODUCT cold storage requirements
+      const formattedItems = items.map((item) => {
+        const isColdProd = checkIsColdProduct(item.product);
+        const itemPref = itemColdStorageState[item.product.id] || {
+          isRequired: isColdProd,
+          requestedTemp: item.product?.temperature || (item.product?.name?.toLowerCase().includes("paneer") || item.product?.name?.toLowerCase().includes("dairy") || item.product?.name?.toLowerCase().includes("milk") ? "2°C to 8°C" : "-18°C")
+        };
+
+        return {
+          product: item.product.id,
+          quantity: item.quantity,
+          unitPrice: (item as any).price ?? item.product.price,
+          image: item.product.image || "",
+          attributes: item.selectedAttributes || {},
+          isColdStorageRequired: isColdProd ? itemPref.isRequired : false,
+          requestedTemperature: isColdProd && itemPref.isRequired ? itemPref.requestedTemp : null,
+        };
+      });
+
+      const coldReqItems = formattedItems.filter(i => i.isColdStorageRequired);
+      const hasColdReq = coldReqItems.length > 0;
+      const primaryTemp = coldReqItems.find(i => i.requestedTemperature)?.requestedTemperature || null;
 
       const body = {
         user: user?.id,
@@ -417,6 +461,14 @@ export default function OrderReview({
         movApplied,
         movDeliveryCharge,
         priceNegotiationId,
+        // Cold Storage requirement details passed to Logistics Mgt
+        coldStorageRequirement: {
+          isRequired: hasColdReq,
+          requestedTemperature: primaryTemp,
+          details: hasColdReq
+            ? `Customer requested cold transport (${primaryTemp}) for ${coldReqItems.length} product(s).`
+            : null
+        }
       };
 
       console.log("📤 Sending order to backend:", body);
@@ -530,6 +582,26 @@ export default function OrderReview({
         </div>
       </div>
 
+      {/* ❄️ COLD STORAGE REQUIREMENT SUMMARY BANNER */}
+      {hasColdStorageItems && (
+        <div className="bg-gradient-to-r from-sky-50 to-blue-50 border border-sky-200 rounded-2xl p-5 soft-shadow flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-sky-500 text-white rounded-xl flex items-center justify-center shadow-sm shrink-0">
+              <Snowflake className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-[#111827] text-base">Cold Storage Products Detected</h3>
+              <p className="text-xs text-sky-700 font-medium">
+                {coldStorageItems.length} product(s) in your order support cold storage delivery. Please review per-product cold storage requirements below in your item list.
+              </p>
+            </div>
+          </div>
+          <span className="text-xs font-extrabold bg-sky-100 text-sky-800 px-3 py-1.5 rounded-full border border-sky-200 shrink-0 hidden sm:inline-block">
+            Per-Item Preferences Below
+          </span>
+        </div>
+      )}
+
       {/* ORDER ITEMS */}
       <div className="bg-white rounded-2xl soft-shadow p-6">
         <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -542,31 +614,133 @@ export default function OrderReview({
               ? item.product.price - (item.product.price * item.product.discount) / 100
               : item.product.price);
 
+            const isColdProduct = checkIsColdProduct(item.product);
+            const currentPref = itemColdStorageState[item.product.id] || {
+              isRequired: isColdProduct,
+              requestedTemp: item.product?.temperature || (item.product?.name?.toLowerCase().includes("paneer") || item.product?.name?.toLowerCase().includes("dairy") || item.product?.name?.toLowerCase().includes("milk") ? "2°C to 8°C" : "-18°C")
+            };
+
             return (
-              <div key={item.product.id} className="flex gap-4 border-b pb-4">
-                <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100">
-                  <Image
-                    src={
-                      item.product.image.startsWith("http")
-                        ? item.product.image
-                        : `/images/products/${item.product.image}`
-                    }
-                    alt={item.product.name}
-                    fill
-                    className="object-cover"
-                    unoptimized={item.product.image.startsWith("http")}
-                  />
+              <div key={item.product.id} className="border-b pb-4 space-y-3">
+                <div className="flex gap-4">
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                    <Image
+                      src={
+                        item.product.image.startsWith("http")
+                          ? item.product.image
+                          : `/images/products/${item.product.image}`
+                      }
+                      alt={item.product.name}
+                      fill
+                      className="object-cover"
+                      unoptimized={item.product.image.startsWith("http")}
+                    />
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h3 className="text-sm font-semibold text-gray-900">{item.product.name}</h3>
+                      {isColdProduct && (
+                        <span className="inline-flex items-center gap-1 bg-sky-50 text-sky-700 border border-sky-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          <Snowflake size={11} className="text-sky-500" /> Cold Storage Required
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-gray-500">{item.product.category}</p>
+                    <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
+                  </div>
+
+                  <p className="font-bold text-[#111827]">
+                    ₹{(price * item.quantity).toFixed(0)}
+                  </p>
                 </div>
 
-                <div className="flex-1">
-                  <h3 className="text-sm font-semibold">{item.product.name}</h3>
-                  <p className="text-xs text-gray-500">{item.product.category}</p>
-                  <p className="text-sm text-gray-600">Qty: {item.quantity}</p>
-                </div>
+                {/* ❄️ Per-Product Cold Storage Prompt */}
+                {isColdProduct && (
+                  <div className="bg-sky-50/80 border border-sky-200 rounded-xl p-3.5 space-y-2.5">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 bg-sky-500 text-white rounded-md flex items-center justify-center shrink-0">
+                          <Snowflake size={13} />
+                        </div>
+                        <div>
+                          <p className="text-xs font-bold text-sky-950">
+                            Do you require Cold Storage Vehicle Delivery for {item.product.name}?
+                          </p>
+                          <p className="text-[11px] text-sky-700">
+                            Recommended Temp: <span className="font-semibold">{item.product.temperature || "-18°C"}</span>
+                          </p>
+                        </div>
+                      </div>
 
-                <p className="font-bold text-[#111827]">
-                  ₹{(price * item.quantity).toFixed(0)}
-                </p>
+                      <div className="flex items-center gap-2 self-end sm:self-center">
+                        <button
+                          type="button"
+                          onClick={() => setItemColdStorageState(prev => ({
+                            ...prev,
+                            [item.product.id]: {
+                              isRequired: true,
+                              requestedTemp: prev[item.product.id]?.requestedTemp || item.product?.temperature || "-18°C"
+                            }
+                          }))}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                            currentPref.isRequired
+                              ? 'bg-sky-600 text-white shadow-xs'
+                              : 'bg-white text-sky-700 border border-sky-200 hover:bg-sky-100'
+                          }`}
+                        >
+                          Yes (Cold Vehicle)
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setItemColdStorageState(prev => ({
+                            ...prev,
+                            [item.product.id]: {
+                              isRequired: false,
+                              requestedTemp: prev[item.product.id]?.requestedTemp || item.product?.temperature || "-18°C"
+                            }
+                          }))}
+                          className={`px-3 py-1 rounded-lg text-xs font-bold transition-all ${
+                            !currentPref.isRequired
+                              ? 'bg-gray-700 text-white shadow-xs'
+                              : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-100'
+                          }`}
+                        >
+                          No (Standard)
+                        </button>
+                      </div>
+                    </div>
+
+                    {currentPref.isRequired && (
+                      <div className="pt-2 border-t border-sky-200/60 flex items-center gap-3">
+                        <label className="text-xs font-bold text-sky-900 flex items-center gap-1 shrink-0">
+                          <Thermometer size={13} className="text-sky-600" />
+                          Requested Temp:
+                        </label>
+                        <select
+                          value={currentPref.requestedTemp}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setItemColdStorageState(prev => ({
+                              ...prev,
+                              [item.product.id]: {
+                                ...prev[item.product.id],
+                                requestedTemp: val
+                              }
+                            }));
+                          }}
+                          className="px-2.5 py-1 bg-white rounded-md border border-sky-200 text-xs font-semibold text-gray-900 focus:outline-none focus:ring-1 focus:ring-sky-500"
+                        >
+                          <option value="-18°C">-18°C (Deep Frozen)</option>
+                          <option value="-20°C">-20°C (Ultra Cold)</option>
+                          <option value="-15°C">-15°C (Standard Frozen)</option>
+                          <option value="2°C to 8°C">2°C to 8°C (Chilled)</option>
+                          <option value="0°C to 4°C">0°C to 4°C (Fresh Cold)</option>
+                        </select>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })}
