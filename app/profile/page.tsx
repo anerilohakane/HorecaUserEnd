@@ -2185,13 +2185,13 @@ const ProfilePage = () => {
                                                     <p className="text-xs text-emerald-700 font-medium mt-0.5">Available for instant use at checkout</p>
                                                 </div>
                                             </div>
-                                            <Link
+                                            {/* <Link
                                                 href="/checkout"
                                                 className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold rounded-xl transition-all shadow-sm active:scale-95 self-start sm:self-auto"
                                             >
                                                 <ShoppingBag className="w-4 h-4" />
                                                 Use at Checkout
-                                            </Link>
+                                            </Link> */}
                                         </div>
 
                                         {loadingCNs && (
