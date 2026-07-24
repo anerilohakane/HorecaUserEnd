@@ -490,26 +490,26 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
           headers: token ? { Authorization: `Bearer ${token}` } : {}
         }).then(res => res.json().catch(() => ({ success: false })))
       ])
-      .then(([customerData, frequentData]) => {
-        const mapped = customerData.success && customerData.data?.mappedProducts 
-          ? customerData.data.mappedProducts 
-          : [];
-        const frequent = frequentData.success && Array.isArray(frequentData.data)
-          ? frequentData.data.map((p: any) => p._id || p.id || p.productId).filter(Boolean)
-          : [];
-        
-        // Combine unique IDs
-        const combined = Array.from(new Set([
-          ...mapped.map((id: any) => String(id)),
-          ...frequent.map((id: any) => String(id))
-        ]));
-        setMappedIds(combined);
-        const mappedExists = mapped.length > 0;
-        setHasMapping(mappedExists);
-        setProductTab(mappedExists ? 'mapped' : 'all');
-      })
-      .catch(err => console.error("Failed to load customer mappings/frequent items:", err))
-      .finally(() => setLoadingMapping(false));
+        .then(([customerData, frequentData]) => {
+          const mapped = customerData.success && customerData.data?.mappedProducts
+            ? customerData.data.mappedProducts
+            : [];
+          const frequent = frequentData.success && Array.isArray(frequentData.data)
+            ? frequentData.data.map((p: any) => p._id || p.id || p.productId).filter(Boolean)
+            : [];
+
+          // Combine unique IDs
+          const combined = Array.from(new Set([
+            ...mapped.map((id: any) => String(id)),
+            ...frequent.map((id: any) => String(id))
+          ]));
+          setMappedIds(combined);
+          const mappedExists = mapped.length > 0;
+          setHasMapping(mappedExists);
+          setProductTab(mappedExists ? 'mapped' : 'all');
+        })
+        .catch(err => console.error("Failed to load customer mappings/frequent items:", err))
+        .finally(() => setLoadingMapping(false));
     } else {
       setMappedIds([]);
       setHasMapping(false);
@@ -589,7 +589,7 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
 
         const res = await fetch(String(url), {
           signal: controller.signal,
-          headers: { 
+          headers: {
             Accept: 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {})
           },
@@ -742,21 +742,19 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
         <div className="flex border-b-2 border-slate-100 mb-8 gap-8">
           <button
             onClick={() => setProductTab('mapped')}
-            className={`pb-4 text-sm sm:text-base font-extrabold border-b-4 transition-all uppercase tracking-widest relative -mb-[2px] ${
-              productTab === 'mapped'
+            className={`pb-4 text-sm sm:text-base font-extrabold border-b-4 transition-all uppercase tracking-widest relative -mb-[2px] ${productTab === 'mapped'
                 ? 'border-amber-600 text-amber-600'
                 : 'border-transparent text-slate-400 hover:text-slate-900'
-            }`}
+              }`}
           >
             Your Products
           </button>
           <button
             onClick={() => setProductTab('all')}
-            className={`pb-4 text-sm sm:text-base font-extrabold border-b-4 transition-all uppercase tracking-widest relative -mb-[2px] ${
-              productTab === 'all'
+            className={`pb-4 text-sm sm:text-base font-extrabold border-b-4 transition-all uppercase tracking-widest relative -mb-[2px] ${productTab === 'all'
                 ? 'border-amber-600 text-amber-600'
                 : 'border-transparent text-slate-400 hover:text-slate-900'
-            }`}
+              }`}
           >
             All Products
           </button>
@@ -879,9 +877,9 @@ export default function ProductGrid({ initialProducts = [] }: ProductGridProps) 
                       exit={{ opacity: 0, scale: 0.9 }}
                       transition={{ duration: 0.3 }}
                     >
-                      <ProductCard 
-                        product={product} 
-                        isEnquiryOnly={user ? ((user.category || 'C') === 'C' ? !mappedIds.includes(String(product._id || product.id)) : false) : false} 
+                      <ProductCard
+                        product={product}
+                        isEnquiryOnly={user ? ((user.category || 'C') === 'C' ? !mappedIds.includes(String(product._id || product.id)) : false) : false}
                       />
                     </motion.div>
                   );

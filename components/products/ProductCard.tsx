@@ -70,16 +70,16 @@ export default function ProductCard({
   const [success, setSuccess] = useState(false);
   const [wishlistSuccess, setWishlistSuccess] = useState(false);
   const [isInWishlist, setIsInWishlist] = useState(initialWishlistState);
-  const [API_BASE, setApiBase] = useState('');
+  const [API_BASE, setApiBase] = useState(getApiBase());
   const [productState, setProductState] = useState<Product | null>(null);
   const [reviews, setReviews] = useState<any[]>([]);
   const [isReorderModalOpen, setIsReorderModalOpen] = useState(false);
   const [isPriceRequestModalOpen, setIsPriceRequestModalOpen] = useState(false);
-  
+
   // Enquiry states
   const [isEnquiryModalOpen, setIsEnquiryModalOpen] = useState(false);
   const [submittingEnquiry, setSubmittingEnquiry] = useState(false);
-  
+
   const { user, token } = useAuth();
 
   const [enquiryForm, setEnquiryForm] = useState({
@@ -106,7 +106,7 @@ export default function ProductCard({
 
   // Initialize API base on client side
   useEffect(() => {
-    setApiBase(getApiBase());
+    // API_BASE is already initialized synchronously
   }, []);
 
   // Fetch product data
@@ -665,7 +665,7 @@ export default function ProductCard({
 
         {/* Request Better Price Button (Only for Tier A) */}
         {user?.category === 'A' && !isEnquiryOnly && (
-          <button 
+          <button
             onClick={(e) => {
               e.preventDefault();
               setIsPriceRequestModalOpen(true);
