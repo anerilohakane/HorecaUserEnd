@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag } from "lucide-react";
+import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -38,6 +38,16 @@ export default function RegisterPage() {
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // 📜 Contract-Based Customer State
+  const [isContractBased, setIsContractBased] = useState(false);
+  const [contractType, setContractType] = useState("Annual Supply Agreement");
+  const [contractExpiryDate, setContractExpiryDate] = useState("");
+  const [contractFile, setContractFile] = useState<File | null>(null);
+  const [contractDocUrl, setContractDocUrl] = useState("");
+  const [contractNotes, setContractNotes] = useState("");
+  const [contractUploading, setContractUploading] = useState(false);
+  const contractFileInputRef = useRef<HTMLInputElement>(null);
+
   // Redirect if already logged in
   React.useEffect(() => {
     if (isAuthenticated) {
@@ -51,7 +61,23 @@ export default function RegisterPage() {
     }
   };
 
-  const uploadLicense = async (file: File): Promise<string> => {
+  const handleContractFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setContractFile(file);
+      setContractUploading(true);
+      try {
+        const url = await uploadDocument(file);
+        setContractDocUrl(url);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to upload contract document");
+      } finally {
+        setContractUploading(false);
+      }
+    }
+  };
+
+  const uploadDocument = async (file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
 
@@ -62,9 +88,13 @@ export default function RegisterPage() {
 
     const data = await res.json();
     if (!data.success) {
-      throw new Error(data.error || "Failed to upload license image");
+      throw new Error(data.error || "Failed to upload file to Cloudinary");
     }
     return data.url;
+  };
+
+  const uploadLicense = async (file: File): Promise<string> => {
+    return uploadDocument(file);
   };
 
   const validateStep = () => {
@@ -111,8 +141,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
-    // Removed licenseFile validation as it's optional
-
     if (!category) {
       setError("Please select a customer tier (A, B, C)");
       return;
@@ -131,13 +159,19 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // 1. Upload License Image
+      // 1. Upload License Image if present
       let licenseUrl = null;
       if (licenseFile) {
         licenseUrl = await uploadLicense(licenseFile);
       }
 
-      // 2. Register Customer
+      // 2. Upload Contract Document if contract-based and file selected but not uploaded yet
+      let finalContractUrl = contractDocUrl;
+      if (isContractBased && contractFile && !finalContractUrl) {
+        finalContractUrl = await uploadDocument(contractFile);
+      }
+
+      // 3. Register Customer
       await registerCustomer({
         username: username.trim(),
         email: email.trim(),
@@ -153,7 +187,14 @@ export default function RegisterPage() {
         }],
         category,
         password,
-        licenseImage: licenseUrl
+        licenseImage: licenseUrl,
+        isContractBased,
+        contract: isContractBased ? {
+          contractType,
+          documentUrl: finalContractUrl || null,
+          expiryDate: contractExpiryDate || null,
+          notes: contractNotes.trim() || null
+        } : undefined
       });
 
       setMessage("Registration successful! Redirecting...");
@@ -395,6 +436,106 @@ export default function RegisterPage() {
                         </>
                       )}
                     </div>
+                  </div>
+
+                  {/* 📜 Contract-Based Customer Option (Optional) */}
+                  <div className="border border-amber-200 bg-amber-50/40 rounded-2xl p-5 space-y-3 transition-all shadow-xs">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                          <FileCheck size={18} />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-900">Contract-Based Registration</h4>
+                          <p className="text-[11px] text-gray-500">Optional for customers with active supply agreement</p>
+                        </div>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input 
+                          type="checkbox" 
+                          checked={isContractBased} 
+                          onChange={(e) => setIsContractBased(e.target.checked)} 
+                          className="sr-only peer" 
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#D97706]"></div>
+                      </label>
+                    </div>
+
+                    {isContractBased && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-3 pt-3 border-t border-amber-200/60">
+                        <div>
+                          <label className="text-xs font-bold text-gray-700 block mb-1">Contract Agreement Type</label>
+                          <select
+                            value={contractType}
+                            onChange={(e) => setContractType(e.target.value)}
+                            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                          >
+                            <option value="Annual Supply Agreement">Annual Supply Agreement</option>
+                            <option value="Fixed Rate Contract">Fixed Rate Contract</option>
+                            <option value="Service Level Agreement (SLA)">Service Level Agreement (SLA)</option>
+                            <option value="Volume Discount Agreement">Volume Discount Agreement</option>
+                            <option value="Custom Contract">Custom Contract / SLA</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-gray-700 block mb-1">Contract Expiry Date</label>
+                          <div className="relative">
+                            <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                            <input
+                              type="date"
+                              value={contractExpiryDate}
+                              onChange={(e) => setContractExpiryDate(e.target.value)}
+                              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-gray-700 block mb-1">Contract Document (PDF/JPG/PNG/DOCX)</label>
+                          <div 
+                            onClick={() => contractFileInputRef.current?.click()}
+                            className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all ${contractDocUrl ? 'border-green-500 bg-green-50/80' : contractFile ? 'border-amber-400 bg-amber-50' : 'border-gray-300 bg-white hover:border-[#D97706]'}`}
+                          >
+                            <input type="file" ref={contractFileInputRef} onChange={handleContractFileChange} className="hidden" accept=".pdf,.doc,.docx,image/*" />
+                            {contractUploading ? (
+                              <p className="text-xs font-bold text-amber-700 animate-pulse flex items-center gap-1.5">
+                                ☁️ Uploading document to Cloudinary...
+                              </p>
+                            ) : contractDocUrl ? (
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="text-green-600 shrink-0" size={20} />
+                                <div className="text-left">
+                                  <span className="text-xs font-extrabold text-green-800 block truncate max-w-[240px]">{contractFile?.name || "Contract Document"}</span>
+                                  <span className="text-[10px] text-green-600 font-bold">Uploaded to Cloudinary ☁️</span>
+                                </div>
+                              </div>
+                            ) : contractFile ? (
+                              <div className="flex items-center gap-2">
+                                <FileCheck className="text-amber-600 shrink-0" size={20} />
+                                <span className="text-xs font-bold text-amber-800 truncate max-w-[240px]">{contractFile.name}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Upload className="text-gray-400" size={18} />
+                                <span className="text-xs font-medium text-gray-600">Upload signed agreement document</span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-gray-700 block mb-1">Special Terms / Notes (Optional)</label>
+                          <textarea
+                            value={contractNotes}
+                            onChange={(e) => setContractNotes(e.target.value)}
+                            placeholder="Specify fixed rates, credit period terms, volume targets..."
+                            rows={2}
+                            className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-medium text-gray-800"
+                          />
+                        </div>
+                      </motion.div>
+                    )}
                   </div>
 
                   <div className="relative">

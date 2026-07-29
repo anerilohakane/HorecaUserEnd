@@ -22,7 +22,7 @@ import {
     MessageSquare,
     LogOut,
     Clock,
-    Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud, FileText, Search, Plus, List
+    Trash2, AlertCircle, Eye, EyeOff, Wallet, X, UserX, Loader2, ArrowRight, LayoutDashboard, History, HelpCircle, Edit, UploadCloud, FileText, Search, Plus, List, FileCheck, Download, AlertTriangle
 } from 'lucide-react';
 import PageTransition from "@/components/ui/PageTransition";
 import Header from '@/components/Header';
@@ -106,6 +106,111 @@ const ProfilePage = () => {
 
     // Advance Payment State
     const [topUpAmount, setTopUpAmount] = useState<string>('5000');
+
+    // 📜 Contract Management & Renewal State
+    const [isContractModalOpen, setIsContractModalOpen] = useState(false);
+    const [contractFormType, setContractFormType] = useState('Annual Supply Agreement');
+    const [contractFormExpiry, setContractFormExpiry] = useState('');
+    const [contractFormDocUrl, setContractFormDocUrl] = useState('');
+    const [contractFormNotes, setContractFormNotes] = useState('');
+    const [contractFormFile, setContractFormFile] = useState<File | null>(null);
+    const [contractUploading, setContractUploading] = useState(false);
+    const [savingContract, setSavingContract] = useState(false);
+    const contractInputRef = React.useRef<HTMLInputElement>(null);
+
+    // Initialize contract form when modal opens or user profile loads
+    useEffect(() => {
+        if (user?.contract) {
+            setContractFormType(user.contract.contractType || 'Annual Supply Agreement');
+            if (user.contract.expiryDate) {
+                const d = new Date(user.contract.expiryDate);
+                setContractFormExpiry(d.toISOString().split('T')[0]);
+            }
+            setContractFormDocUrl(user.contract.documentUrl || '');
+            setContractFormNotes(user.contract.notes || '');
+        }
+    }, [user?.contract]);
+
+    const handleContractDocumentUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            setContractFormFile(file);
+            setContractUploading(true);
+            try {
+                const formData = new FormData();
+                formData.append("file", file);
+
+                const res = await fetch(`${API_BASE}/api/upload`, {
+                    method: "POST",
+                    body: formData,
+                });
+
+                const data = await res.json();
+                if (data.success && data.url) {
+                    setContractFormDocUrl(data.url);
+                    sileo.success({ title: "Document Uploaded", description: "New contract document uploaded to Cloudinary!" });
+                } else {
+                    throw new Error(data.error || "Failed to upload document");
+                }
+            } catch (err: any) {
+                sileo.error({ title: "Upload Failed", description: err.message || "Could not upload document" });
+            } finally {
+                setContractUploading(false);
+            }
+        }
+    };
+
+    const handleSaveContract = async () => {
+        const userId = user?.id || user?._id || authUser?.id || (authUser as any)?._id;
+        if (!userId) {
+            sileo.error({ title: "Authentication Required", description: "Please log in to update your contract." });
+            return;
+        }
+
+        setSavingContract(true);
+        try {
+            const updatedContract = {
+                contractType: contractFormType,
+                documentUrl: contractFormDocUrl || user?.contract?.documentUrl || null,
+                expiryDate: contractFormExpiry || null,
+                notes: contractFormNotes.trim() || null,
+                uploadedAt: new Date()
+            };
+
+            const res = await fetch(`${API_BASE}/api/customers/${userId}`, {
+                method: "PATCH",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    isContractBased: true,
+                    contract: updatedContract
+                })
+            });
+
+            const json = await res.json();
+            if (json.success) {
+                sileo.success({
+                    title: "Contract Updated Successfully!",
+                    description: "Your supply contract agreement has been updated & saved."
+                });
+                setIsContractModalOpen(false);
+                setUser((prev: any) => ({
+                    ...prev,
+                    isContractBased: true,
+                    contract: updatedContract
+                }));
+                refreshUser();
+            } else {
+                throw new Error(json.error || "Failed to update contract details");
+            }
+        } catch (err: any) {
+            sileo.error({ title: "Update Failed", description: err.message || "Failed to save contract details" });
+        } finally {
+            setSavingContract(false);
+        }
+    };
 
     const handleTopUpClick = () => {
         sileo.warning({
@@ -1133,6 +1238,7 @@ const ProfilePage = () => {
                                 <nav className="p-3">
                                     {[
                                         { id: "personal", label: "Personal Info", icon: User },
+                                        { id: "contract_details", label: "My Contract & SLA", icon: FileCheck },
                                         { id: "orders", label: "My Orders", icon: Package },
                                         { id: "advance_payment", label: "Advance Payment", icon: Wallet },
                                         { id: "subscriptions", label: "My Subscriptions", icon: RotateCw },
@@ -1221,7 +1327,6 @@ const ProfilePage = () => {
                                         <LogOut className="w-5 h-5" />
                                         Log Out
                                     </button>
-
                                 </div>
                             </div>
                         </aside>
@@ -1229,6 +1334,185 @@ const ProfilePage = () => {
                         {/* MAIN CONTENT */}
                         <main className="flex-1 min-w-0">
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+
+                                 {/* 📜 MY CONTRACT & SLA TAB */}
+                                  {activeTab === "contract_details" && (
+                                      <div className="space-y-8">
+                                          {/* HEADER */}
+                                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-5">
+                                              <div>
+                                                  <h2 className="text-xl font-bold text-gray-900 flex items-center gap-2.5">
+                                                      <FileCheck className="w-6 h-6 text-amber-600" /> Supply Contract & SLA Management
+                                                  </h2>
+                                                  <p className="text-sm text-gray-500 mt-1">Manage, inspect & renew your commercial supply agreement and document records</p>
+                                              </div>
+
+                                              <button
+                                                  type="button"
+                                                  onClick={() => setIsContractModalOpen(true)}
+                                                  className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 shrink-0"
+                                              >
+                                                  <Edit className="w-4 h-4" />
+                                                  {user?.isContractBased && user?.contract ? "Update / Renew Contract" : "Register Contract Agreement"}
+                                              </button>
+                                          </div>
+
+                                          {/* STATUS BANNER */}
+                                          {(() => {
+                                              if (!user?.isContractBased || !user?.contract) {
+                                                  return (
+                                                      <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                                          <div className="flex items-start gap-3">
+                                                              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5">
+                                                                  <FileCheck className="w-5 h-5" />
+                                                              </div>
+                                                              <div>
+                                                                  <h3 className="text-base font-bold text-gray-900">Standard Business Customer Account</h3>
+                                                                  <p className="text-xs text-gray-600 mt-1">
+                                                                      You are currently registered as a standard customer. If your company has a signed SLA or custom supply contract with Unifoods, click below to link your contract details.
+                                                                  </p>
+                                                              </div>
+                                                          </div>
+                                                          <button
+                                                              type="button"
+                                                              onClick={() => setIsContractModalOpen(true)}
+                                                              className="px-4 py-2 bg-[#D97706] text-white text-xs font-bold rounded-xl shadow-sm hover:bg-amber-700 shrink-0"
+                                                          >
+                                                              Upload Contract
+                                                          </button>
+                                                      </div>
+                                                  );
+                                              }
+
+                                              const expiry = user.contract.expiryDate ? new Date(user.contract.expiryDate) : null;
+                                              const now = new Date();
+                                              const daysLeft = expiry ? Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)) : null;
+
+                                              if (daysLeft !== null && daysLeft < 0) {
+                                                  return (
+                                                      <div className="bg-rose-50 border border-rose-200 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                                          <div className="flex items-start gap-3">
+                                                              <div className="w-10 h-10 rounded-xl bg-rose-600 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 animate-pulse">
+                                                                  <AlertTriangle className="w-5 h-5" />
+                                                              </div>
+                                                              <div>
+                                                                  <h3 className="text-base font-bold text-rose-950 flex items-center gap-2">
+                                                                      Supply Contract Expired
+                                                                      <span className="text-[10px] bg-rose-200 text-rose-900 px-2 py-0.5 rounded-md uppercase font-black">Expired</span>
+                                                                  </h3>
+                                                                  <p className="text-xs text-rose-800 mt-1">
+                                                                      Your contract expired on <span className="font-extrabold">{expiry?.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>. Please upload an updated agreement or renew your contract date below.
+                                                                  </p>
+                                                              </div>
+                                                          </div>
+                                                          <button
+                                                              type="button"
+                                                              onClick={() => setIsContractModalOpen(true)}
+                                                              className="px-5 py-2.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-xl shadow-sm shrink-0"
+                                                          >
+                                                              Renew Contract Now
+                                                          </button>
+                                                      </div>
+                                                  );
+                                              }
+
+                                              if (daysLeft !== null && daysLeft <= 30) {
+                                                  return (
+                                                      <div className="bg-amber-50 border border-amber-200 rounded-2xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                                                          <div className="flex items-start gap-3">
+                                                              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-xs mt-0.5 animate-bounce">
+                                                                  <AlertCircle className="w-5 h-5" />
+                                                              </div>
+                                                              <div>
+                                                                  <h3 className="text-base font-bold text-amber-950 flex items-center gap-2">
+                                                                      Contract Expiring Soon
+                                                                      <span className="text-[10px] bg-amber-200 text-amber-900 px-2 py-0.5 rounded-md uppercase font-black">In {daysLeft} Days</span>
+                                                                  </h3>
+                                                                  <p className="text-xs text-amber-800 mt-1">
+                                                                      Your contract will expire on <span className="font-bold">{expiry?.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</span>. Upload your renewed agreement document now to prevent any order interruptions.
+                                                                  </p>
+                                                              </div>
+                                                          </div>
+                                                          <button
+                                                              type="button"
+                                                              onClick={() => setIsContractModalOpen(true)}
+                                                              className="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-sm shrink-0"
+                                                          >
+                                                              Update & Renew Contract
+                                                          </button>
+                                                      </div>
+                                                  );
+                                              }
+
+                                              return (
+                                                  <div className="bg-emerald-50 border border-emerald-200 rounded-2xl p-6 flex items-center justify-between gap-4">
+                                                      <div className="flex items-center gap-3">
+                                                          <div className="w-10 h-10 rounded-xl bg-emerald-500 text-white flex items-center justify-center shrink-0 shadow-xs">
+                                                              <CheckCircle className="w-5 h-5" />
+                                                          </div>
+                                                          <div>
+                                                              <h3 className="text-base font-bold text-emerald-950 flex items-center gap-2">
+                                                                  Contract Active & Verified
+                                                                  <span className="text-[10px] bg-emerald-200 text-emerald-900 px-2 py-0.5 rounded-md uppercase font-black">Active</span>
+                                                              </h3>
+                                                              <p className="text-xs text-emerald-800 mt-0.5">
+                                                                  Valid until <span className="font-bold">{expiry?.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) || 'No Expiry Date'}</span> ({daysLeft ? `${daysLeft} days remaining` : 'Ongoing'}).
+                                                              </p>
+                                                          </div>
+                                                      </div>
+                                                  </div>
+                                              );
+                                          })()}
+
+                                          {/* CONTRACT CARD DISPLAY */}
+                                          {user?.isContractBased && user?.contract && (
+                                              <div className="bg-white rounded-2xl p-6 border border-gray-200 shadow-xs space-y-6">
+                                                  <div className="grid md:grid-cols-2 gap-6">
+                                                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Agreement Type</p>
+                                                          <p className="text-base font-bold text-gray-900 mt-1">{user.contract.contractType || "Annual Supply Agreement"}</p>
+                                                      </div>
+                                                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Expiry Date</p>
+                                                          <p className="text-base font-bold text-gray-900 mt-1 flex items-center gap-2">
+                                                              <Calendar className="w-4 h-4 text-amber-600" />
+                                                              {user.contract.expiryDate ? new Date(user.contract.expiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : "Not Specified"}
+                                                          </p>
+                                                      </div>
+                                                  </div>
+
+                                                  {user.contract.documentUrl && (
+                                                      <div className="p-5 bg-amber-50/60 rounded-2xl border border-amber-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                                                          <div className="flex items-center gap-3">
+                                                              <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shrink-0">
+                                                                  <FileText className="w-5 h-5" />
+                                                              </div>
+                                                              <div>
+                                                                  <h4 className="text-sm font-bold text-gray-900">Signed Contract Document</h4>
+                                                                  <p className="text-xs text-gray-500">Stored securely on Cloudinary ☁️</p>
+                                                              </div>
+                                                          </div>
+                                                          <a
+                                                              href={user.contract.documentUrl}
+                                                              target="_blank"
+                                                              rel="noopener noreferrer"
+                                                              className="px-4 py-2.5 bg-white hover:bg-amber-100 text-amber-900 border border-amber-300 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-2 shrink-0"
+                                                          >
+                                                              <Download className="w-4 h-4 text-amber-600" /> View Document
+                                                          </a>
+                                                      </div>
+                                                  )}
+
+                                                  {user.contract.notes && (
+                                                      <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Contract Terms & Notes</p>
+                                                          <p className="text-xs text-gray-700 leading-relaxed font-medium">{user.contract.notes}</p>
+                                                      </div>
+                                                  )}
+                                              </div>
+                                          )}
+                                      </div>
+                                  )}
 
                                  {/* ADVANCE PAYMENT TAB */}
                                  {activeTab === "advance_payment" && (
@@ -2346,6 +2630,128 @@ const ProfilePage = () => {
                 onSubmit={handleCancelSubscriptionSubmit}
                 subscriptionId={cancelSubId || ''}
             />
+
+            {/* 📜 UPDATE / RENEW CONTRACT MODAL */}
+            {isContractModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+                    <div className="bg-white rounded-3xl shadow-2xl border border-gray-200 max-w-lg w-full p-6 space-y-5 animate-in zoom-in duration-200 overflow-hidden">
+                        <div className="flex items-center justify-between border-b pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center shadow-xs">
+                                    <FileCheck className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">Update / Renew Contract</h3>
+                                    <p className="text-xs text-gray-500">Upload new agreement details & Cloudinary document</p>
+                                </div>
+                            </div>
+                            <button onClick={() => setIsContractModalOpen(false)} className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100">
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="text-xs font-bold text-gray-700 block mb-1">Contract Agreement Type</label>
+                                <select
+                                    value={contractFormType}
+                                    onChange={(e) => setContractFormType(e.target.value)}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                                >
+                                    <option value="Annual Supply Agreement">Annual Supply Agreement</option>
+                                    <option value="Fixed Rate Contract">Fixed Rate Contract</option>
+                                    <option value="Service Level Agreement (SLA)">Service Level Agreement (SLA)</option>
+                                    <option value="Volume Discount Agreement">Volume Discount Agreement</option>
+                                    <option value="Custom Contract">Custom Contract / SLA</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-gray-700 block mb-1">Contract Expiry Date</label>
+                                <div className="relative">
+                                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                    <input
+                                        type="date"
+                                        value={contractFormExpiry}
+                                        onChange={(e) => setContractFormExpiry(e.target.value)}
+                                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                                    />
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-gray-700 block mb-1">Upload New Contract Document (PDF/DOCX/JPG/PNG)</label>
+                                <div 
+                                    onClick={() => contractInputRef.current?.click()}
+                                    className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all ${contractFormDocUrl ? 'border-green-500 bg-green-50/80' : contractFormFile ? 'border-amber-400 bg-amber-50' : 'border-gray-300 bg-gray-50 hover:bg-white hover:border-[#D97706]'}`}
+                                >
+                                    <input type="file" ref={contractInputRef} onChange={handleContractDocumentUpload} className="hidden" accept=".pdf,.doc,.docx,image/*" />
+                                    {contractUploading ? (
+                                        <p className="text-xs font-bold text-amber-700 animate-pulse flex items-center gap-1.5">
+                                            ☁️ Uploading document to Cloudinary...
+                                        </p>
+                                    ) : contractFormDocUrl ? (
+                                        <div className="flex items-center gap-2">
+                                            <CheckCircle className="text-green-600 shrink-0" size={20} />
+                                            <div className="text-left">
+                                                <span className="text-xs font-extrabold text-green-800 block truncate max-w-[240px]">{contractFormFile?.name || "Contract Document"}</span>
+                                                <span className="text-[10px] text-green-600 font-bold">Uploaded to Cloudinary ☁️</span>
+                                            </div>
+                                        </div>
+                                    ) : contractFormFile ? (
+                                        <div className="flex items-center gap-2">
+                                            <FileCheck className="text-amber-600 shrink-0" size={20} />
+                                            <span className="text-xs font-bold text-amber-800 truncate max-w-[240px]">{contractFormFile.name}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2">
+                                            <UploadCloud className="text-gray-400" size={18} />
+                                            <span className="text-xs font-medium text-gray-600">Click to select new contract file</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-bold text-gray-700 block mb-1">Contract Terms / Notes (Optional)</label>
+                                <textarea
+                                    value={contractFormNotes}
+                                    onChange={(e) => setContractFormNotes(e.target.value)}
+                                    placeholder="Specify fixed rates, credit period terms, volume targets..."
+                                    rows={2}
+                                    className="w-full p-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#D97706] text-xs font-medium text-gray-800"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex items-center justify-end gap-3 pt-3 border-t">
+                            <button
+                                type="button"
+                                onClick={() => setIsContractModalOpen(false)}
+                                className="px-5 py-2.5 border border-gray-300 text-gray-700 text-xs font-bold rounded-xl hover:bg-gray-50"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleSaveContract}
+                                disabled={savingContract || contractUploading}
+                                className="px-6 py-2.5 bg-[#D97706] hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md flex items-center gap-2 disabled:opacity-50"
+                            >
+                                {savingContract ? (
+                                    <>
+                                        <Loader2 className="w-4 h-4 animate-spin" /> Saving...
+                                    </>
+                                ) : (
+                                    <>
+                                        <CheckCircle className="w-4 h-4" /> Save & Renew Contract
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <RaiseGrievanceModal 
                 isOpen={isGrievanceModalOpen}
