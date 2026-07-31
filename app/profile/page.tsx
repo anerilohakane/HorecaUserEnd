@@ -109,7 +109,8 @@ const ProfilePage = () => {
 
     // 📜 Contract Management & Renewal State
     const [isContractModalOpen, setIsContractModalOpen] = useState(false);
-    const [contractFormType, setContractFormType] = useState('Annual Supply Agreement');
+    const [contractFormType, setContractFormType] = useState('');
+    const [contractFormStart, setContractFormStart] = useState('');
     const [contractFormExpiry, setContractFormExpiry] = useState('');
     const [contractFormDocUrl, setContractFormDocUrl] = useState('');
     const [contractFormNotes, setContractFormNotes] = useState('');
@@ -121,7 +122,11 @@ const ProfilePage = () => {
     // Initialize contract form when modal opens or user profile loads
     useEffect(() => {
         if (user?.contract) {
-            setContractFormType(user.contract.contractType || 'Annual Supply Agreement');
+            setContractFormType(user.contract.contractType || '');
+            if (user.contract.startDate) {
+                const sd = new Date(user.contract.startDate);
+                setContractFormStart(sd.toISOString().split('T')[0]);
+            }
             if (user.contract.expiryDate) {
                 const d = new Date(user.contract.expiryDate);
                 setContractFormExpiry(d.toISOString().split('T')[0]);
@@ -170,8 +175,9 @@ const ProfilePage = () => {
         setSavingContract(true);
         try {
             const updatedContract = {
-                contractType: contractFormType,
+                contractType: contractFormType || null,
                 documentUrl: contractFormDocUrl || user?.contract?.documentUrl || null,
+                startDate: contractFormStart || null,
                 expiryDate: contractFormExpiry || null,
                 notes: contractFormNotes.trim() || null,
                 uploadedAt: new Date()
@@ -2666,16 +2672,30 @@ const ProfilePage = () => {
                                 </select>
                             </div>
 
-                            <div>
-                                <label className="text-xs font-bold text-gray-700 block mb-1">Contract Expiry Date</label>
-                                <div className="relative">
-                                    <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                    <input
-                                        type="date"
-                                        value={contractFormExpiry}
-                                        onChange={(e) => setContractFormExpiry(e.target.value)}
-                                        className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
-                                    />
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="text-xs font-bold text-gray-700 block mb-1">Contract Start Date</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                        <input
+                                            type="date"
+                                            value={contractFormStart}
+                                            onChange={(e) => setContractFormStart(e.target.value)}
+                                            className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                                        />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="text-xs font-bold text-gray-700 block mb-1">Contract Expiry Date</label>
+                                    <div className="relative">
+                                        <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                        <input
+                                            type="date"
+                                            value={contractFormExpiry}
+                                            onChange={(e) => setContractFormExpiry(e.target.value)}
+                                            className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-gray-50 focus:bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                                        />
+                                    </div>
                                 </div>
                             </div>
 

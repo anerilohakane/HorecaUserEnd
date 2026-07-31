@@ -3,10 +3,11 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check } from "lucide-react";
+import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check, Store, Briefcase } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { INDIAN_STATES, CUSTOMER_TYPES, CUSTOMER_DEPARTMENTS, validateStatePincode } from "@/app/lib/indiaGeoData";
 
 const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
 
@@ -26,21 +27,54 @@ export default function RegisterPage() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+91");
+  const [department, setDepartment] = useState("");
+  const [customDepartment, setCustomDepartment] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [gstNumber, setGstNumber] = useState("");
+  const [isUrg, setIsUrg] = useState(false);
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [pincode, setPincode] = useState("");
   const [category, setCategory] = useState("");
+  const [customerType, setCustomerType] = useState("");
+  const [customCustomerType, setCustomCustomerType] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // 🏢 Multiple Outlets State
+  const [hasMultipleOutlets, setHasMultipleOutlets] = useState(false);
+  const [outlets, setOutlets] = useState<Array<{
+    outletName: string;
+    address: string;
+    city: string;
+    state: string;
+    pincode: string;
+    contactPerson: string;
+    contactPhone: string;
+  }>>([]);
+
+  const addOutlet = () => {
+    setOutlets(prev => [...prev, { outletName: "", address: "", city: "", state: "", pincode: "", contactPerson: "", contactPhone: "" }]);
+  };
+
+  const removeOutlet = (index: number) => {
+    setOutlets(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateOutlet = (index: number, field: string, value: string) => {
+    setOutlets(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
 
   // 📜 Contract-Based Customer State
   const [isContractBased, setIsContractBased] = useState(false);
-  const [contractType, setContractType] = useState("Annual Supply Agreement");
+  const [contractType, setContractType] = useState("");
+  const [contractStartDate, setContractStartDate] = useState("");
   const [contractExpiryDate, setContractExpiryDate] = useState("");
   const [contractFile, setContractFile] = useState<File | null>(null);
   const [contractDocUrl, setContractDocUrl] = useState("");
@@ -105,19 +139,42 @@ export default function RegisterPage() {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) return "Please enter a valid email address";
       if (phone.length < 10) return "Please enter a valid 10-digit phone number";
+      if (!department) return "Please select your Department / Designation";
+      if (department === "Other" && !customDepartment.trim()) return "Please specify your Department / Designation";
     } else if (step === 2) {
       if (businessName.trim().length < 2) return "Business name is required";
+      if (!customerType) return "Please select your Business / Customer Type";
+      if (customerType === "Other" && !customCustomerType.trim()) return "Please enter your custom Business / Customer Type";
       if (address.trim().length < 5) return "Please enter a complete business address";
       if (city.trim().length < 2) return "City is required";
-      if (state.trim().length < 2) return "State is required";
+      if (!state) return "Please select a State";
       if (!category) return "Please select a customer tier (A, B, C)";
       
-      const pinRegex = /^[1-9][0-9]{5}$/;
-      if (!pinRegex.test(pincode)) return "Please enter a valid 6-digit PIN code";
+      const pinValidation = validateStatePincode(state, pincode);
+      if (!pinValidation.valid) {
+        return pinValidation.message || "Invalid PIN code for selected State";
+      }
       
-      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
-      if (!gstNumber || !gstRegex.test(gstNumber.toUpperCase())) {
-        return "Please enter a valid GST number (e.g. 22AAAAA0000A1Z5)";
+      if (!isUrg) {
+        const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+        if (!gstNumber || !gstRegex.test(gstNumber.toUpperCase())) {
+          return "Please enter a valid 15-digit GST number or mark business as Unregistered (URG)";
+        }
+      }
+
+      if (hasMultipleOutlets) {
+        if (outlets.length === 0) {
+          return "Please add details for at least one additional outlet or select 'No'";
+        }
+        for (let i = 0; i < outlets.length; i++) {
+          const o = outlets[i];
+          if (!o.outletName.trim()) return `Please enter Outlet Name for Outlet #${i + 1}`;
+          if (!o.address.trim()) return `Please enter Address for Outlet #${i + 1} (${o.outletName || 'Outlet'})`;
+          if (!o.city.trim()) return `Please enter City for Outlet #${i + 1}`;
+          if (!o.state) return `Please select State for Outlet #${i + 1}`;
+          const oPinVal = validateStatePincode(o.state, o.pincode);
+          if (!oPinVal.valid) return `Outlet #${i + 1}: ${oPinVal.message || 'Invalid PIN Code'}`;
+        }
       }
     }
     return null;
@@ -171,6 +228,9 @@ export default function RegisterPage() {
         finalContractUrl = await uploadDocument(contractFile);
       }
 
+      const finalCustomerType = customerType === "Other" ? customCustomerType.trim() : customerType;
+      const finalDepartment = department === "Other" ? customDepartment.trim() : department;
+
       // 3. Register Customer
       await registerCustomer({
         username: username.trim(),
@@ -178,20 +238,39 @@ export default function RegisterPage() {
         name: name.trim(),
         phone: countryCode + phone.trim(),
         businessName: businessName.trim(),
-        gstNumber: gstNumber.trim().toUpperCase(),
-        locations: [{
-          address: address.trim(),
-          city: city.trim(),
-          state: state.trim(),
-          pincode: pincode.trim(),
-        }],
+        gstNumber: isUrg ? "URG" : (gstNumber.trim().toUpperCase() || "URG"),
+        hasMultipleOutlets,
+        outlets: hasMultipleOutlets ? outlets : [],
+        locations: [
+          {
+            outletName: "Main Branch",
+            address: address.trim(),
+            city: city.trim(),
+            state: state.trim(),
+            pincode: pincode.trim(),
+            isPrimary: true
+          },
+          ...(hasMultipleOutlets ? outlets.map(o => ({
+            outletName: o.outletName.trim(),
+            address: o.address.trim(),
+            city: o.city.trim(),
+            state: o.state.trim(),
+            pincode: o.pincode.trim(),
+            contactPerson: o.contactPerson?.trim() || null,
+            contactPhone: o.contactPhone?.trim() || null,
+            isPrimary: false
+          })) : [])
+        ],
         category,
+        customerType: finalCustomerType,
+        department: finalDepartment,
         password,
         licenseImage: licenseUrl,
         isContractBased,
         contract: isContractBased ? {
-          contractType,
+          contractType: contractType || null,
           documentUrl: finalContractUrl || null,
+          startDate: contractStartDate || null,
           expiryDate: contractExpiryDate || null,
           notes: contractNotes.trim() || null
         } : undefined
@@ -294,12 +373,39 @@ export default function RegisterPage() {
                         type="tel"
                         value={phone}
                         onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                        placeholder="Phone Number"
+                        placeholder="Phone Number *"
                         className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                         required
                       />
                     </div>
                   </div>
+                  <div className="relative">
+                    <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <select
+                      value={department}
+                      onChange={(e) => setDepartment(e.target.value)}
+                      className={`w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm ${!department ? 'text-gray-400' : 'text-gray-900'}`}
+                      required
+                    >
+                      <option value="" disabled>Select Contact Department / Role *</option>
+                      {CUSTOMER_DEPARTMENTS.map(dept => (
+                        <option key={dept} value={dept}>{dept}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {department === "Other" && (
+                    <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
+                      <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-[#D97706]" size={20} />
+                      <input
+                        type="text"
+                        value={customDepartment}
+                        onChange={(e) => setCustomDepartment(e.target.value)}
+                        placeholder="Specify Contact Department / Role *"
+                        className="w-full pl-12 pr-5 py-4 border border-[#D97706]/40 rounded-2xl bg-amber-50/40 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all text-gray-900 font-medium text-sm"
+                        required
+                      />
+                    </div>
+                  )}
                   {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
                   <button type="button" onClick={nextStep} className="w-full py-4 bg-[#D97706] text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2">
                     Next Step <ArrowRight size={20} />
@@ -326,17 +432,80 @@ export default function RegisterPage() {
                       required
                     />
                   </div>
-                  <div className="relative">
-                    <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      type="text"
-                      value={gstNumber}
-                      onChange={(e) => setGstNumber(e.target.value)}
-                      placeholder="GST Number *"
-                      className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
-                      required
-                    />
+
+                  {/* GST vs URG Selection */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="text-xs font-bold text-gray-700">GST Registration / URG Status *</label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const nextUrg = !isUrg;
+                          setIsUrg(nextUrg);
+                          if (nextUrg) setGstNumber("URG");
+                          else setGstNumber("");
+                        }}
+                        className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${isUrg ? 'bg-[#D97706] text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                      >
+                        {isUrg ? "✓ Unregistered (URG)" : "Mark as Unregistered (URG)"}
+                      </button>
+                    </div>
+
+                    {!isUrg ? (
+                      <div className="relative">
+                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                          type="text"
+                          value={gstNumber === "URG" ? "" : gstNumber}
+                          onChange={(e) => setGstNumber(e.target.value)}
+                          placeholder="GST Number (15 digits) *"
+                          className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm uppercase font-semibold text-gray-900"
+                          required={!isUrg}
+                        />
+                      </div>
+                    ) : (
+                      <div className="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200 text-xs text-amber-900 font-medium flex items-center justify-between animate-in fade-in duration-200">
+                        <span>Registered as <strong>Unregistered Business (URG)</strong>. GST Number is not required.</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsUrg(false);
+                            setGstNumber("");
+                          }}
+                          className="text-[#D97706] font-bold underline ml-2 text-xs"
+                        >
+                          Enter GST
+                        </button>
+                      </div>
+                    )}
                   </div>
+                  <div className="relative">
+                    <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <select
+                      value={customerType}
+                      onChange={(e) => setCustomerType(e.target.value)}
+                      className={`w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm ${!customerType ? 'text-gray-400' : 'text-gray-900'}`}
+                      required
+                    >
+                      <option value="" disabled>Select Business / Customer Type *</option>
+                      {CUSTOMER_TYPES.map(type => (
+                        <option key={type} value={type}>{type}</option>
+                      ))}
+                    </select>
+                  </div>
+                  {customerType === "Other" && (
+                    <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
+                      <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-[#D97706]" size={20} />
+                      <input
+                        type="text"
+                        value={customCustomerType}
+                        onChange={(e) => setCustomCustomerType(e.target.value)}
+                        placeholder="Specify Your Business / Customer Type *"
+                        className="w-full pl-12 pr-5 py-4 border border-[#D97706]/40 rounded-2xl bg-amber-50/40 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all text-gray-900 font-medium text-sm"
+                        required
+                      />
+                    </div>
+                  )}
                   <div className="relative">
                     <Tag className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <select
@@ -369,21 +538,24 @@ export default function RegisterPage() {
                         type="text"
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
-                        placeholder="City"
+                        placeholder="City *"
                         className="w-full pl-11 pr-4 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                         required
                       />
                     </div>
                     <div className="relative">
                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                       <input
-                        type="text"
+                       <select
                         value={state}
                         onChange={(e) => setState(e.target.value)}
-                        placeholder="State"
-                        className="w-full pl-11 pr-4 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
+                        className={`w-full pl-11 pr-3 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm text-sm font-medium ${!state ? 'text-gray-400' : 'text-gray-900'}`}
                         required
-                      />
+                      >
+                        <option value="" disabled>Select State *</option>
+                        {INDIAN_STATES.map(s => (
+                          <option key={s} value={s}>{s}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div className="relative">
@@ -391,11 +563,130 @@ export default function RegisterPage() {
                     <input
                       type="text"
                       value={pincode}
-                      onChange={(e) => setPincode(e.target.value)}
-                      placeholder="PIN Code"
+                      onChange={(e) => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                      placeholder="PIN Code (6 digits) *"
+                      maxLength={6}
                       className="w-full pl-11 pr-4 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                       required
                     />
+                  </div>
+
+                  {/* 🏢 Multiple Outlets Section */}
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200/80 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-sm font-bold text-gray-800 block">Do you have multiple outlets / branches?</span>
+                        <span className="text-xs text-gray-500">Add locations for your additional branches</span>
+                      </div>
+                      <div className="flex bg-gray-200 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHasMultipleOutlets(true);
+                            if (outlets.length === 0) addOutlet();
+                          }}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${hasMultipleOutlets ? 'bg-[#D97706] text-white shadow-sm' : 'text-gray-600'}`}
+                        >
+                          Yes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHasMultipleOutlets(false)}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${!hasMultipleOutlets ? 'bg-white text-gray-800 shadow-sm' : 'text-gray-600'}`}
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+
+                    {hasMultipleOutlets && (
+                      <div className="space-y-4 pt-2 border-t border-gray-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                        {outlets.map((outlet, index) => (
+                          <div key={index} className="p-3.5 bg-white rounded-xl border border-amber-200/80 space-y-3 shadow-sm relative">
+                            <div className="flex items-center justify-between pb-1 border-b border-gray-100">
+                              <span className="text-xs font-bold text-[#D97706]">Additional Outlet #{index + 1}</span>
+                              <button
+                                type="button"
+                                onClick={() => removeOutlet(index)}
+                                className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-0.5 rounded hover:bg-red-50"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                            <input
+                              type="text"
+                              value={outlet.outletName}
+                              onChange={(e) => updateOutlet(index, "outletName", e.target.value)}
+                              placeholder="Outlet / Branch Name (e.g. Andheri Branch) *"
+                              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                              required
+                            />
+                            <textarea
+                              value={outlet.address}
+                              onChange={(e) => updateOutlet(index, "address", e.target.value)}
+                              placeholder="Outlet Address *"
+                              rows={2}
+                              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                              required
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                value={outlet.city}
+                                onChange={(e) => updateOutlet(index, "city", e.target.value)}
+                                placeholder="City *"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                                required
+                              />
+                              <select
+                                value={outlet.state}
+                                onChange={(e) => updateOutlet(index, "state", e.target.value)}
+                                className="w-full px-2 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                                required
+                              >
+                                <option value="" disabled>State *</option>
+                                {INDIAN_STATES.map(s => (
+                                  <option key={s} value={s}>{s}</option>
+                                ))}
+                              </select>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                type="text"
+                                value={outlet.pincode}
+                                onChange={(e) => updateOutlet(index, "pincode", e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                placeholder="PIN Code *"
+                                maxLength={6}
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                                required
+                              />
+                              <input
+                                type="text"
+                                value={outlet.contactPerson}
+                                onChange={(e) => updateOutlet(index, "contactPerson", e.target.value)}
+                                placeholder="Manager Name (Optional)"
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                              />
+                            </div>
+                            <input
+                              type="tel"
+                              value={outlet.contactPhone}
+                              onChange={(e) => updateOutlet(index, "contactPhone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                              placeholder="Outlet Contact Phone (Optional)"
+                              maxLength={10}
+                              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                            />
+                          </div>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={addOutlet}
+                          className="w-full py-2.5 border-2 border-dashed border-[#D97706]/40 text-[#D97706] bg-amber-50/50 hover:bg-amber-100/50 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5"
+                        >
+                          + Add Another Outlet / Branch
+                        </button>
+                      </div>
+                    )}
                   </div>
                   {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
                   <div className="flex gap-4">
@@ -478,16 +769,30 @@ export default function RegisterPage() {
                           </select>
                         </div>
 
-                        <div>
-                          <label className="text-xs font-bold text-gray-700 block mb-1">Contract Expiry Date</label>
-                          <div className="relative">
-                            <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                            <input
-                              type="date"
-                              value={contractExpiryDate}
-                              onChange={(e) => setContractExpiryDate(e.target.value)}
-                              className="w-full pl-10 pr-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
-                            />
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="text-xs font-bold text-gray-700 block mb-1">Contract Start Date</label>
+                            <div className="relative">
+                              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                              <input
+                                type="date"
+                                value={contractStartDate}
+                                onChange={(e) => setContractStartDate(e.target.value)}
+                                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="text-xs font-bold text-gray-700 block mb-1">Contract Expiry Date</label>
+                            <div className="relative">
+                              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                              <input
+                                type="date"
+                                value={contractExpiryDate}
+                                onChange={(e) => setContractExpiryDate(e.target.value)}
+                                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                              />
+                            </div>
                           </div>
                         </div>
 
