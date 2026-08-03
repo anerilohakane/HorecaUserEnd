@@ -360,6 +360,7 @@ export default function OrderReview({
     netbanking: "Net Banking",
     cn: "Credit Note (CN)",
     advance: "Advance Payment",
+    credit: "Pay on Credit (Credit Term)",
   };
 
   // ---------------------------------------------------------
@@ -581,6 +582,36 @@ export default function OrderReview({
           <p className="font-semibold text-[#111827]">{paymentMethodNames[paymentMethod]}</p>
         </div>
       </div>
+
+      {/* 💳 CREDIT TERMS & CREDIT LIMIT BANNER */}
+      {((user?.creditLimit && user.creditLimit > 0) || (user?.creditTerm && user.creditTerm > 0)) && (
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200/80 rounded-2xl p-5 soft-shadow space-y-2">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 font-bold text-gray-900 text-sm">
+              <CreditCard className="w-5 h-5 text-amber-600" />
+              Approved Credit Terms & Limits
+            </div>
+            <span className="text-xs font-bold px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full border border-amber-300">
+              {(user?.creditTerm || 0) > 0 ? `${user?.creditTerm} Days Credit` : 'COD / Immediate'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-2 text-xs">
+            <div className="bg-white/80 p-2.5 rounded-xl border border-amber-100">
+              <span className="text-gray-500 block">Credit Limit</span>
+              <span className="font-extrabold text-gray-900">₹{Number(user.creditLimit || 0).toLocaleString('en-IN')}</span>
+            </div>
+            <div className="bg-white/80 p-2.5 rounded-xl border border-amber-100">
+              <span className="text-gray-500 block">Credit Term</span>
+              <span className="font-extrabold text-gray-900">{user.creditTerm || 0} Days</span>
+            </div>
+            <div className="bg-white/80 p-2.5 rounded-xl border border-amber-100 col-span-2 sm:col-span-1">
+              <span className="text-gray-500 block">Current Order Total</span>
+              <span className="font-extrabold text-amber-700">₹{total.toLocaleString('en-IN')}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ❄️ COLD STORAGE REQUIREMENT SUMMARY BANNER */}
       {hasColdStorageItems && (

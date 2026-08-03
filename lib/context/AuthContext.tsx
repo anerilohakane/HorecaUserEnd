@@ -15,6 +15,8 @@ interface User {
   category: string | null;
   advanceBalance?: number;
   cnBalance?: number;
+  creditTerm?: number;
+  creditLimit?: number;
 }
 
 interface AuthContextType {

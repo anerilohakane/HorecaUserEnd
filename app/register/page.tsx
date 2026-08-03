@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check, Store, Briefcase } from "lucide-react";
+import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check, Store, Briefcase, CreditCard } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -32,17 +32,31 @@ export default function RegisterPage() {
   const [businessName, setBusinessName] = useState("");
   const [gstNumber, setGstNumber] = useState("");
   const [isUrg, setIsUrg] = useState(false);
+  const [creditTerm, setCreditTerm] = useState(0);
+  const [creditLimit, setCreditLimit] = useState(0);
   const [address, setAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [pincode, setPincode] = useState("");
+  const [panNumber, setPanNumber] = useState("");
   const [category, setCategory] = useState("");
   const [customerType, setCustomerType] = useState("");
   const [customCustomerType, setCustomCustomerType] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [licenseFile, setLicenseFile] = useState<File | null>(null);
+  const [urcFile, setUrcFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const urcFileInputRef = useRef<HTMLInputElement>(null);
+  // 🛡️ FSSAI & Business License Expiry State
+  const [hasFssai, setHasFssai] = useState(true);
+  const [fssaiNumber, setFssaiNumber] = useState("");
+  const [fssaiExpiryDate, setFssaiExpiryDate] = useState("");
+  const [fssaiDocFile, setFssaiDocFile] = useState<File | null>(null);
+  const [fssaiUndertakingFile, setFssaiUndertakingFile] = useState<File | null>(null);
+  const [licenseExpiryDate, setLicenseExpiryDate] = useState("");
+  const fssaiDocInputRef = useRef<HTMLInputElement>(null);
+  const fssaiUndertakingInputRef = useRef<HTMLInputElement>(null);
   // 🏢 Multiple Outlets State
   const [hasMultipleOutlets, setHasMultipleOutlets] = useState(false);
   const [outlets, setOutlets] = useState<Array<{
@@ -162,6 +176,13 @@ export default function RegisterPage() {
         }
       }
 
+      if (panNumber.trim()) {
+        const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+        if (!panRegex.test(panNumber.trim().toUpperCase())) {
+          return "Please enter a valid 10-character PAN number (e.g. ABCDE1234F)";
+        }
+      }
+
       if (hasMultipleOutlets) {
         if (outlets.length === 0) {
           return "Please add details for at least one additional outlet or select 'No'";
@@ -175,6 +196,16 @@ export default function RegisterPage() {
           const oPinVal = validateStatePincode(o.state, o.pincode);
           if (!oPinVal.valid) return `Outlet #${i + 1}: ${oPinVal.message || 'Invalid PIN Code'}`;
         }
+      }
+    } else if (step === 3) {
+      if (!licenseFile) return "Please upload Business License photo";
+      if (!licenseExpiryDate) return "Please select Trade / Business License Expiry Date";
+      if (hasFssai) {
+        if (!fssaiNumber.trim()) return "Please enter FSSAI License Number";
+        if (!fssaiExpiryDate) return "Please select FSSAI License Expiry Date";
+        if (!fssaiDocFile) return "Please upload FSSAI Certificate document or photo";
+      } else {
+        if (!fssaiUndertakingFile) return "Please upload FSSAI Undertaking Document";
       }
     }
     return null;
@@ -198,17 +229,28 @@ export default function RegisterPage() {
     e.preventDefault();
     setError("");
 
+    if (!licenseFile) return setError("Please upload Business License photo");
+    if (!licenseExpiryDate) return setError("Please select Trade / Business License Expiry Date");
+
+    if (hasFssai) {
+      if (!fssaiNumber.trim()) return setError("Please enter FSSAI License Number");
+      if (!fssaiExpiryDate) return setError("Please select FSSAI License Expiry Date");
+      if (!fssaiDocFile) return setError("Please upload FSSAI Certificate document or photo");
+    } else {
+      if (!fssaiUndertakingFile) return setError("Please upload FSSAI Undertaking Document");
+    }
+
     if (!category) {
       setError("Please select a customer tier (A, B, C)");
       return;
     }
 
-    if (password.length < 8) {
-      setError("Password must be at least 8 characters");
+    if (password && password.length < 8) {
+      setError("Password must be at least 8 characters if entered manually");
       return;
     }
 
-    if (password !== confirmPassword) {
+    if (password && password !== confirmPassword) {
       setError("Passwords do not match");
       return;
     }
@@ -222,16 +264,32 @@ export default function RegisterPage() {
         licenseUrl = await uploadLicense(licenseFile);
       }
 
+      // 1.5 Upload FSSAI Documents
+      let fssaiDocUrl = null;
+      if (hasFssai && fssaiDocFile) {
+        fssaiDocUrl = await uploadDocument(fssaiDocFile);
+      }
+      let fssaiUndertakingDocUrl = null;
+      if (!hasFssai && fssaiUndertakingFile) {
+        fssaiUndertakingDocUrl = await uploadDocument(fssaiUndertakingFile);
+      }
+
       // 2. Upload Contract Document if contract-based and file selected but not uploaded yet
       let finalContractUrl = contractDocUrl;
       if (isContractBased && contractFile && !finalContractUrl) {
         finalContractUrl = await uploadDocument(contractFile);
       }
 
+      // 3. Upload URC Document / Undertaking if URG selected
+      let urcUrl = null;
+      if (isUrg && urcFile) {
+        urcUrl = await uploadDocument(urcFile);
+      }
+
       const finalCustomerType = customerType === "Other" ? customCustomerType.trim() : customerType;
       const finalDepartment = department === "Other" ? customDepartment.trim() : department;
 
-      // 3. Register Customer
+      // 4. Register Customer
       await registerCustomer({
         username: username.trim(),
         email: email.trim(),
@@ -239,6 +297,14 @@ export default function RegisterPage() {
         phone: countryCode + phone.trim(),
         businessName: businessName.trim(),
         gstNumber: isUrg ? "URG" : (gstNumber.trim().toUpperCase() || "URG"),
+        panNumber: panNumber ? panNumber.trim().toUpperCase() : null,
+        urcDocUrl: isUrg ? urcUrl : null,
+        hasFssai: Boolean(hasFssai),
+        fssaiNumber: hasFssai ? fssaiNumber.trim() : null,
+        fssaiExpiryDate: hasFssai ? fssaiExpiryDate : null,
+        fssaiDocUrl: hasFssai ? fssaiDocUrl : null,
+        fssaiUndertakingDocUrl: !hasFssai ? fssaiUndertakingDocUrl : null,
+        licenseExpiryDate: licenseExpiryDate || null,
         hasMultipleOutlets,
         outlets: hasMultipleOutlets ? outlets : [],
         locations: [
@@ -264,6 +330,8 @@ export default function RegisterPage() {
         category,
         customerType: finalCustomerType,
         department: finalDepartment,
+        creditTerm: Number(creditTerm || 0),
+        creditLimit: Number(creditLimit || 0),
         password,
         licenseImage: licenseUrl,
         isContractBased,
@@ -433,21 +501,29 @@ export default function RegisterPage() {
                     />
                   </div>
 
-                  {/* GST vs URG Selection */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between px-1">
-                      <label className="text-xs font-bold text-gray-700">GST Registration / URG Status *</label>
+                  {/* GST vs URG Selection Mode */}
+                  <div className="space-y-3">
+                    <label className="text-xs font-bold text-gray-700 block ml-1">GST Registration Status *</label>
+                    <div className="grid grid-cols-2 gap-2 bg-gray-100 p-1.5 rounded-2xl border border-gray-200">
                       <button
                         type="button"
                         onClick={() => {
-                          const nextUrg = !isUrg;
-                          setIsUrg(nextUrg);
-                          if (nextUrg) setGstNumber("URG");
-                          else setGstNumber("");
+                          setIsUrg(false);
+                          setGstNumber("");
                         }}
-                        className={`text-xs font-bold px-3 py-1.5 rounded-xl transition-all ${isUrg ? 'bg-[#D97706] text-white shadow-sm' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}
+                        className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${!isUrg ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-500 hover:text-gray-800'}`}
                       >
-                        {isUrg ? "✓ Unregistered (URG)" : "Mark as Unregistered (URG)"}
+                        <span>GST Registered</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsUrg(true);
+                          setGstNumber("URG");
+                        }}
+                        className={`py-2.5 px-4 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${isUrg ? 'bg-[#D97706] text-white shadow-sm' : 'text-gray-500 hover:text-gray-800'}`}
+                      >
+                        <span>Unregistered (URG)</span>
                       </button>
                     </div>
 
@@ -457,27 +533,61 @@ export default function RegisterPage() {
                         <input
                           type="text"
                           value={gstNumber === "URG" ? "" : gstNumber}
-                          onChange={(e) => setGstNumber(e.target.value)}
-                          placeholder="GST Number (15 digits) *"
+                          onChange={(e) => setGstNumber(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15))}
+                          placeholder="Enter 15-Digit GST Number *"
+                          maxLength={15}
                           className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm uppercase font-semibold text-gray-900"
                           required={!isUrg}
                         />
                       </div>
                     ) : (
-                      <div className="p-3.5 bg-amber-50/80 rounded-2xl border border-amber-200 text-xs text-amber-900 font-medium flex items-center justify-between animate-in fade-in duration-200">
-                        <span>Registered as <strong>Unregistered Business (URG)</strong>. GST Number is not required.</span>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setIsUrg(false);
-                            setGstNumber("");
-                          }}
-                          className="text-[#D97706] font-bold underline ml-2 text-xs"
-                        >
-                          Enter GST
-                        </button>
+                      <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 space-y-3 animate-in fade-in duration-200">
+                        <p className="text-xs text-amber-900 font-medium">
+                          <strong>Unregistered Business (URG) Selected.</strong> GSTIN is optional. You can upload your URC Certificate or GST Exemption Undertaking document below.
+                        </p>
+                        
+                        {/* URC Document / Undertaking Upload Button */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+                          <input
+                            type="file"
+                            ref={urcFileInputRef}
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setUrcFile(e.target.files[0]);
+                              }
+                            }}
+                            accept="image/*,.pdf"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => urcFileInputRef.current?.click()}
+                            className="px-4 py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-900 hover:bg-amber-100/50 transition-all flex items-center justify-center gap-2 shadow-xs"
+                          >
+                            <Upload size={16} className="text-amber-700" />
+                            {urcFile ? "Change URC / Undertaking Doc" : "Upload URC / Undertaking Doc"}
+                          </button>
+                          {urcFile && (
+                            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 truncate max-w-[220px]">
+                              ✓ {urcFile.name}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     )}
+                  </div>
+
+                  {/* 💳 PAN Number Field */}
+                  <div className="relative">
+                    <CreditCard className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <input
+                      type="text"
+                      value={panNumber}
+                      onChange={(e) => setPanNumber(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10))}
+                      placeholder="PAN Number (e.g. ABCDE1234F)"
+                      maxLength={10}
+                      className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm uppercase font-medium text-gray-900"
+                    />
                   </div>
                   <div className="relative">
                     <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -709,7 +819,7 @@ export default function RegisterPage() {
                   className="space-y-4"
                 >
                   <div className="space-y-2">
-                    <label className="text-sm font-bold text-gray-700">Business License / FSSAI (Photo) (Optional)</label>
+                    <label className="text-sm font-bold text-gray-700">Business License (Photo) *</label>
                     <div 
                       onClick={() => fileInputRef.current?.click()}
                       className={`w-full border-2 border-dashed rounded-2xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${licenseFile ? 'border-green-500 bg-green-50' : 'border-gray-200 bg-gray-50 hover:bg-white hover:border-[#D97706]'}`}
@@ -723,10 +833,128 @@ export default function RegisterPage() {
                       ) : (
                         <>
                           <Upload className="text-gray-400 mb-2" size={32} />
-                          <span className="text-sm font-medium text-gray-600">Click to upload license image</span>
+                          <span className="text-sm font-medium text-gray-600">Click to upload license image *</span>
                         </>
                       )}
                     </div>
+                  </div>
+
+                  {/* 📅 Business / Trade License Expiry Date */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold text-gray-700 block ml-1">Trade / Business License Expiry Date *</label>
+                    <div className="relative">
+                      <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                      <input
+                        type="date"
+                        value={licenseExpiryDate}
+                        onChange={(e) => setLicenseExpiryDate(e.target.value)}
+                        className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-[#D97706]/20 focus:border-[#D97706] transition-all text-sm font-medium text-gray-900"
+                        required
+                      />
+                    </div>
+                    <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
+                      ⚠️ <strong>License Expiry Rule:</strong> If the license expires, bill generation, order placement, and product dispatch for your account will be suspended automatically until updated.
+                    </p>
+                  </div>
+
+                  {/* 🛡️ FSSAI License & Validation / Expiry Section */}
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-gray-800 block">FSSAI License Status *</span>
+                        <span className="text-[11px] text-gray-500">Are you registered with FSSAI?</span>
+                      </div>
+                      <div className="flex bg-gray-200 p-1 rounded-xl">
+                        <button
+                          type="button"
+                          onClick={() => setHasFssai(true)}
+                          className={`px-3.5 py-1 text-xs font-bold rounded-lg transition-all ${hasFssai ? 'bg-[#D97706] text-white shadow-sm' : 'text-gray-600'}`}
+                        >
+                          Yes
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setHasFssai(false)}
+                          className={`px-3.5 py-1 text-xs font-bold rounded-lg transition-all ${!hasFssai ? 'bg-[#D97706] text-white shadow-sm' : 'text-gray-600'}`}
+                        >
+                          No
+                        </button>
+                      </div>
+                    </div>
+
+                    {hasFssai ? (
+                      <div className="space-y-3 pt-2 border-t border-gray-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-700 block ml-1">FSSAI License Number *</label>
+                          <div className="relative">
+                            <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                              type="text"
+                              value={fssaiNumber}
+                              onChange={(e) => setFssaiNumber(e.target.value)}
+                              placeholder="Enter 14-digit FSSAI Number *"
+                              className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#D97706]/20 focus:border-[#D97706] text-sm font-medium"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-700 block ml-1">FSSAI Expiry / Validation Date *</label>
+                          <div className="relative">
+                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                            <input
+                              type="date"
+                              value={fssaiExpiryDate}
+                              onChange={(e) => setFssaiExpiryDate(e.target.value)}
+                              className="w-full pl-11 pr-4 py-3.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-[#D97706]/20 focus:border-[#D97706] text-sm font-medium"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-xs font-bold text-gray-700 block ml-1">FSSAI Certificate Document / Photo *</label>
+                          <input
+                            type="file"
+                            ref={fssaiDocInputRef}
+                            onChange={(e) => e.target.files && setFssaiDocFile(e.target.files[0])}
+                            accept="image/*,.pdf"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => fssaiDocInputRef.current?.click()}
+                            className="w-full py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all flex items-center justify-center gap-2"
+                          >
+                            <Upload size={14} className="text-gray-500" />
+                            {fssaiDocFile ? `✓ ${fssaiDocFile.name}` : "Upload FSSAI Certificate / Photo *"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 pt-2 border-t border-gray-200 animate-in fade-in slide-in-from-top-1 duration-200">
+                        <div className="p-3 bg-amber-50 rounded-xl border border-amber-200 space-y-2">
+                          <p className="text-xs font-bold text-amber-900">FSSAI Undertaking Document Required *</p>
+                          <p className="text-[11px] text-amber-700">Since your business does not have an FSSAI license, an official signed FSSAI Undertaking Document must be uploaded.</p>
+                          <input
+                            type="file"
+                            ref={fssaiUndertakingInputRef}
+                            onChange={(e) => e.target.files && setFssaiUndertakingFile(e.target.files[0])}
+                            accept="image/*,.pdf"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => fssaiUndertakingInputRef.current?.click()}
+                            className="w-full py-2.5 bg-white border border-amber-300 rounded-xl text-xs font-bold text-amber-900 hover:bg-amber-100/50 transition-all flex items-center justify-center gap-2"
+                          >
+                            <Upload size={14} className="text-amber-700" />
+                            {fssaiUndertakingFile ? `✓ ${fssaiUndertakingFile.name}` : "Upload FSSAI Undertaking Document *"}
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
 
                   {/* 📜 Contract-Based Customer Option (Optional) */}

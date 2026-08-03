@@ -59,6 +59,15 @@ export default function PaymentMethod({ onSubmit, initialMethod, orderTotal = 0 
       popular: false,
     },
     {
+      id: 'credit' as PaymentMethodType,
+      name: 'Pay on Credit',
+      description: Number(user?.creditTerm || 0) > 0 
+        ? `Pay within ${user?.creditTerm} days as per approved credit terms (Credit Limit: ₹${Number(user?.creditLimit || 0).toLocaleString('en-IN')})`
+        : 'Pay later on approved B2B credit terms',
+      icon: Receipt,
+      popular: true,
+    },
+    {
       id: 'cn' as PaymentMethodType,
       name: 'Credit Note (CN)',
       description: `Place order using Credit Note (Available: ₹${cnBalance.toLocaleString('en-IN')})`,
@@ -213,6 +222,24 @@ export default function PaymentMethod({ onSubmit, initialMethod, orderTotal = 0 
                           RUPAY
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {isSelected && method.id === 'credit' && (
+                    <div className="mt-4 pt-4 border-t border-[#D97706]/20 space-y-2">
+                      <div className="grid grid-cols-2 gap-3 text-xs">
+                        <div className="p-2.5 bg-amber-50/80 rounded-xl border border-amber-200">
+                          <span className="text-gray-500 block font-medium">Approved Credit Term</span>
+                          <span className="font-extrabold text-gray-900">{user?.creditTerm || 0} Days</span>
+                        </div>
+                        <div className="p-2.5 bg-amber-50/80 rounded-xl border border-amber-200">
+                          <span className="text-gray-500 block font-medium">Approved Credit Limit</span>
+                          <span className="font-extrabold text-gray-900">₹ {Number(user?.creditLimit || 0).toLocaleString('en-IN')}</span>
+                        </div>
+                      </div>
+                      <p className="text-xs text-amber-800 bg-amber-50 p-2.5 rounded-lg border border-amber-200 mt-2 font-medium">
+                        ℹ Order payment will be billed to your credit account and is due within {user?.creditTerm || 0} days of order placement.
+                      </p>
                     </div>
                   )}
 
