@@ -95,6 +95,66 @@ export default function RegisterPage() {
   const [contractNotes, setContractNotes] = useState("");
   const [contractUploading, setContractUploading] = useState(false);
   const contractFileInputRef = useRef<HTMLInputElement>(null);
+  // 🗺️ Route Management Pincode-wise state
+  const [availableRoutes, setAvailableRoutes] = useState<any[]>([]);
+  const [isPincodeRouteMatched, setIsPincodeRouteMatched] = useState(false);
+  const [assignedRoute, setAssignedRoute] = useState("");
+  const [routeName, setRouteName] = useState("");
+  const [routeCode, setRouteCode] = useState("");
+  const [loadingRoutes, setLoadingRoutes] = useState(false);
+
+  React.useEffect(() => {
+    if (pincode && pincode.trim().length === 6) {
+      const fetchRoutesForPincode = async () => {
+        setLoadingRoutes(true);
+        try {
+          const res = await fetch(`${API_BASE}/api/routes/master?status=Active&pincode=${pincode.trim()}`);
+          const data = await res.json();
+          
+          if (data.success && data.data && data.data.length > 0) {
+            setAvailableRoutes(data.data);
+            setIsPincodeRouteMatched(true);
+            const first = data.data[0];
+            setAssignedRoute(first._id);
+            setRouteName(first.name);
+            setRouteCode(first.code || "");
+          } else {
+            const allRes = await fetch(`${API_BASE}/api/routes/master?status=Active`);
+            const allData = await allRes.json();
+            if (allData.success && allData.data) {
+              setAvailableRoutes(allData.data);
+            } else {
+              setAvailableRoutes([]);
+            }
+            setIsPincodeRouteMatched(false);
+          }
+        } catch (err) {
+          console.error("Error fetching routes for pincode:", err);
+        } finally {
+          setLoadingRoutes(false);
+        }
+      };
+      fetchRoutesForPincode();
+    } else {
+      setAvailableRoutes([]);
+      setIsPincodeRouteMatched(false);
+      setAssignedRoute("");
+      setRouteName("");
+      setRouteCode("");
+    }
+  }, [pincode]);
+
+  const handleRouteSelect = (selectedId: string) => {
+    setAssignedRoute(selectedId);
+    const found = availableRoutes.find(r => r._id === selectedId);
+    if (found) {
+      setRouteName(found.name);
+      setRouteCode(found.code || "");
+    } else {
+      setRouteName("");
+      setRouteCode("");
+    }
+  };
 
   // Redirect if already logged in
   React.useEffect(() => {
@@ -298,6 +358,9 @@ export default function RegisterPage() {
         businessName: businessName.trim(),
         gstNumber: isUrg ? "URG" : (gstNumber.trim().toUpperCase() || "URG"),
         panNumber: panNumber ? panNumber.trim().toUpperCase() : null,
+        assignedRoute: assignedRoute || null,
+        routeName: routeName || null,
+        routeCode: routeCode || null,
         urcDocUrl: isUrg ? urcUrl : null,
         hasFssai: Boolean(hasFssai),
         fssaiNumber: hasFssai ? fssaiNumber.trim() : null,
@@ -680,6 +743,47 @@ export default function RegisterPage() {
                       required
                     />
                   </div>
+
+                  {/* 🗺️ Pincode-Wise Route Assignment Component */}
+                  {pincode && pincode.trim().length === 6 && (
+                    <div className="p-4 bg-orange-50/80 rounded-2xl border border-orange-200/80 space-y-3 animate-in fade-in duration-200">
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                          <MapPin size={18} className="text-orange-600" />
+                          Delivery Route Selection
+                        </label>
+                        {loadingRoutes ? (
+                          <span className="text-xs font-semibold text-gray-500">Checking routes...</span>
+                        ) : isPincodeRouteMatched ? (
+                          <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                            Matched to PIN
+                          </span>
+                        ) : (
+                          <span className="text-xs font-medium text-orange-700 bg-orange-100 px-2.5 py-1 rounded-full">
+                            All Active Routes
+                          </span>
+                        )}
+                      </div>
+
+                      {availableRoutes.length > 0 ? (
+                        <select
+                          value={assignedRoute}
+                          onChange={(e) => handleRouteSelect(e.target.value)}
+                          className="w-full px-4 py-3 border border-orange-200 rounded-xl bg-white focus:outline-none focus:border-orange-500 text-sm font-bold text-gray-900 shadow-sm"
+                        >
+                          <option value="">Select your delivery route...</option>
+                          {availableRoutes.map(route => (
+                            <option key={route._id} value={route._id}>
+                              {route.name} ({route.code || 'RM'}) {route.originCity && route.destinationCity ? `[${route.originCity} → ${route.destinationCity}]` : ''}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <p className="text-xs text-gray-500 font-medium">No active delivery routes are currently configured.</p>
+                      )}
+                    </div>
+                  )}
 
                   {/* 🏢 Multiple Outlets Section */}
                   <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200/80 space-y-4">
