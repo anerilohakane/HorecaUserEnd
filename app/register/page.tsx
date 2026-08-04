@@ -739,25 +739,28 @@ export default function RegisterPage() {
                     />
                   </div>
 
-                  {/* 📁 Under Group (Tally) */}
-                  <div className="relative">
-                    <Folder className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <select
-                      value={customerGroup}
-                      onChange={(e) => setCustomerGroup(e.target.value)}
-                      className={`w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm font-medium ${!customerGroup ? 'text-gray-400' : 'text-gray-900'}`}
-                    >
-                      {tallyGroups.length === 0 ? (
-                        <option value="Sundry Debtors">Sundry Debtors (Recommended)</option>
-                      ) : (
-                        tallyGroups.map(g => (
-                          <option key={g} value={g}>
-                            {g === "Sundry Debtors" ? "Sundry Debtors (Recommended)" : g}
-                          </option>
-                        ))
-                      )}
-                    </select>
-                  </div>
+                   {/* 📁 Under Group (Tally) */}
+                   <div className="space-y-1.5">
+                     <label className="text-xs font-bold text-gray-700 block ml-1">Customer Group/Under</label>
+                     <div className="relative">
+                       <Folder className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                       <select
+                         value={customerGroup}
+                         onChange={(e) => setCustomerGroup(e.target.value)}
+                         className={`w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm font-medium ${!customerGroup ? 'text-gray-400' : 'text-gray-900'}`}
+                       >
+                         {tallyGroups.length === 0 ? (
+                           <option value="Sundry Debtors">Sundry Debtors (Recommended)</option>
+                         ) : (
+                           tallyGroups.map(g => (
+                             <option key={g} value={g}>
+                               {g === "Sundry Debtors" ? "Sundry Debtors (Recommended)" : g}
+                             </option>
+                           ))
+                         )}
+                       </select>
+                     </div>
+                   </div>
 
                   <div className="relative">
                     <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
