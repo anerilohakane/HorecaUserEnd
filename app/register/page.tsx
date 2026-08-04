@@ -3,13 +3,13 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check, Store, Briefcase, CreditCard } from "lucide-react";
+import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check, Store, Briefcase, CreditCard, Folder } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { INDIAN_STATES, CUSTOMER_TYPES, CUSTOMER_DEPARTMENTS, validateStatePincode } from "@/app/lib/indiaGeoData";
 
-const API_BASE = (process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
+const API_BASE = (process.env.NEXT_PUBLIC_HORECA_BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || "https://horeca-backend-six.vercel.app").replace(/\/$/, "");
 
 export default function RegisterPage() {
   const { registerCustomer, isAuthenticated } = useAuth();
@@ -95,6 +95,26 @@ export default function RegisterPage() {
   const [contractNotes, setContractNotes] = useState("");
   const [contractUploading, setContractUploading] = useState(false);
   const contractFileInputRef = useRef<HTMLInputElement>(null);
+
+  // 📁 Tally Group Assignment State
+  const [customerGroup, setCustomerGroup] = useState("Sundry Debtors");
+  const [tallyGroups, setTallyGroups] = useState<string[]>([]);
+
+  React.useEffect(() => {
+    const fetchTallyGroups = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/tally/groups`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setTallyGroups(json.data);
+        }
+      } catch (err) {
+        console.error("Failed to load Tally groups", err);
+      }
+    };
+    fetchTallyGroups();
+  }, [API_BASE]);
+
   // 🗺️ Route Management Pincode-wise state
   const [availableRoutes, setAvailableRoutes] = useState<any[]>([]);
   const [isPincodeRouteMatched, setIsPincodeRouteMatched] = useState(false);
@@ -358,6 +378,7 @@ export default function RegisterPage() {
         businessName: businessName.trim(),
         gstNumber: isUrg ? "URG" : (gstNumber.trim().toUpperCase() || "URG"),
         panNumber: panNumber ? panNumber.trim().toUpperCase() : null,
+        customerGroup: customerGroup || "Sundry Debtors",
         assignedRoute: assignedRoute || null,
         routeName: routeName || null,
         routeCode: routeCode || null,
@@ -652,6 +673,27 @@ export default function RegisterPage() {
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm uppercase font-medium text-gray-900"
                     />
                   </div>
+
+                  {/* 📁 Under Group (Tally) */}
+                  <div className="relative">
+                    <Folder className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <select
+                      value={customerGroup}
+                      onChange={(e) => setCustomerGroup(e.target.value)}
+                      className={`w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm font-medium ${!customerGroup ? 'text-gray-400' : 'text-gray-900'}`}
+                    >
+                      {tallyGroups.length === 0 ? (
+                        <option value="Sundry Debtors">Sundry Debtors (Recommended)</option>
+                      ) : (
+                        tallyGroups.map(g => (
+                          <option key={g} value={g}>
+                            {g === "Sundry Debtors" ? "Sundry Debtors (Recommended)" : g}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                  </div>
+
                   <div className="relative">
                     <Store className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <select
