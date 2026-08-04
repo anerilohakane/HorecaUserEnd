@@ -48,6 +48,10 @@ export default function RegisterPage() {
   const [urcFile, setUrcFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const urcFileInputRef = useRef<HTMLInputElement>(null);
+  const [gstEffectiveDate, setGstEffectiveDate] = useState("");
+  const [gstDocFile, setGstDocFile] = useState<File | null>(null);
+  const [gstDocUploading, setGstDocUploading] = useState(false);
+  const gstDocInputRef = useRef<HTMLInputElement>(null);
   // 🛡️ FSSAI & Business License Expiry State
   const [hasFssai, setHasFssai] = useState(true);
   const [fssaiNumber, setFssaiNumber] = useState("");
@@ -254,6 +258,12 @@ export default function RegisterPage() {
         if (!gstNumber || !gstRegex.test(gstNumber.toUpperCase())) {
           return "Please enter a valid 15-digit GST number or mark business as Unregistered (URG)";
         }
+        if (!gstEffectiveDate) {
+          return "Please select GST Effective Date";
+        }
+        if (!gstDocFile) {
+          return "Please upload a copy of your GST Certificate";
+        }
       }
 
       if (panNumber.trim()) {
@@ -308,6 +318,11 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+
+    if (!isUrg) {
+      if (!gstEffectiveDate) return setError("Please select GST Effective Date");
+      if (!gstDocFile) return setError("Please upload a copy of your GST Certificate");
+    }
 
     if (!licenseFile) return setError("Please upload Business License photo");
     if (!licenseExpiryDate) return setError("Please select Trade / Business License Expiry Date");
@@ -366,6 +381,12 @@ export default function RegisterPage() {
         urcUrl = await uploadDocument(urcFile);
       }
 
+      // 3.5 Upload GST Certificate if GST Registered
+      let gstDocUrl = null;
+      if (!isUrg && gstDocFile) {
+        gstDocUrl = await uploadDocument(gstDocFile);
+      }
+
       const finalCustomerType = customerType === "Other" ? customCustomerType.trim() : customerType;
       const finalDepartment = department === "Other" ? customDepartment.trim() : department;
 
@@ -377,6 +398,8 @@ export default function RegisterPage() {
         phone: countryCode + phone.trim(),
         businessName: businessName.trim(),
         gstNumber: isUrg ? "URG" : (gstNumber.trim().toUpperCase() || "URG"),
+        gstEffectiveDate: !isUrg ? (gstEffectiveDate || null) : null,
+        gstDocUrl: !isUrg ? gstDocUrl : null,
         panNumber: panNumber ? panNumber.trim().toUpperCase() : null,
         customerGroup: customerGroup || "Sundry Debtors",
         assignedRoute: assignedRoute || null,
@@ -612,17 +635,59 @@ export default function RegisterPage() {
                     </div>
 
                     {!isUrg ? (
-                      <div className="relative">
-                        <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                        <input
-                          type="text"
-                          value={gstNumber === "URG" ? "" : gstNumber}
-                          onChange={(e) => setGstNumber(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15))}
-                          placeholder="Enter 15-Digit GST Number *"
-                          maxLength={15}
-                          className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm uppercase font-semibold text-gray-900"
-                          required={!isUrg}
-                        />
+                      <div className="space-y-3 animate-in fade-in duration-200">
+                        <div className="relative">
+                          <FileText className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                          <input
+                            type="text"
+                            value={gstNumber === "URG" ? "" : gstNumber}
+                            onChange={(e) => setGstNumber(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 15))}
+                            placeholder="Enter 15-Digit GST Number *"
+                            maxLength={15}
+                            className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm uppercase font-semibold text-gray-900"
+                            required={!isUrg}
+                          />
+                        </div>
+
+                        {/* 📅 GST Effective Date Field */}
+                        <div className="relative">
+                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-semibold">Effective Date *</span>
+                          <input
+                            type="date"
+                            value={gstEffectiveDate}
+                            onChange={(e) => setGstEffectiveDate(e.target.value)}
+                            className="w-full pl-36 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm font-medium text-gray-955"
+                            required={!isUrg}
+                          />
+                        </div>
+
+                        {/* 📁 GST Certificate Document Upload */}
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
+                          <input
+                            type="file"
+                            ref={gstDocInputRef}
+                            onChange={(e) => {
+                              if (e.target.files && e.target.files[0]) {
+                                setGstDocFile(e.target.files[0]);
+                              }
+                            }}
+                            accept="image/*,.pdf"
+                            className="hidden"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => gstDocInputRef.current?.click()}
+                            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+                          >
+                            <Upload size={16} className="text-gray-500" />
+                            {gstDocFile ? "Change GST Certificate" : "Upload GST Certificate *"}
+                          </button>
+                          {gstDocFile && (
+                            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 truncate max-w-[220px]">
+                              ✓ {gstDocFile.name}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     ) : (
                       <div className="p-4 bg-amber-50/80 rounded-2xl border border-amber-200 space-y-3 animate-in fade-in duration-200">
