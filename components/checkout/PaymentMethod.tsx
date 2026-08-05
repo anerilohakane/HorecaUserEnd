@@ -44,13 +44,13 @@ export default function PaymentMethod({ onSubmit, initialMethod, orderTotal = 0 
       icon: Smartphone,
       popular: true,
     },
-    {
-      id: 'card' as PaymentMethodType,
-      name: 'Credit/Debit Card',
-      description: 'Visa, MasterCard, RuPay, American Express',
-      icon: CreditCard,
-      popular: false,
-    },
+    // {
+    //   id: 'card' as PaymentMethodType,
+    //   name: 'Credit/Debit Card',
+    //   description: 'Visa, MasterCard, RuPay, American Express',
+    //   icon: CreditCard,
+    //   popular: false,
+    // },
     {
       id: 'netbanking' as PaymentMethodType,
       name: 'Net Banking',
