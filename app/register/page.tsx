@@ -100,6 +100,15 @@ export default function RegisterPage() {
   const [contractUploading, setContractUploading] = useState(false);
   const contractFileInputRef = useRef<HTMLInputElement>(null);
 
+  // 💰 Advance Payment State
+  const [hasPaidAdvance, setHasPaidAdvance] = useState(false);
+  const [advanceAmount, setAdvanceAmount] = useState("");
+  const [advancePaymentMode, setAdvancePaymentMode] = useState("UPI");
+  const [advancePaymentProofFile, setAdvancePaymentProofFile] = useState<File | null>(null);
+  const [advancePaymentProofUrl, setAdvancePaymentProofUrl] = useState("");
+  const [advancePaymentProofUploading, setAdvancePaymentProofUploading] = useState(false);
+  const advancePaymentProofInputRef = useRef<HTMLInputElement>(null);
+
   // 📁 Tally Group Assignment State
   const [customerGroup, setCustomerGroup] = useState("Sundry Debtors");
   const [tallyGroups, setTallyGroups] = useState<string[]>([]);
@@ -205,6 +214,22 @@ export default function RegisterPage() {
         setError(err instanceof Error ? err.message : "Failed to upload contract document");
       } finally {
         setContractUploading(false);
+      }
+    }
+  };
+
+  const handleAdvancePaymentProofFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setAdvancePaymentProofFile(file);
+      setAdvancePaymentProofUploading(true);
+      try {
+        const url = await uploadDocument(file);
+        setAdvancePaymentProofUrl(url);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to upload advance payment proof");
+      } finally {
+        setAdvancePaymentProofUploading(false);
       }
     }
   };
@@ -335,6 +360,12 @@ export default function RegisterPage() {
       if (!fssaiUndertakingFile) return setError("Please upload FSSAI Undertaking Document");
     }
 
+    if (hasPaidAdvance) {
+      if (!advanceAmount || Number(advanceAmount) <= 0) return setError("Please enter a valid Advance Amount");
+      if (!advancePaymentMode) return setError("Please select Advance Payment Mode");
+      if (!advancePaymentProofFile && !advancePaymentProofUrl) return setError("Please upload Advance Payment Proof screenshot or document");
+    }
+
     if (!category) {
       setError("Please select a customer tier (A, B, C)");
       return;
@@ -448,7 +479,10 @@ export default function RegisterPage() {
           startDate: contractStartDate || null,
           expiryDate: contractExpiryDate || null,
           notes: contractNotes.trim() || null
-        } : undefined
+        } : undefined,
+        advanceAmount: hasPaidAdvance ? Number(advanceAmount) : 0,
+        advancePaymentMode: hasPaidAdvance ? advancePaymentMode : null,
+        advancePaymentProofUrl: hasPaidAdvance ? advancePaymentProofUrl : null
       });
 
       setMessage("Registration successful! Redirecting...");
@@ -1280,6 +1314,93 @@ export default function RegisterPage() {
                             rows={2}
                             className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-medium text-gray-800"
                           />
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+
+                  {/* 💰 Advance Payment Section */}
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-xs font-bold text-gray-800 block">Initial Advance Payment?</span>
+                        <span className="text-[11px] text-gray-500">Have you paid any advance amount?</span>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={hasPaidAdvance}
+                          onChange={(e) => setHasPaidAdvance(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#D97706]"></div>
+                      </label>
+                    </div>
+
+                    {hasPaidAdvance && (
+                      <motion.div
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        className="space-y-3 pt-3 border-t border-gray-200"
+                      >
+                        <div>
+                          <label className="text-xs font-bold text-gray-700 block mb-1">Advance Amount (₹) *</label>
+                          <input
+                            type="number"
+                            value={advanceAmount}
+                            onChange={(e) => setAdvanceAmount(e.target.value)}
+                            placeholder="Enter paid amount"
+                            className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                            required={hasPaidAdvance}
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-gray-700 block mb-1">Payment Mode *</label>
+                          <select
+                            value={advancePaymentMode}
+                            onChange={(e) => setAdvancePaymentMode(e.target.value)}
+                            className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                          >
+                            <option value="UPI">UPI / Net Banking</option>
+                            <option value="Cash">Cash</option>
+                            <option value="Bank Transfer">Bank Transfer</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <label className="text-xs font-bold text-gray-700 block mb-1">
+                            {advancePaymentMode === "UPI" ? "UPI Screenshot / Proof *" : "Payment Receipt / Proof *"}
+                          </label>
+                          <div 
+                            onClick={() => advancePaymentProofInputRef.current?.click()}
+                            className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all ${advancePaymentProofUrl ? 'border-green-500 bg-green-50/80' : advancePaymentProofFile ? 'border-amber-400 bg-amber-50' : 'border-gray-300 bg-white hover:border-[#D97706]'}`}
+                          >
+                            <input type="file" ref={advancePaymentProofInputRef} onChange={handleAdvancePaymentProofFileChange} className="hidden" accept="image/*,.pdf" />
+                            {advancePaymentProofUploading ? (
+                              <p className="text-xs font-bold text-amber-700 animate-pulse flex items-center gap-1.5">
+                                ☁️ Uploading proof...
+                              </p>
+                            ) : advancePaymentProofUrl ? (
+                              <div className="flex items-center gap-2">
+                                <CheckCircle className="text-green-600 shrink-0" size={20} />
+                                <div className="text-left">
+                                  <span className="text-xs font-extrabold text-green-800 block truncate max-w-[240px]">{advancePaymentProofFile?.name || "Payment Proof"}</span>
+                                  <span className="text-[10px] text-green-600 font-bold">Uploaded to Cloudinary ☁️</span>
+                                </div>
+                              </div>
+                            ) : advancePaymentProofFile ? (
+                              <div className="flex items-center gap-2">
+                                <FileCheck className="text-amber-600 shrink-0" size={20} />
+                                <span className="text-xs font-bold text-amber-800 truncate max-w-[240px]">{advancePaymentProofFile.name}</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Upload className="text-gray-400" size={18} />
+                                <span className="text-xs font-medium text-gray-600">Upload payment proof</span>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </motion.div>
                     )}
