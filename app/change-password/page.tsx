@@ -21,7 +21,8 @@ function ChangePasswordContent() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+  const [error, setError] = useState(""); // General/API error
+  const [errors, setErrors] = useState<Record<string, string>>({}); // Field validation errors
   const [success, setSuccess] = useState(false);
   const [progress, setProgress] = useState(100);
 
@@ -43,6 +44,9 @@ function ChangePasswordContent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setErrors({});
+
+    const newErrors: Record<string, string> = {};
 
     if (!token) {
       setError("Missing change password token.");
@@ -50,12 +54,15 @@ function ChangePasswordContent() {
     }
 
     if (password.length < 8) {
-      setError("Password must be at least 8 characters long.");
-      return;
+      newErrors.password = "Password must be at least 8 characters long.";
     }
 
     if (password !== confirmPassword) {
-      setError("Passwords do not match.");
+      newErrors.confirmPassword = "Passwords do not match.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -148,6 +155,7 @@ function ChangePasswordContent() {
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {errors.password && <p className="text-red-500 text-xs mt-1 ml-1 font-medium">{errors.password}</p>}
             </div>
 
             {/* Confirm New Password input */}
@@ -172,6 +180,7 @@ function ChangePasswordContent() {
                   {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
+              {errors.confirmPassword && <p className="text-red-500 text-xs mt-1 ml-1 font-medium">{errors.confirmPassword}</p>}
             </div>
 
             <button

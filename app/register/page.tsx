@@ -18,6 +18,7 @@ export default function RegisterPage() {
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
@@ -255,128 +256,183 @@ export default function RegisterPage() {
   };
 
   const validateStep = () => {
-    setError("");
+    const newErrors: Record<string, string> = {};
     if (step === 1) {
-      if (name.trim().length < 2) return "Full name is required";
+      if (name.trim().length < 2) newErrors.name = "Full name is required";
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) return "Please enter a valid email address";
-      if (phone.length < 10) return "Please enter a valid 10-digit phone number";
-      if (!department) return "Please select your Department / Designation";
-      if (department === "Other" && !customDepartment.trim()) return "Please specify your Department / Designation";
+      if (!emailRegex.test(email)) newErrors.email = "Please enter a valid email address";
+      if (phone.length < 10) newErrors.phone = "Please enter a valid 10-digit phone number";
+      if (!department) newErrors.department = "Please select your Department / Designation";
+      if (department === "Other" && !customDepartment.trim()) newErrors.customDepartment = "Please specify your Department / Designation";
     } else if (step === 2) {
-      if (businessName.trim().length < 2) return "Business name is required";
-      if (!customerType) return "Please select your Business / Customer Type";
-      if (customerType === "Other" && !customCustomerType.trim()) return "Please enter your custom Business / Customer Type";
-      if (address.trim().length < 5) return "Please enter a complete business address";
-      if (city.trim().length < 2) return "City is required";
-      if (!state) return "Please select a State";
-      if (!category) return "Please select a customer tier (A, B, C)";
+      if (businessName.trim().length < 2) newErrors.businessName = "Business name is required";
+      if (!customerType) newErrors.customerType = "Please select your Business / Customer Type";
+      if (customerType === "Other" && !customCustomerType.trim()) newErrors.customCustomerType = "Please enter your custom Business / Customer Type";
+      if (address.trim().length < 5) newErrors.address = "Please enter a complete business address";
+      if (city.trim().length < 2) newErrors.city = "City is required";
+      if (!state) newErrors.state = "Please select a State";
+      if (!category) newErrors.category = "Please select a customer tier (A, B, C)";
       
       const pinValidation = validateStatePincode(state, pincode);
       if (!pinValidation.valid) {
-        return pinValidation.message || "Invalid PIN code for selected State";
+        newErrors.pincode = pinValidation.message || "Invalid PIN code for selected State";
       }
       
       if (!isUrg) {
         const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
         if (!gstNumber || !gstRegex.test(gstNumber.toUpperCase())) {
-          return "Please enter a valid 15-digit GST number or mark business as Unregistered (URG)";
+          newErrors.gstNumber = "Please enter a valid 15-digit GST number or mark business as Unregistered (URG)";
         }
         if (!gstEffectiveDate) {
-          return "Please select GST Effective Date";
+          newErrors.gstEffectiveDate = "Please select GST Effective Date";
         }
         if (!gstDocFile) {
-          return "Please upload a copy of your GST Certificate";
+          newErrors.gstDocFile = "Please upload a copy of your GST Certificate";
         }
       }
 
       if (panNumber.trim()) {
         const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
         if (!panRegex.test(panNumber.trim().toUpperCase())) {
-          return "Please enter a valid 10-character PAN number (e.g. ABCDE1234F)";
+          newErrors.panNumber = "Please enter a valid 10-character PAN number (e.g. ABCDE1234F)";
         }
       }
 
       if (hasMultipleOutlets) {
         if (outlets.length === 0) {
-          return "Please add details for at least one additional outlet or select 'No'";
+          newErrors.outlets = "Please add details for at least one additional outlet or select 'No'";
         }
         for (let i = 0; i < outlets.length; i++) {
           const o = outlets[i];
-          if (!o.outletName.trim()) return `Please enter Outlet Name for Outlet #${i + 1}`;
-          if (!o.address.trim()) return `Please enter Address for Outlet #${i + 1} (${o.outletName || 'Outlet'})`;
-          if (!o.city.trim()) return `Please enter City for Outlet #${i + 1}`;
-          if (!o.state) return `Please select State for Outlet #${i + 1}`;
+          if (!o.outletName.trim()) newErrors[`outletName_${i}`] = `Please enter Outlet Name for Outlet #${i + 1}`;
+          if (!o.address.trim()) newErrors[`outletAddress_${i}`] = `Please enter Address for Outlet #${i + 1}`;
+          if (!o.city.trim()) newErrors[`outletCity_${i}`] = `Please enter City for Outlet #${i + 1}`;
+          if (!o.state) newErrors[`outletState_${i}`] = `Please select State for Outlet #${i + 1}`;
           const oPinVal = validateStatePincode(o.state, o.pincode);
-          if (!oPinVal.valid) return `Outlet #${i + 1}: ${oPinVal.message || 'Invalid PIN Code'}`;
+          if (!oPinVal.valid) newErrors[`outletPincode_${i}`] = `Outlet #${i + 1}: ${oPinVal.message || 'Invalid PIN Code'}`;
         }
       }
     } else if (step === 3) {
-      if (!licenseFile) return "Please upload Business License photo";
-      if (!licenseExpiryDate) return "Please select Trade / Business License Expiry Date";
+      if (!licenseFile) newErrors.licenseFile = "Please upload Business License photo";
+      if (!licenseExpiryDate) newErrors.licenseExpiryDate = "Please select Trade / Business License Expiry Date";
       if (hasFssai) {
-        if (!fssaiNumber.trim()) return "Please enter FSSAI License Number";
-        if (!fssaiExpiryDate) return "Please select FSSAI License Expiry Date";
-        if (!fssaiDocFile) return "Please upload FSSAI Certificate document or photo";
+        if (!fssaiNumber.trim()) newErrors.fssaiNumber = "Please enter FSSAI License Number";
+        if (!fssaiExpiryDate) newErrors.fssaiExpiryDate = "Please select FSSAI License Expiry Date";
+        if (!fssaiDocFile) newErrors.fssaiDocFile = "Please upload FSSAI Certificate document or photo";
       } else {
-        if (!fssaiUndertakingFile) return "Please upload FSSAI Undertaking Document";
+        if (!fssaiUndertakingFile) newErrors.fssaiUndertakingFile = "Please upload FSSAI Undertaking Document";
       }
     }
-    return null;
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
   };
 
   const nextStep = () => {
-    const stepError = validateStep();
-    if (stepError) {
-      setError(stepError);
+    const isValid = validateStep();
+    if (!isValid) {
       return;
     }
     setStep(s => s + 1);
   };
 
   const prevStep = () => {
-    setError("");
+    setErrors({});
     setStep(s => s - 1);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setErrors({});
+
+    const newErrors: Record<string, string> = {};
 
     if (!isUrg) {
-      if (!gstEffectiveDate) return setError("Please select GST Effective Date");
-      if (!gstDocFile) return setError("Please upload a copy of your GST Certificate");
+      if (!gstEffectiveDate) newErrors.gstEffectiveDate = "Please select GST Effective Date";
+      if (!gstDocFile) newErrors.gstDocFile = "Please upload a copy of your GST Certificate";
     }
 
-    if (!licenseFile) return setError("Please upload Business License photo");
-    if (!licenseExpiryDate) return setError("Please select Trade / Business License Expiry Date");
+    if (!licenseFile) newErrors.licenseFile = "Please upload Business License photo";
+    if (!licenseExpiryDate) newErrors.licenseExpiryDate = "Please select Trade / Business License Expiry Date";
 
     if (hasFssai) {
-      if (!fssaiNumber.trim()) return setError("Please enter FSSAI License Number");
-      if (!fssaiExpiryDate) return setError("Please select FSSAI License Expiry Date");
-      if (!fssaiDocFile) return setError("Please upload FSSAI Certificate document or photo");
+      if (!fssaiNumber.trim()) newErrors.fssaiNumber = "Please enter FSSAI License Number";
+      if (!fssaiExpiryDate) newErrors.fssaiExpiryDate = "Please select FSSAI License Expiry Date";
+      if (!fssaiDocFile) newErrors.fssaiDocFile = "Please upload FSSAI Certificate document or photo";
     } else {
-      if (!fssaiUndertakingFile) return setError("Please upload FSSAI Undertaking Document");
+      if (!fssaiUndertakingFile) newErrors.fssaiUndertakingFile = "Please upload FSSAI Undertaking Document";
     }
 
     if (hasPaidAdvance) {
-      if (!advanceAmount || Number(advanceAmount) <= 0) return setError("Please enter a valid Advance Amount");
-      if (!advancePaymentMode) return setError("Please select Advance Payment Mode");
-      if (!advancePaymentProofFile && !advancePaymentProofUrl) return setError("Please upload Advance Payment Proof screenshot or document");
+      if (!advanceAmount || Number(advanceAmount) <= 0) newErrors.advanceAmount = "Please enter a valid Advance Amount";
+      if (!advancePaymentMode) newErrors.advancePaymentMode = "Please select Advance Payment Mode";
+      if (!advancePaymentProofFile && !advancePaymentProofUrl) newErrors.advancePaymentProofFile = "Please upload Advance Payment Proof screenshot or document";
     }
 
     if (!category) {
-      setError("Please select a customer tier (A, B, C)");
-      return;
+      newErrors.category = "Please select a customer tier (A, B, C)";
     }
 
     if (password && password.length < 8) {
-      setError("Password must be at least 8 characters if entered manually");
-      return;
+      newErrors.password = "Password must be at least 8 characters if entered manually";
     }
 
     if (password && password !== confirmPassword) {
-      setError("Passwords do not match");
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    // Run step 1 and step 2 validations to be fully complete
+    if (name.trim().length < 2) newErrors.name = "Full name is required";
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) newErrors.email = "Please enter a valid email address";
+    if (phone.length < 10) newErrors.phone = "Please enter a valid 10-digit phone number";
+    if (!department) newErrors.department = "Please select your Department / Designation";
+    if (department === "Other" && !customDepartment.trim()) newErrors.customDepartment = "Please specify your Department / Designation";
+
+    if (businessName.trim().length < 2) newErrors.businessName = "Business name is required";
+    if (!customerType) newErrors.customerType = "Please select your Business / Customer Type";
+    if (customerType === "Other" && !customCustomerType.trim()) newErrors.customCustomerType = "Please enter your custom Business / Customer Type";
+    if (address.trim().length < 5) newErrors.address = "Please enter a complete business address";
+    if (city.trim().length < 2) newErrors.city = "City is required";
+    if (!state) newErrors.state = "Please select a State";
+    
+    const pinValidation = validateStatePincode(state, pincode);
+    if (!pinValidation.valid) {
+      newErrors.pincode = pinValidation.message || "Invalid PIN code for selected State";
+    }
+
+    if (!isUrg) {
+      const gstRegex = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[1-9A-Z]{1}Z[0-9A-Z]{1}$/;
+      if (gstNumber !== "URG") {
+        if (!gstNumber || !gstRegex.test(gstNumber.toUpperCase())) {
+          newErrors.gstNumber = "Please enter a valid 15-digit GST number or mark business as Unregistered (URG)";
+        }
+      }
+    }
+
+    if (panNumber.trim()) {
+      const panRegex = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+      if (!panRegex.test(panNumber.trim().toUpperCase())) {
+        newErrors.panNumber = "Please enter a valid 10-character PAN number (e.g. ABCDE1234F)";
+      }
+    }
+
+    if (hasMultipleOutlets) {
+      if (outlets.length === 0) {
+        newErrors.outlets = "Please add details for at least one additional outlet or select 'No'";
+      }
+      for (let i = 0; i < outlets.length; i++) {
+        const o = outlets[i];
+        if (!o.outletName.trim()) newErrors[`outletName_${i}`] = `Please enter Outlet Name for Outlet #${i + 1}`;
+        if (!o.address.trim()) newErrors[`outletAddress_${i}`] = `Please enter Address for Outlet #${i + 1}`;
+        if (!o.city.trim()) newErrors[`outletCity_${i}`] = `Please enter City for Outlet #${i + 1}`;
+        if (!o.state) newErrors[`outletState_${i}`] = `Please select State for Outlet #${i + 1}`;
+        const oPinVal = validateStatePincode(o.state, o.pincode);
+        if (!oPinVal.valid) newErrors[`outletPincode_${i}`] = `Outlet #${i + 1}: ${oPinVal.message || 'Invalid PIN Code'}`;
+      }
+    }
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) {
       return;
     }
 
@@ -487,7 +543,7 @@ export default function RegisterPage() {
       setMessage("Registration successful! Your account is pending approval by the Customer Care Team. Redirecting to login...");
       setTimeout(() => router.push('/login'), 3500);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      setErrors({ submit: err instanceof Error ? err.message : "Registration failed" });
     } finally {
       setLoading(false);
     }
@@ -543,6 +599,7 @@ export default function RegisterPage() {
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                       required
                     />
+                    {errors.name && <p className="text-red-500 text-xs mt-1 font-medium">{errors.name}</p>}
                   </div>
 
                   <div className="relative">
@@ -555,27 +612,31 @@ export default function RegisterPage() {
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                       required
                     />
+                    {errors.email && <p className="text-red-500 text-xs mt-1 font-medium">{errors.email}</p>}
                   </div>
-                  <div className="flex gap-3">
-                    <select
-                      value={countryCode}
-                      onChange={(e) => setCountryCode(e.target.value)}
-                      className="w-[100px] px-3 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm font-bold"
-                    >
-                      <option value="+91">+91</option>
-                      <option value="+1">+1</option>
-                    </select>
-                    <div className="relative flex-1">
-                      <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                      <input
-                        type="tel"
-                        value={phone}
-                        onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-                        placeholder="Phone Number *"
-                        className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
-                        required
-                      />
+                  <div className="flex flex-col gap-1">
+                    <div className="flex gap-3">
+                      <select
+                        value={countryCode}
+                        onChange={(e) => setCountryCode(e.target.value)}
+                        className="w-[100px] px-3 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm font-bold"
+                      >
+                        <option value="+91">+91</option>
+                        <option value="+1">+1</option>
+                      </select>
+                      <div className="relative flex-1">
+                        <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                        <input
+                          type="tel"
+                          value={phone}
+                          onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
+                          placeholder="Phone Number *"
+                          className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
+                          required
+                        />
+                      </div>
                     </div>
+                    {errors.phone && <p className="text-red-500 text-xs mt-1 font-medium">{errors.phone}</p>}
                   </div>
                   <div className="relative">
                     <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -590,6 +651,7 @@ export default function RegisterPage() {
                         <option key={dept} value={dept}>{dept}</option>
                       ))}
                     </select>
+                    {errors.department && <p className="text-red-500 text-xs mt-1 font-medium">{errors.department}</p>}
                   </div>
                   {department === "Other" && (
                     <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
@@ -602,9 +664,9 @@ export default function RegisterPage() {
                         className="w-full pl-12 pr-5 py-4 border border-[#D97706]/40 rounded-2xl bg-amber-50/40 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all text-gray-900 font-medium text-sm"
                         required
                       />
+                      {errors.customDepartment && <p className="text-red-500 text-xs mt-1 font-medium">{errors.customDepartment}</p>}
                     </div>
                   )}
-                  {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
                   <button type="button" onClick={nextStep} className="w-full py-4 bg-[#D97706] text-white font-bold rounded-2xl shadow-lg flex items-center justify-center gap-2">
                     Next Step <ArrowRight size={20} />
                   </button>
@@ -629,6 +691,7 @@ export default function RegisterPage() {
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                       required
                     />
+                    {errors.businessName && <p className="text-red-500 text-xs mt-1 font-medium">{errors.businessName}</p>}
                   </div>
 
                   {/* GST vs URG Selection Mode */}
@@ -670,6 +733,7 @@ export default function RegisterPage() {
                             className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm uppercase font-semibold text-gray-900"
                             required={!isUrg}
                           />
+                          {errors.gstNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.gstNumber}</p>}
                         </div>
 
                         {/* 📅 GST Effective Date Field */}
@@ -682,34 +746,38 @@ export default function RegisterPage() {
                             className="w-full pl-36 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm font-medium text-gray-955"
                             required={!isUrg}
                           />
+                          {errors.gstEffectiveDate && <p className="text-red-500 text-xs mt-1 font-medium">{errors.gstEffectiveDate}</p>}
                         </div>
 
                         {/* 📁 GST Certificate Document Upload */}
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-3 pt-1">
-                          <input
-                            type="file"
-                            ref={gstDocInputRef}
-                            onChange={(e) => {
-                              if (e.target.files && e.target.files[0]) {
-                                setGstDocFile(e.target.files[0]);
-                              }
-                            }}
-                            accept="image/*,.pdf"
-                            className="hidden"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => gstDocInputRef.current?.click()}
-                            className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
-                          >
-                            <Upload size={16} className="text-gray-500" />
-                            {gstDocFile ? "Change GST Certificate" : "Upload GST Certificate *"}
-                          </button>
-                          {gstDocFile && (
-                            <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 truncate max-w-[220px]">
-                              ✓ {gstDocFile.name}
-                            </span>
-                          )}
+                        <div className="flex flex-col gap-1 pt-1">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                            <input
+                              type="file"
+                              ref={gstDocInputRef}
+                              onChange={(e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  setGstDocFile(e.target.files[0]);
+                                }
+                              }}
+                              accept="image/*,.pdf"
+                              className="hidden"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => gstDocInputRef.current?.click()}
+                              className="px-4 py-2.5 bg-white border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-2 shadow-sm"
+                            >
+                              <Upload size={16} className="text-gray-500" />
+                              {gstDocFile ? "Change GST Certificate" : "Upload GST Certificate *"}
+                            </button>
+                            {gstDocFile && (
+                              <span className="text-xs font-semibold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-lg border border-emerald-200 truncate max-w-[220px]">
+                                ✓ {gstDocFile.name}
+                              </span>
+                            )}
+                          </div>
+                          {errors.gstDocFile && <p className="text-red-500 text-xs mt-1 font-medium">{errors.gstDocFile}</p>}
                         </div>
                       </div>
                     ) : (
@@ -760,6 +828,7 @@ export default function RegisterPage() {
                       maxLength={10}
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm uppercase font-medium text-gray-900"
                     />
+                    {errors.panNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.panNumber}</p>}
                   </div>
 
                    {/* 📁 Under Group (Tally) */}
@@ -798,6 +867,7 @@ export default function RegisterPage() {
                         <option key={type} value={type}>{type}</option>
                       ))}
                     </select>
+                    {errors.customerType && <p className="text-red-500 text-xs mt-1 font-medium">{errors.customerType}</p>}
                   </div>
                   {customerType === "Other" && (
                     <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
@@ -810,6 +880,7 @@ export default function RegisterPage() {
                         className="w-full pl-12 pr-5 py-4 border border-[#D97706]/40 rounded-2xl bg-amber-50/40 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all text-gray-900 font-medium text-sm"
                         required
                       />
+                      {errors.customCustomerType && <p className="text-red-500 text-xs mt-1 font-medium">{errors.customCustomerType}</p>}
                     </div>
                   )}
                   <div className="relative">
@@ -825,6 +896,7 @@ export default function RegisterPage() {
                       <option value="B">Tier B (Standard)</option>
                       <option value="C">Tier C (Basic)</option>
                     </select>
+                    {errors.category && <p className="text-red-500 text-xs mt-1 font-medium">{errors.category}</p>}
                   </div>
                   <div className="relative">
                     <MapPin className="absolute left-4 top-4 text-gray-400" size={20} />
@@ -836,6 +908,7 @@ export default function RegisterPage() {
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                       required
                     />
+                    {errors.address && <p className="text-red-500 text-xs mt-1 font-medium">{errors.address}</p>}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
@@ -848,6 +921,7 @@ export default function RegisterPage() {
                         className="w-full pl-11 pr-4 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                         required
                       />
+                      {errors.city && <p className="text-red-500 text-xs mt-1 font-medium">{errors.city}</p>}
                     </div>
                     <div className="relative">
                        <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -862,6 +936,7 @@ export default function RegisterPage() {
                           <option key={s} value={s}>{s}</option>
                         ))}
                       </select>
+                      {errors.state && <p className="text-red-500 text-xs mt-1 font-medium">{errors.state}</p>}
                     </div>
                   </div>
                   <div className="relative">
@@ -875,6 +950,7 @@ export default function RegisterPage() {
                       className="w-full pl-11 pr-4 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                       required
                     />
+                    {errors.pincode && <p className="text-red-500 text-xs mt-1 font-medium">{errors.pincode}</p>}
                   </div>
 
                   {/* 🗺️ Pincode-Wise Route Assignment Component */}
@@ -886,7 +962,7 @@ export default function RegisterPage() {
                           Delivery Route Selection
                         </label>
                         {loadingRoutes ? (
-                          <span className="text-xs font-semibold text-gray-500">Checking routes...</span>
+                           <span className="text-xs font-semibold text-gray-500">Checking routes...</span>
                         ) : isPincodeRouteMatched ? (
                           <span className="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-1 rounded-full flex items-center gap-1">
                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
@@ -960,53 +1036,68 @@ export default function RegisterPage() {
                                 Remove
                               </button>
                             </div>
-                            <input
-                              type="text"
-                              value={outlet.outletName}
-                              onChange={(e) => updateOutlet(index, "outletName", e.target.value)}
-                              placeholder="Outlet / Branch Name (e.g. Andheri Branch) *"
-                              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
-                              required
-                            />
-                            <textarea
-                              value={outlet.address}
-                              onChange={(e) => updateOutlet(index, "address", e.target.value)}
-                              placeholder="Outlet Address *"
-                              rows={2}
-                              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
-                              required
-                            />
-                            <div className="grid grid-cols-2 gap-2">
+                            <div>
                               <input
                                 type="text"
-                                value={outlet.city}
-                                onChange={(e) => updateOutlet(index, "city", e.target.value)}
-                                placeholder="City *"
+                                value={outlet.outletName}
+                                onChange={(e) => updateOutlet(index, "outletName", e.target.value)}
+                                placeholder="Outlet / Branch Name (e.g. Andheri Branch) *"
                                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
                                 required
                               />
-                              <select
-                                value={outlet.state}
-                                onChange={(e) => updateOutlet(index, "state", e.target.value)}
-                                className="w-full px-2 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                              {errors[`outletName_${index}`] && <p className="text-red-500 text-xs mt-1 font-medium">{errors[`outletName_${index}`]}</p>}
+                            </div>
+                            <div>
+                              <textarea
+                                value={outlet.address}
+                                onChange={(e) => updateOutlet(index, "address", e.target.value)}
+                                placeholder="Outlet Address *"
+                                rows={2}
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
                                 required
-                              >
-                                <option value="" disabled>State *</option>
-                                {INDIAN_STATES.map(s => (
-                                  <option key={s} value={s}>{s}</option>
-                                ))}
-                              </select>
+                              />
+                              {errors[`outletAddress_${index}`] && <p className="text-red-500 text-xs mt-1 font-medium">{errors[`outletAddress_${index}`]}</p>}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
-                              <input
-                                type="text"
-                                value={outlet.pincode}
-                                onChange={(e) => updateOutlet(index, "pincode", e.target.value.replace(/\D/g, "").slice(0, 6))}
-                                placeholder="PIN Code *"
-                                maxLength={6}
-                                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
-                                required
-                              />
+                              <div>
+                                <input
+                                  type="text"
+                                  value={outlet.city}
+                                  onChange={(e) => updateOutlet(index, "city", e.target.value)}
+                                  placeholder="City *"
+                                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                                  required
+                                />
+                                {errors[`outletCity_${index}`] && <p className="text-red-500 text-xs mt-1 font-medium">{errors[`outletCity_${index}`]}</p>}
+                              </div>
+                              <div>
+                                <select
+                                  value={outlet.state}
+                                  onChange={(e) => updateOutlet(index, "state", e.target.value)}
+                                  className="w-full px-2 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                                  required
+                                >
+                                  <option value="" disabled>State *</option>
+                                  {INDIAN_STATES.map(s => (
+                                    <option key={s} value={s}>{s}</option>
+                                  ))}
+                                </select>
+                                {errors[`outletState_${index}`] && <p className="text-red-500 text-xs mt-1 font-medium">{errors[`outletState_${index}`]}</p>}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <input
+                                  type="text"
+                                  value={outlet.pincode}
+                                  onChange={(e) => updateOutlet(index, "pincode", e.target.value.replace(/\D/g, "").slice(0, 6))}
+                                  placeholder="PIN Code *"
+                                  maxLength={6}
+                                  className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                                  required
+                                />
+                                {errors[`outletPincode_${index}`] && <p className="text-red-500 text-xs mt-1 font-medium">{errors[`outletPincode_${index}`]}</p>}
+                              </div>
                               <input
                                 type="text"
                                 value={outlet.contactPerson}
@@ -1025,6 +1116,7 @@ export default function RegisterPage() {
                             />
                           </div>
                         ))}
+                        {errors.outlets && <p className="text-red-500 text-xs mt-1 font-medium">{errors.outlets}</p>}
                         <button
                           type="button"
                           onClick={addOutlet}
@@ -1035,7 +1127,6 @@ export default function RegisterPage() {
                       </div>
                     )}
                   </div>
-                  {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
                   <div className="flex gap-4">
                     <button type="button" onClick={prevStep} className="flex-1 py-4 border border-gray-200 text-gray-600 font-bold rounded-2xl flex items-center justify-center gap-2">
                       <ArrowLeft size={20} /> Back
@@ -1074,6 +1165,7 @@ export default function RegisterPage() {
                         </>
                       )}
                     </div>
+                    {errors.licenseFile && <p className="text-red-500 text-xs mt-1 font-medium">{errors.licenseFile}</p>}
                   </div>
 
                   {/* 📅 Business / Trade License Expiry Date */}
@@ -1089,6 +1181,7 @@ export default function RegisterPage() {
                         required
                       />
                     </div>
+                    {errors.licenseExpiryDate && <p className="text-red-500 text-xs mt-1 font-medium">{errors.licenseExpiryDate}</p>}
                     <p className="text-[11px] text-amber-700 bg-amber-50 p-2 rounded-lg border border-amber-200">
                       ⚠️ <strong>License Expiry Rule:</strong> If the license expires, bill generation, order placement, and product dispatch for your account will be suspended automatically until updated.
                     </p>
@@ -1134,6 +1227,7 @@ export default function RegisterPage() {
                               required
                             />
                           </div>
+                          {errors.fssaiNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.fssaiNumber}</p>}
                         </div>
 
                         <div className="space-y-1">
@@ -1148,6 +1242,7 @@ export default function RegisterPage() {
                               required
                             />
                           </div>
+                          {errors.fssaiExpiryDate && <p className="text-red-500 text-xs mt-1 font-medium">{errors.fssaiExpiryDate}</p>}
                         </div>
 
                         <div className="space-y-1">
@@ -1167,6 +1262,7 @@ export default function RegisterPage() {
                             <Upload size={14} className="text-gray-500" />
                             {fssaiDocFile ? `✓ ${fssaiDocFile.name}` : "Upload FSSAI Certificate / Photo *"}
                           </button>
+                          {errors.fssaiDocFile && <p className="text-red-500 text-xs mt-1 font-medium">{errors.fssaiDocFile}</p>}
                         </div>
                       </div>
                     ) : (
@@ -1189,6 +1285,7 @@ export default function RegisterPage() {
                             <Upload size={14} className="text-amber-700" />
                             {fssaiUndertakingFile ? `✓ ${fssaiUndertakingFile.name}` : "Upload FSSAI Undertaking Document *"}
                           </button>
+                          {errors.fssaiUndertakingFile && <p className="text-red-500 text-xs mt-1 font-medium">{errors.fssaiUndertakingFile}</p>}
                         </div>
                       </div>
                     )}
@@ -1342,6 +1439,7 @@ export default function RegisterPage() {
                             className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
                             required={hasPaidAdvance}
                           />
+                          {errors.advanceAmount && <p className="text-red-500 text-xs mt-1 font-medium">{errors.advanceAmount}</p>}
                         </div>
 
                         <div>
@@ -1355,6 +1453,7 @@ export default function RegisterPage() {
                             <option value="Cash">Cash</option>
                             <option value="Bank Transfer">Bank Transfer</option>
                           </select>
+                          {errors.advancePaymentMode && <p className="text-red-500 text-xs mt-1 font-medium">{errors.advancePaymentMode}</p>}
                         </div>
 
                         <div>
@@ -1390,6 +1489,7 @@ export default function RegisterPage() {
                               </div>
                             )}
                           </div>
+                          {errors.advancePaymentProofFile && <p className="text-red-500 text-xs mt-1 font-medium">{errors.advancePaymentProofFile}</p>}
                         </div>
                       </motion.div>
                     )}
@@ -1404,6 +1504,7 @@ export default function RegisterPage() {
                       placeholder="Create Password (Optional - Leave blank for Auto-Gen)"
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                     />
+                    {errors.password && <p className="text-red-500 text-xs mt-1 font-medium">{errors.password}</p>}
                   </div>
                   <div className="relative">
                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
@@ -1414,9 +1515,10 @@ export default function RegisterPage() {
                       placeholder="Confirm Password (Optional)"
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
                     />
+                    {errors.confirmPassword && <p className="text-red-500 text-xs mt-1 font-medium">{errors.confirmPassword}</p>}
                   </div>
 
-                  {error && <p className="text-red-500 text-sm font-medium">{error}</p>}
+                  {errors.submit && <p className="text-red-500 text-sm font-medium">{errors.submit}</p>}
                   {message && <p className="text-green-500 text-sm font-medium">{message}</p>}
 
                   <div className="flex gap-4 pt-2">

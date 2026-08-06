@@ -119,6 +119,9 @@ export default function LoginPage() {
                   className="w-full px-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 text-gray-900 text-base focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] font-medium transition-all hover:bg-white hover:border-gray-300 shadow-sm"
                   required
                 />
+                {error && (error.toLowerCase().includes("pending") || error.toLowerCase().includes("approve")) && (
+                  <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{error}</p>
+                )}
               </div>
 
               <div className="relative">
@@ -137,6 +140,9 @@ export default function LoginPage() {
                 >
                   {showPassword ? <Lock size={20} className="text-[#D97706]" /> : <Lock size={20} />}
                 </button>
+                {error && !(error.toLowerCase().includes("pending") || error.toLowerCase().includes("approve")) && (
+                  <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{error}</p>
+                )}
               </div>
             </div>
 
@@ -149,16 +155,6 @@ export default function LoginPage() {
                 Forgot password?
               </Link>
             </div>
-
-            {error && (
-              <motion.p 
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                className="text-red-500 text-sm font-medium"
-              >
-                {error}
-              </motion.p>
-            )}
 
             {message && (
               <motion.p 

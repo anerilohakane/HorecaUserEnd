@@ -64,14 +64,7 @@ export default function ForgotPasswordPage() {
           <p className="text-sm text-slate-500">Enter your email to receive a password reset link</p>
         </div>
 
-        {error && (
-          <div className="p-4 bg-red-50 border border-red-200 rounded-2xl flex items-start gap-3 text-red-900 text-sm animate-in fade-in duration-200">
-            <AlertCircle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-semibold">Error:</span> {error}
-            </div>
-          </div>
-        )}
+        {/* Global Error Banner removed, error is now displayed inline below email field */}
 
         {success ? (
           <div className="p-6 bg-emerald-50 border border-emerald-200 rounded-2xl flex flex-col items-center text-center gap-3 text-emerald-900 animate-in fade-in duration-200">
@@ -99,6 +92,7 @@ export default function ForgotPasswordPage() {
                   disabled={loading}
                 />
               </div>
+              {error && <p className="text-red-500 text-xs mt-1.5 ml-1 font-medium">{error}</p>}
             </div>
 
             <button
