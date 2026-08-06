@@ -235,22 +235,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const json = await res.json();
     if (!json.success) throw new Error(json.error || "Registration failed");
-
-    const token = json.data.accessToken;
-    const userData = json.data.user;
-
-    const normalizedUser = {
-      id: userData.id || userData._id,
-      phone: userData.phone,
-      name: userData.name ?? null,
-      email: userData.email ?? null,
-      category: userData.category ?? "C",
-      advanceBalance: userData.advanceBalance ?? 0,
-    };
-
-    await setAuthSession(token, normalizedUser);
-    setUser(normalizedUser);
-    setToken(token);
   };
 
   const logout = async () => {

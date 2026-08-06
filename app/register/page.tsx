@@ -258,7 +258,6 @@ export default function RegisterPage() {
     setError("");
     if (step === 1) {
       if (name.trim().length < 2) return "Full name is required";
-      if (username.trim().length < 3) return "Username must be at least 3 characters";
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) return "Please enter a valid email address";
       if (phone.length < 10) return "Please enter a valid 10-digit phone number";
@@ -423,7 +422,7 @@ export default function RegisterPage() {
 
       // 4. Register Customer
       await registerCustomer({
-        username: username.trim(),
+        username: email.trim(),
         email: email.trim(),
         name: name.trim(),
         phone: countryCode + phone.trim(),
@@ -485,8 +484,8 @@ export default function RegisterPage() {
         advancePaymentProofUrl: hasPaidAdvance ? advancePaymentProofUrl : null
       });
 
-      setMessage("Registration successful! Redirecting...");
-      setTimeout(() => router.push('/'), 1500);
+      setMessage("Registration successful! Your account is pending approval by the Customer Care Team. Redirecting to login...");
+      setTimeout(() => router.push('/login'), 3500);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
@@ -545,17 +544,7 @@ export default function RegisterPage() {
                       required
                     />
                   </div>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Username"
-                      className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
-                      required
-                    />
-                  </div>
+
                   <div className="relative">
                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
                     <input
@@ -1412,9 +1401,8 @@ export default function RegisterPage() {
                       type={showPassword ? "text" : "password"}
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      placeholder="Create Password"
+                      placeholder="Create Password (Optional - Leave blank for Auto-Gen)"
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
-                      required
                     />
                   </div>
                   <div className="relative">
@@ -1423,9 +1411,8 @@ export default function RegisterPage() {
                       type={showPassword ? "text" : "password"}
                       value={confirmPassword}
                       onChange={(e) => setConfirmPassword(e.target.value)}
-                      placeholder="Confirm Password"
+                      placeholder="Confirm Password (Optional)"
                       className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
-                      required
                     />
                   </div>
 
