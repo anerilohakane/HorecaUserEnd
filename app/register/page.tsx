@@ -362,12 +362,6 @@ export default function RegisterPage() {
       if (!fssaiUndertakingFile) newErrors.fssaiUndertakingFile = "Please upload FSSAI Undertaking Document";
     }
 
-    if (hasPaidAdvance) {
-      if (!advanceAmount || Number(advanceAmount) <= 0) newErrors.advanceAmount = "Please enter a valid Advance Amount";
-      if (!advancePaymentMode) newErrors.advancePaymentMode = "Please select Advance Payment Mode";
-      if (!advancePaymentProofFile && !advancePaymentProofUrl) newErrors.advancePaymentProofFile = "Please upload Advance Payment Proof screenshot or document";
-    }
-
     if (!category) {
       newErrors.category = "Please select a customer tier (A, B, C)";
     }
@@ -536,6 +530,7 @@ export default function RegisterPage() {
           notes: contractNotes.trim() || null
         } : undefined,
         advanceAmount: hasPaidAdvance ? Number(advanceAmount) : 0,
+        hasPaidAdvance: hasPaidAdvance,
         advancePaymentMode: hasPaidAdvance ? advancePaymentMode : null,
         advancePaymentProofUrl: hasPaidAdvance ? advancePaymentProofUrl : null
       });
@@ -1406,11 +1401,11 @@ export default function RegisterPage() {
                   </div>
 
                   {/* 💰 Advance Payment Section */}
-                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3.5">
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200">
                     <div className="flex items-center justify-between">
                       <div>
-                        <span className="text-xs font-bold text-gray-800 block">Initial Advance Payment?</span>
-                        <span className="text-[11px] text-gray-500">Have you paid any advance amount?</span>
+                        <span className="text-xs font-bold text-gray-800 block">Advance Payment Customer?</span>
+                        <span className="text-[11px] text-gray-500">Enable placing orders with Advance Payment mode</span>
                       </div>
                       <label className="relative inline-flex items-center cursor-pointer">
                         <input
@@ -1422,77 +1417,6 @@ export default function RegisterPage() {
                         <div className="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#D97706]"></div>
                       </label>
                     </div>
-
-                    {hasPaidAdvance && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        className="space-y-3 pt-3 border-t border-gray-200"
-                      >
-                        <div>
-                          <label className="text-xs font-bold text-gray-700 block mb-1">Advance Amount (₹) *</label>
-                          <input
-                            type="number"
-                            value={advanceAmount}
-                            onChange={(e) => setAdvanceAmount(e.target.value)}
-                            placeholder="Enter paid amount"
-                            className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
-                            required={hasPaidAdvance}
-                          />
-                          {errors.advanceAmount && <p className="text-red-500 text-xs mt-1 font-medium">{errors.advanceAmount}</p>}
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-bold text-gray-700 block mb-1">Payment Mode *</label>
-                          <select
-                            value={advancePaymentMode}
-                            onChange={(e) => setAdvancePaymentMode(e.target.value)}
-                            className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
-                          >
-                            <option value="UPI">UPI / Net Banking</option>
-                            <option value="Cash">Cash</option>
-                            <option value="Bank Transfer">Bank Transfer</option>
-                          </select>
-                          {errors.advancePaymentMode && <p className="text-red-500 text-xs mt-1 font-medium">{errors.advancePaymentMode}</p>}
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-bold text-gray-700 block mb-1">
-                            {advancePaymentMode === "UPI" ? "UPI Screenshot / Proof *" : "Payment Receipt / Proof *"}
-                          </label>
-                          <div 
-                            onClick={() => advancePaymentProofInputRef.current?.click()}
-                            className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all ${advancePaymentProofUrl ? 'border-green-500 bg-green-50/80' : advancePaymentProofFile ? 'border-amber-400 bg-amber-50' : 'border-gray-300 bg-white hover:border-[#D97706]'}`}
-                          >
-                            <input type="file" ref={advancePaymentProofInputRef} onChange={handleAdvancePaymentProofFileChange} className="hidden" accept="image/*,.pdf" />
-                            {advancePaymentProofUploading ? (
-                              <p className="text-xs font-bold text-amber-700 animate-pulse flex items-center gap-1.5">
-                                ☁️ Uploading proof...
-                              </p>
-                            ) : advancePaymentProofUrl ? (
-                              <div className="flex items-center gap-2">
-                                <CheckCircle className="text-green-600 shrink-0" size={20} />
-                                <div className="text-left">
-                                  <span className="text-xs font-extrabold text-green-800 block truncate max-w-[240px]">{advancePaymentProofFile?.name || "Payment Proof"}</span>
-                                  <span className="text-[10px] text-green-600 font-bold">Uploaded to Cloudinary ☁️</span>
-                                </div>
-                              </div>
-                            ) : advancePaymentProofFile ? (
-                              <div className="flex items-center gap-2">
-                                <FileCheck className="text-amber-600 shrink-0" size={20} />
-                                <span className="text-xs font-bold text-amber-800 truncate max-w-[240px]">{advancePaymentProofFile.name}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <Upload className="text-gray-400" size={18} />
-                                <span className="text-xs font-medium text-gray-600">Upload payment proof</span>
-                              </div>
-                            )}
-                          </div>
-                          {errors.advancePaymentProofFile && <p className="text-red-500 text-xs mt-1 font-medium">{errors.advancePaymentProofFile}</p>}
-                        </div>
-                      </motion.div>
-                    )}
                   </div>
 
                   <div className="relative">
