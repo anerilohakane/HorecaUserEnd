@@ -80,15 +80,15 @@ export default function ProductDetailClient({
             fetch(`${API_BASE}/api/customers/${user.id}`, {
                 headers: token ? { Authorization: `Bearer ${token}` } : {}
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success && data.data) {
-                    const mapped = data.data.mappedProducts || [];
-                    setMappedIds(mapped);
-                    setHasMapping(mapped.length > 0);
-                }
-            })
-            .catch(err => console.error("Failed to load customer mapping:", err));
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        const mapped = data.data.mappedProducts || [];
+                        setMappedIds(mapped);
+                        setHasMapping(mapped.length > 0);
+                    }
+                })
+                .catch(err => console.error("Failed to load customer mapping:", err));
         } else {
             setMappedIds([]);
             setHasMapping(false);
@@ -99,7 +99,7 @@ export default function ProductDetailClient({
 
     // Price Negotiation State
     const [isPriceRequestModalOpen, setIsPriceRequestModalOpen] = useState(false);
-    
+
     // Reviews State
     const [reviews, setReviews] = useState<Review[]>([]);
 
@@ -190,15 +190,15 @@ export default function ProductDetailClient({
         // [Optimistic Update] Update local state immediately
         const wasInWishlist = isInWishlist;
         setIsInWishlist(!wasInWishlist);
-        
+
         sileo.success({
             title: wasInWishlist ? "Removed from Wishlist" : "Added to Wishlist",
             description: `"${product.name}" has been ${wasInWishlist ? "removed from" : "added to"} your wishlist.`
         });
 
         // Notify Header immediately
-        window.dispatchEvent(new CustomEvent("wishlist-updated", { 
-          detail: { isAdded: !wasInWishlist, optimistic: true } 
+        window.dispatchEvent(new CustomEvent("wishlist-updated", {
+            detail: { isAdded: !wasInWishlist, optimistic: true }
         }));
 
         try {
@@ -229,16 +229,16 @@ export default function ProductDetailClient({
         } catch (err: any) {
             // [Rollback] Revert state if sync fails
             setIsInWishlist(wasInWishlist);
-            
-            window.dispatchEvent(new CustomEvent("wishlist-updated", { 
-              detail: { isAdded: wasInWishlist, optimistic: true } 
+
+            window.dispatchEvent(new CustomEvent("wishlist-updated", {
+                detail: { isAdded: wasInWishlist, optimistic: true }
             }));
 
             sileo.error({
-              title: "Wishlist Sync Failed",
-              description: err.message || "Could not sync wishlist with server."
+                title: "Wishlist Sync Failed",
+                description: err.message || "Could not sync wishlist with server."
             });
-            
+
             setWishlistError(err.message || "Wishlist error");
             setTimeout(() => setWishlistError(null), 3000);
         } finally {
@@ -307,12 +307,12 @@ export default function ProductDetailClient({
         (async () => {
             try {
                 const url = buildUrl(`api/products/${encodeURIComponent(productId)}`);
-                const res = await fetch(url, { 
-                    signal: controller.signal, 
-                    headers: { 
+                const res = await fetch(url, {
+                    signal: controller.signal,
+                    headers: {
                         Accept: 'application/json',
                         ...(token ? { Authorization: `Bearer ${token}` } : {})
-                    } 
+                    }
                 });
                 if (!res.ok) {
                     let msg = '';
@@ -351,6 +351,9 @@ export default function ProductDetailClient({
         // we want to run once on mount if no product passed
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+
+    console.log("Product : ", product);
+
 
     // fetch related products (simple approach by category) when we have the product and no initial related products
     useEffect(() => {
@@ -629,7 +632,7 @@ export default function ProductDetailClient({
                                 <div className="h-10 bg-gray-200 rounded-lg w-3/4 animate-pulse" />
                                 <div className="h-6 bg-gray-100 rounded-md w-1/4 animate-pulse" />
                             </div>
-                            
+
                             <div className="py-6 border-y border-gray-100 space-y-4">
                                 <div className="h-12 bg-gray-200 rounded-lg w-1/3 animate-pulse" />
                                 <div className="h-20 bg-gray-50 rounded-xl w-full animate-pulse" />
@@ -662,7 +665,7 @@ export default function ProductDetailClient({
                     </div>
                     <h2 className="text-2xl font-bold text-slate-900 mb-2">Product Not Available</h2>
                     <p className="text-slate-500 mb-8">This product is not mapped to your account and is not available for purchase or viewing.</p>
-                    <Link 
+                    <Link
                         href="/products"
                         className="w-full py-4 bg-[#D97706] text-white rounded-2xl font-bold hover:bg-[#b45f06] transition-all flex items-center justify-center gap-2"
                     >
@@ -797,9 +800,10 @@ export default function ProductDetailClient({
 
                         {/* Description */}
                         <div>
-                            <p className="text-gray-700 leading-relaxed">
-                                {product.description}
-                            </p>
+                            <div
+                                className="text-gray-700 leading-relaxed prose prose-sm max-w-none"
+                                dangerouslySetInnerHTML={{ __html: product.description || 'No description available.' }}
+                            />
                         </div>
 
                         {/* Quantity Selector */}
@@ -876,32 +880,32 @@ export default function ProductDetailClient({
 
                             <div className="flex gap-3">
                                 <button
-                                onClick={handleWishlistToggle}
-                                disabled={isWishlisting}
-                                title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
-                                className={`p-4 border-2 rounded-xl transition-all ${isInWishlist
-                                    ? "border-red-500 text-red-500 bg-red-50"
-                                    : "border-gray-200 hover:border-[#D97706] hover:text-[#D97706] text-gray-400"
-                                    } disabled:opacity-50`}
-                            >
-                                {isWishlisting ? (
-                                    <span className="inline-block h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                                ) : (
-                                    <Heart
-                                        size={20}
-                                        className={isInWishlist ? "fill-current" : ""}
-                                        strokeWidth={2}
-                                    />
-                                )}
-                            </button>
+                                    onClick={handleWishlistToggle}
+                                    disabled={isWishlisting}
+                                    title={isInWishlist ? "Remove from wishlist" : "Add to wishlist"}
+                                    className={`p-4 border-2 rounded-xl transition-all ${isInWishlist
+                                        ? "border-red-500 text-red-500 bg-red-50"
+                                        : "border-gray-200 hover:border-[#D97706] hover:text-[#D97706] text-gray-400"
+                                        } disabled:opacity-50`}
+                                >
+                                    {isWishlisting ? (
+                                        <span className="inline-block h-5 w-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                    ) : (
+                                        <Heart
+                                            size={20}
+                                            className={isInWishlist ? "fill-current" : ""}
+                                            strokeWidth={2}
+                                        />
+                                    )}
+                                </button>
 
-                            <button
-                                onClick={handleShare}
-                                title="Share product"
-                                className="p-4 border-2 border-gray-200 rounded-xl hover:border-[#D97706] hover:text-[#D97706] text-gray-400 transition-all"
-                            >
-                                <Share2 size={20} strokeWidth={2} />
-                            </button>
+                                <button
+                                    onClick={handleShare}
+                                    title="Share product"
+                                    className="p-4 border-2 border-gray-200 rounded-xl hover:border-[#D97706] hover:text-[#D97706] text-gray-400 transition-all"
+                                >
+                                    <Share2 size={20} strokeWidth={2} />
+                                </button>
                             </div>
                         </div>
 
@@ -991,14 +995,6 @@ export default function ProductDetailClient({
                             <div className="prose max-w-none animate-in fade-in duration-300">
                                 <h3 className="text-xl font-medium text-[#111827] mb-4">Product Description</h3>
                                 <p className="text-gray-700 leading-relaxed mb-4">{product.description}</p>
-                                <h4 className="text-lg font-medium text-[#111827] mb-3">Features:</h4>
-                                <ul className="space-y-2 text-gray-700">
-                                    <li>• Premium quality ingredients for professional use</li>
-                                    <li>• Consistent texture and flavor in every batch</li>
-                                    <li>• Suitable for all types of baking applications</li>
-                                    <li>• Long shelf life with proper storage</li>
-                                    <li>• Food-grade packaging for freshness</li>
-                                </ul>
                             </div>
                         )}
 
