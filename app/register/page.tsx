@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check, Store, Briefcase, CreditCard, Folder } from "lucide-react";
+import { User, Users, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check, Store, Briefcase, CreditCard, Folder, HelpCircle, Navigation } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -72,10 +72,16 @@ export default function RegisterPage() {
     pincode: string;
     contactPerson: string;
     contactPhone: string;
+    contactEmail: string;
+    assignedRoute: string;
+    routeName: string;
+    routeCode: string;
+    lat?: number | null;
+    lng?: number | null;
   }>>([]);
 
   const addOutlet = () => {
-    setOutlets(prev => [...prev, { outletName: "", address: "", city: "", state: "", pincode: "", contactPerson: "", contactPhone: "" }]);
+    setOutlets(prev => [...prev, { outletName: "", address: "", city: "", state: "", pincode: "", contactPerson: "", contactPhone: "", contactEmail: "", assignedRoute: "", routeName: "", routeCode: "", lat: null, lng: null }]);
   };
 
   const removeOutlet = (index: number) => {
@@ -131,11 +137,145 @@ export default function RegisterPage() {
 
   // 🗺️ Route Management Pincode-wise state
   const [availableRoutes, setAvailableRoutes] = useState<any[]>([]);
+  const [allRoutes, setAllRoutes] = useState<any[]>([]);
   const [isPincodeRouteMatched, setIsPincodeRouteMatched] = useState(false);
   const [assignedRoute, setAssignedRoute] = useState("");
   const [routeName, setRouteName] = useState("");
   const [routeCode, setRouteCode] = useState("");
   const [loadingRoutes, setLoadingRoutes] = useState(false);
+
+  // 📞 Department-wise Contact details & Source
+  const [artName, setArtName] = useState("");
+  const [artPhone, setArtPhone] = useState("");
+  const [artEmail, setArtEmail] = useState("");
+
+  const [actName, setActName] = useState("");
+  const [actPhone, setActPhone] = useState("");
+  const [actEmail, setActEmail] = useState("");
+
+  const [odtName, setOdtName] = useState("");
+  const [odtPhone, setOdtPhone] = useState("");
+  const [odtEmail, setOdtEmail] = useState("");
+
+  const [scmName, setScmName] = useState("");
+  const [scmPhone, setScmPhone] = useState("");
+  const [scmEmail, setScmEmail] = useState("");
+
+  const [rpName, setRpName] = useState("");
+  const [rpPhone, setRpPhone] = useState("");
+  const [rpEmail, setRpEmail] = useState("");
+
+  const [customerSource, setCustomerSource] = useState("");
+  const [customSource, setCustomSource] = useState("");
+
+  const [lat, setLat] = useState<number | null>(null);
+  const [lng, setLng] = useState<number | null>(null);
+  const [locatingIndex, setLocatingIndex] = useState<number | null | 'primary'>(null);
+
+  const handleFetchCurrentLocation = (index: number | null) => {
+    if (!navigator.geolocation) {
+      alert("Geolocation is not supported by your browser.");
+      return;
+    }
+    
+    setLocatingIndex(index === null ? 'primary' : index);
+    
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        try {
+          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`);
+          const data = await res.json();
+          if (data && data.address) {
+            const resolvedAddress = data.display_name || "";
+            const resolvedCity = data.address.city || data.address.town || data.address.village || data.address.county || "";
+            const resolvedState = data.address.state || "";
+            const resolvedPincode = data.address.postcode || "";
+
+            if (index === null) {
+              setAddress(resolvedAddress);
+              setCity(resolvedCity);
+              setState(resolvedState);
+              setPincode(resolvedPincode.replace(/\D/g, "").slice(0, 6));
+              setLat(latitude);
+              setLng(longitude);
+            } else {
+              setOutlets(prev => {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  address: resolvedAddress,
+                  city: resolvedCity,
+                  state: resolvedState,
+                  pincode: resolvedPincode.replace(/\D/g, "").slice(0, 6),
+                  lat: latitude,
+                  lng: longitude
+                };
+                return updated;
+              });
+            }
+          } else {
+            if (index === null) {
+              setAddress(`${latitude}, ${longitude}`);
+              setLat(latitude);
+              setLng(longitude);
+            } else {
+              setOutlets(prev => {
+                const updated = [...prev];
+                updated[index] = {
+                  ...updated[index],
+                  address: `${latitude}, ${longitude}`,
+                  lat: latitude,
+                  lng: longitude
+                };
+                return updated;
+              });
+            }
+          }
+        } catch (err) {
+          console.error("Reverse geocoding error:", err);
+          if (index === null) {
+            setAddress(`${latitude}, ${longitude}`);
+            setLat(latitude);
+            setLng(longitude);
+          } else {
+            setOutlets(prev => {
+              const updated = [...prev];
+              updated[index] = {
+                ...updated[index],
+                address: `${latitude}, ${longitude}`,
+                lat: latitude,
+                lng: longitude
+              };
+              return updated;
+            });
+          }
+        } finally {
+          setLocatingIndex(null);
+        }
+      },
+      (err) => {
+        alert(`Failed to get location: ${err.message}`);
+        setLocatingIndex(null);
+      },
+      { enableHighAccuracy: true, timeout: 8000 }
+    );
+  };
+
+  React.useEffect(() => {
+    const fetchAllRoutes = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/routes/master?status=Active`);
+        const data = await res.json();
+        if (data.success) {
+          setAllRoutes(data.data);
+        }
+      } catch (err) {
+        console.error("Error fetching all active routes:", err);
+      }
+    };
+    fetchAllRoutes();
+  }, [API_BASE]);
 
   React.useEffect(() => {
     if (pincode && pincode.trim().length === 6) {
@@ -493,7 +633,27 @@ export default function RegisterPage() {
         fssaiUndertakingDocUrl: !hasFssai ? fssaiUndertakingDocUrl : null,
         licenseExpiryDate: licenseExpiryDate || null,
         hasMultipleOutlets,
-        outlets: hasMultipleOutlets ? outlets : [],
+        source: customerSource === "Other" ? customSource.trim() : customerSource,
+        departmentContacts: {
+          art: { name: artName.trim(), phone: artPhone.trim(), email: artEmail.trim() },
+          act: { name: actName.trim(), phone: actPhone.trim(), email: actEmail.trim() },
+          odt: { name: odtName.trim(), phone: odtPhone.trim(), email: odtEmail.trim() },
+          scm: { name: scmName.trim(), phone: scmPhone.trim(), email: scmEmail.trim() },
+          routePlanner: { name: rpName.trim(), phone: rpPhone.trim(), email: rpEmail.trim() }
+        },
+        outlets: hasMultipleOutlets ? outlets.map(o => ({
+          outletName: o.outletName.trim(),
+          address: o.address.trim(),
+          city: o.city.trim(),
+          state: o.state.trim(),
+          pincode: o.pincode.trim(),
+          contactPerson: o.contactPerson?.trim() || null,
+          contactPhone: o.contactPhone?.trim() || null,
+          contactEmail: o.contactEmail?.trim() || null,
+          assignedRoute: o.assignedRoute || null,
+          routeName: o.routeName || null,
+          routeCode: o.routeCode || null
+        })) : [],
         locations: [
           {
             outletName: "Main Branch",
@@ -501,6 +661,12 @@ export default function RegisterPage() {
             city: city.trim(),
             state: state.trim(),
             pincode: pincode.trim(),
+            contactPerson: name.trim(),
+            contactPhone: countryCode + phone.trim(),
+            contactEmail: email.trim(),
+            assignedRoute: assignedRoute || null,
+            routeName: routeName || null,
+            routeCode: routeCode || null,
             isPrimary: true
           },
           ...(hasMultipleOutlets ? outlets.map(o => ({
@@ -511,6 +677,12 @@ export default function RegisterPage() {
             pincode: o.pincode.trim(),
             contactPerson: o.contactPerson?.trim() || null,
             contactPhone: o.contactPhone?.trim() || null,
+            contactEmail: o.contactEmail?.trim() || null,
+            assignedRoute: o.assignedRoute || null,
+            routeName: o.routeName || null,
+            routeCode: o.routeCode || null,
+            lat: o.lat != null ? o.lat : null,
+            lng: o.lng != null ? o.lng : null,
             isPrimary: false
           })) : [])
         ],
@@ -893,17 +1065,245 @@ export default function RegisterPage() {
                     </select>
                     {errors.category && <p className="text-red-500 text-xs mt-1 font-medium">{errors.category}</p>}
                   </div>
+
                   <div className="relative">
-                    <MapPin className="absolute left-4 top-4 text-gray-400" size={20} />
-                    <textarea
-                      value={address}
-                      onChange={(e) => setAddress(e.target.value)}
-                      placeholder="Full Business Address"
-                      rows={2}
-                      className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
+                    <HelpCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
+                    <select
+                      value={customerSource}
+                      onChange={(e) => setCustomerSource(e.target.value)}
+                      className={`w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm ${!customerSource ? 'text-gray-400' : 'text-gray-900'}`}
                       required
-                    />
-                    {errors.address && <p className="text-red-500 text-xs mt-1 font-medium">{errors.address}</p>}
+                    >
+                      <option value="" disabled>Select Source of Customer *</option>
+                      <option value="Vendor">Vendor</option>
+                      <option value="Self">Self</option>
+                      <option value="ART">ART</option>
+                      <option value="CCT">CCT</option>
+                      <option value="ODT">ODT</option>
+                      <option value="Other">Other (Specify)</option>
+                    </select>
+                  </div>
+                  {customerSource === "Other" && (
+                    <div className="relative animate-in fade-in slide-in-from-top-1 duration-200">
+                      <HelpCircle className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-600" size={20} />
+                      <input
+                        type="text"
+                        value={customSource}
+                        onChange={(e) => setCustomSource(e.target.value)}
+                        placeholder="Specify Customer Source *"
+                        className="w-full pl-12 pr-5 py-4 border border-amber-300 rounded-2xl bg-amber-50/50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all text-sm font-medium text-gray-900 shadow-sm"
+                        required
+                      />
+                    </div>
+                  )}
+
+                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
+                    <label className="flex items-center gap-2 text-xs font-bold text-gray-700 uppercase tracking-wider">
+                      <Users className="w-4 h-4 text-gray-500" />
+                      Department Contact Details
+                    </label>
+                    <div className="space-y-3">
+                      {/* ART */}
+                      <div className="border-b border-gray-200 pb-2">
+                        <span className="text-xs font-bold text-gray-700 block mb-1.5">1. ART (Accounts Receivable)</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={artName}
+                            onChange={(e) => setArtName(e.target.value)}
+                            placeholder="Dept. Name"
+                            name="dept_art_n"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={artPhone}
+                            onChange={(e) => setArtPhone(e.target.value)}
+                            placeholder="Dept. Phone"
+                            name="dept_art_p"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={artEmail}
+                            onChange={(e) => setArtEmail(e.target.value)}
+                            placeholder="Dept. Email"
+                            name="dept_art_e"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                        </div>
+                      </div>
+                      {/* ACT */}
+                      <div className="border-b border-gray-200 pb-2">
+                        <span className="text-xs font-bold text-gray-700 block mb-1.5">2. ACT (Accounts/Customer Care)</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={actName}
+                            onChange={(e) => setActName(e.target.value)}
+                            placeholder="Dept. Name"
+                            name="dept_act_n"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={actPhone}
+                            onChange={(e) => setActPhone(e.target.value)}
+                            placeholder="Dept. Phone"
+                            name="dept_act_p"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={actEmail}
+                            onChange={(e) => setActEmail(e.target.value)}
+                            placeholder="Dept. Email"
+                            name="dept_act_e"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                        </div>
+                      </div>
+                      {/* ODT */}
+                      <div className="border-b border-gray-200 pb-2">
+                        <span className="text-xs font-bold text-gray-700 block mb-1.5">3. ODT (Order Dispatch Team)</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={odtName}
+                            onChange={(e) => setOdtName(e.target.value)}
+                            placeholder="Dept. Name"
+                            name="dept_odt_n"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={odtPhone}
+                            onChange={(e) => setOdtPhone(e.target.value)}
+                            placeholder="Dept. Phone"
+                            name="dept_odt_p"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={odtEmail}
+                            onChange={(e) => setOdtEmail(e.target.value)}
+                            placeholder="Dept. Email"
+                            name="dept_odt_e"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                        </div>
+                      </div>
+                      {/* SCM */}
+                      <div className="border-b border-gray-200 pb-2">
+                        <span className="text-xs font-bold text-gray-700 block mb-1.5">4. SCM (Supply Chain Management)</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={scmName}
+                            onChange={(e) => setScmName(e.target.value)}
+                            placeholder="Dept. Name"
+                            name="dept_scm_n"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={scmPhone}
+                            onChange={(e) => setScmPhone(e.target.value)}
+                            placeholder="Dept. Phone"
+                            name="dept_scm_p"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={scmEmail}
+                            onChange={(e) => setScmEmail(e.target.value)}
+                            placeholder="Dept. Email"
+                            name="dept_scm_e"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                        </div>
+                      </div>
+                      {/* Route Planner */}
+                      <div>
+                        <span className="text-xs font-bold text-gray-700 block mb-1.5">5. Route Planner</span>
+                        <div className="grid grid-cols-3 gap-2">
+                          <input
+                            type="text"
+                            value={rpName}
+                            onChange={(e) => setRpName(e.target.value)}
+                            placeholder="Dept. Name"
+                            name="dept_rp_n"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={rpPhone}
+                            onChange={(e) => setRpPhone(e.target.value)}
+                            placeholder="Dept. Phone"
+                            name="dept_rp_p"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                          <input
+                            type="text"
+                            value={rpEmail}
+                            onChange={(e) => setRpEmail(e.target.value)}
+                            placeholder="Dept. Email"
+                            name="dept_rp_e"
+                            autoComplete="new-password"
+                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                   <div className="space-y-2">
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-4 text-gray-400" size={20} />
+                      <textarea
+                        value={address}
+                        onChange={(e) => setAddress(e.target.value)}
+                        placeholder="Full Business Address"
+                        rows={2}
+                        className="w-full pl-12 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm"
+                        required
+                      />
+                      {errors.address && <p className="text-red-500 text-xs mt-1 font-medium">{errors.address}</p>}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleFetchCurrentLocation(null)}
+                      disabled={locatingIndex !== null}
+                      className="w-full py-2.5 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl text-xs font-bold shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                    >
+                      {locatingIndex === 'primary' ? (
+                        <span>Locating...</span>
+                      ) : (
+                        <>
+                          <Navigation className="w-3.5 h-3.5" size={14} />
+                          <span>📍 Use My Location</span>
+                        </>
+                      )}
+                    </button>
+                    {lat !== null && lng !== null && (
+                      <div className="text-[10px] text-emerald-600 font-bold px-1 flex items-center gap-1 bg-emerald-50 py-1 rounded-lg border border-emerald-100">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
+                        <span>Captured Lat: {lat.toFixed(6)}, Lng: {lng.toFixed(6)}</span>
+                      </div>
+                    )}
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="relative">
@@ -1042,7 +1442,7 @@ export default function RegisterPage() {
                               />
                               {errors[`outletName_${index}`] && <p className="text-red-500 text-xs mt-1 font-medium">{errors[`outletName_${index}`]}</p>}
                             </div>
-                            <div>
+                            <div className="space-y-2">
                               <textarea
                                 value={outlet.address}
                                 onChange={(e) => updateOutlet(index, "address", e.target.value)}
@@ -1051,6 +1451,27 @@ export default function RegisterPage() {
                                 className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
                                 required
                               />
+                              <button
+                                type="button"
+                                onClick={() => handleFetchCurrentLocation(index)}
+                                disabled={locatingIndex !== null}
+                                className="w-full py-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white rounded-xl text-[10px] font-bold shadow-sm transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
+                              >
+                                {locatingIndex === index ? (
+                                  <span>Locating...</span>
+                                ) : (
+                                  <>
+                                    <Navigation size={11} className="w-3 h-3" />
+                                    <span>📍 Use My Location</span>
+                                  </>
+                                )}
+                              </button>
+                              {outlet.lat !== null && outlet.lng !== null && outlet.lat !== undefined && outlet.lng !== undefined && (
+                                <div className="text-[9px] text-emerald-600 font-bold px-1 flex items-center gap-1 bg-emerald-50 py-0.5 rounded-lg border border-emerald-100">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-ping"></span>
+                                  <span>Captured Lat: {outlet.lat.toFixed(6)}, Lng: {outlet.lng.toFixed(6)}</span>
+                                </div>
+                              )}
                               {errors[`outletAddress_${index}`] && <p className="text-red-500 text-xs mt-1 font-medium">{errors[`outletAddress_${index}`]}</p>}
                             </div>
                             <div className="grid grid-cols-2 gap-2">
@@ -1109,6 +1530,36 @@ export default function RegisterPage() {
                               maxLength={10}
                               className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
                             />
+                            <input
+                              type="email"
+                              value={outlet.contactEmail || ""}
+                              onChange={(e) => updateOutlet(index, "contactEmail", e.target.value)}
+                              placeholder="Outlet Contact Email (Optional)"
+                              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                            />
+                            <div>
+                              <label className="text-[10px] font-semibold text-gray-500 block mb-0.5">Outlet Logistics Route</label>
+                              <select
+                                value={outlet.assignedRoute || ""}
+                                onChange={(e) => {
+                                  const routeId = e.target.value;
+                                  const found = allRoutes.find(r => r._id === routeId);
+                                  updateOutlet(index, "assignedRoute", routeId);
+                                  updateOutlet(index, "routeName", found ? found.name : "");
+                                  updateOutlet(index, "routeCode", found ? found.code : "");
+                                }}
+                                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                              >
+                                <option value="">Select Logistics Route</option>
+                                {(allRoutes.filter(r => r.pincode === outlet.pincode).length > 0
+                                  ? allRoutes.filter(r => r.pincode === outlet.pincode)
+                                  : allRoutes).map(route => (
+                                    <option key={route._id} value={route._id}>
+                                      {route.name} ({route.code}) {route.pincode ? `- PIN: ${route.pincode}` : ''}
+                                    </option>
+                                  ))}
+                              </select>
+                            </div>
                           </div>
                         ))}
                         {errors.outlets && <p className="text-red-500 text-xs mt-1 font-medium">{errors.outlets}</p>}
