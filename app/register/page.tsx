@@ -1039,14 +1039,14 @@ export default function RegisterPage() {
                           {errors.gstNumber && <p className="text-red-500 text-xs mt-1 font-medium">{errors.gstNumber}</p>}
                         </div>
 
-                        {/* 📅 GST Effective Date Field */}
-                        <div className="relative">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-semibold">Effective Date *</span>
+                        {/* 📅 GST Details Provided On Field */}
+                        <div className="flex flex-col gap-1">
+                          <label className="text-xs font-semibold text-gray-500 ml-1">GST Details Provided On *</label>
                           <input
                             type="date"
                             value={gstEffectiveDate}
                             onChange={(e) => setGstEffectiveDate(e.target.value)}
-                            className="w-full pl-36 pr-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm font-medium text-gray-955"
+                            className="w-full px-5 py-4 border border-gray-200 rounded-2xl bg-gray-50 focus:outline-none focus:border-[#D97706] focus:ring-1 focus:ring-[#D97706] transition-all shadow-sm font-medium text-gray-900"
                             required={!isUrg}
                           />
                           {errors.gstEffectiveDate && <p className="text-red-500 text-xs mt-1 font-medium">{errors.gstEffectiveDate}</p>}
