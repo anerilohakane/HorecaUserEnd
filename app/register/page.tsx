@@ -78,17 +78,24 @@ export default function RegisterPage() {
     routeCode: string;
     lat?: number | null;
     lng?: number | null;
+    hasFssai: boolean;
+    fssaiNumber?: string;
+    fssaiExpiryDate?: string;
+    fssaiDocFile?: File | null;
+    fssaiUndertakingFile?: File | null;
+    fssaiDocUrl?: string | null;
+    fssaiUndertakingDocUrl?: string | null;
   }>>([]);
 
   const addOutlet = () => {
-    setOutlets(prev => [...prev, { outletName: "", address: "", city: "", state: "", pincode: "", contactPerson: "", contactPhone: "", contactEmail: "", assignedRoute: "", routeName: "", routeCode: "", lat: null, lng: null }]);
+    setOutlets(prev => [...prev, { outletName: "", address: "", city: "", state: "", pincode: "", contactPerson: "", contactPhone: "", contactEmail: "", assignedRoute: "", routeName: "", routeCode: "", lat: null, lng: null, hasFssai: true, fssaiNumber: "", fssaiExpiryDate: "", fssaiDocFile: null, fssaiUndertakingFile: null }]);
   };
 
   const removeOutlet = (index: number) => {
     setOutlets(prev => prev.filter((_, i) => i !== index));
   };
 
-  const updateOutlet = (index: number, field: string, value: string) => {
+  const updateOutlet = (index: number, field: string, value: any) => {
     setOutlets(prev => {
       const updated = [...prev];
       updated[index] = { ...updated[index], [field]: value };
@@ -96,16 +103,72 @@ export default function RegisterPage() {
     });
   };
 
-  // 📜 Contract-Based Customer State
+  // 📜 Contract-Based Customer State (Multi-Brand Contracts)
   const [isContractBased, setIsContractBased] = useState(false);
-  const [contractType, setContractType] = useState("");
-  const [contractStartDate, setContractStartDate] = useState("");
-  const [contractExpiryDate, setContractExpiryDate] = useState("");
-  const [contractFile, setContractFile] = useState<File | null>(null);
-  const [contractDocUrl, setContractDocUrl] = useState("");
-  const [contractNotes, setContractNotes] = useState("");
+  const [brandsList, setBrandsList] = useState<string[]>([]);
+  const [contracts, setContracts] = useState<Array<{
+    brandId?: string;
+    brandName: string;
+    contractType: string;
+    startDate: string;
+    expiryDate: string;
+    notes: string;
+    contractFile: File | null;
+    contractUrl: string;
+  }>>([
+    { brandId: "", brandName: "", contractType: "Annual Supply Agreement", startDate: "", expiryDate: "", notes: "", contractFile: null, contractUrl: "" }
+  ]);
   const [contractUploading, setContractUploading] = useState(false);
-  const contractFileInputRef = useRef<HTMLInputElement>(null);
+
+  const addContractRow = () => {
+    setContracts(prev => [
+      ...prev,
+      { brandId: "", brandName: "", contractType: "Annual Supply Agreement", startDate: "", expiryDate: "", notes: "", contractFile: null, contractUrl: "" }
+    ]);
+  };
+
+  const removeContractRow = (index: number) => {
+    setContracts(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const updateContractRow = (index: number, field: string, value: any) => {
+    setContracts(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field]: value };
+      return updated;
+    });
+  };
+
+  React.useEffect(() => {
+    const fetchBrands = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/tally/master-data/stock-groups`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(json.data, "text/xml");
+          const groupNodes = xmlDoc.getElementsByTagName("STOCKGROUP");
+          const parsedBrands: string[] = [];
+          for (let i = 0; i < groupNodes.length; i++) {
+            const nameNode = groupNodes[i].getElementsByTagName("NAME")[0];
+            const name = nameNode ? nameNode.textContent?.trim() : groupNodes[i].getAttribute("NAME");
+            if (name && !parsedBrands.includes(name)) {
+              parsedBrands.push(name);
+            }
+          }
+          if (parsedBrands.length > 0) {
+            setBrandsList(parsedBrands);
+            return;
+          }
+        }
+        setBrandsList(["Unifoods", "Nestle", "Amul", "Britannia", "Parle"]);
+      } catch (err) {
+        console.error("Failed to load brands from Tally:", err);
+        setBrandsList(["Unifoods", "Nestle", "Amul", "Britannia", "Parle"]);
+      }
+    };
+    fetchBrands();
+  }, [API_BASE]);
 
   // 💰 Advance Payment State
   const [hasPaidAdvance, setHasPaidAdvance] = useState(false);
@@ -343,22 +406,6 @@ export default function RegisterPage() {
     }
   };
 
-  const handleContractFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setContractFile(file);
-      setContractUploading(true);
-      try {
-        const url = await uploadDocument(file);
-        setContractDocUrl(url);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to upload contract document");
-      } finally {
-        setContractUploading(false);
-      }
-    }
-  };
-
   const handleAdvancePaymentProofFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
@@ -589,10 +636,65 @@ export default function RegisterPage() {
         fssaiUndertakingDocUrl = await uploadDocument(fssaiUndertakingFile);
       }
 
-      // 2. Upload Contract Document if contract-based and file selected but not uploaded yet
-      let finalContractUrl = contractDocUrl;
-      if (isContractBased && contractFile && !finalContractUrl) {
-        finalContractUrl = await uploadDocument(contractFile);
+      // 1.6 Upload per-outlet FSSAI documents / undertaking documents if provided
+      const processedOutlets: any[] = [];
+      if (hasMultipleOutlets && Array.isArray(outlets)) {
+        for (let i = 0; i < outlets.length; i++) {
+          const o = outlets[i];
+          let oFssaiDocUrl = o.fssaiDocUrl || null;
+          let oUndertakingUrl = o.fssaiUndertakingDocUrl || null;
+
+          if (o.hasFssai !== false && o.fssaiDocFile) {
+            try {
+              oFssaiDocUrl = await uploadDocument(o.fssaiDocFile);
+            } catch (fErr) {
+              console.error(`Outlet #${i + 1} FSSAI document upload error:`, fErr);
+            }
+          }
+
+          if (o.hasFssai === false && o.fssaiUndertakingFile) {
+            try {
+              oUndertakingUrl = await uploadDocument(o.fssaiUndertakingFile);
+            } catch (uErr) {
+              console.error(`Outlet #${i + 1} undertaking upload error:`, uErr);
+            }
+          }
+
+          processedOutlets.push({
+            ...o,
+            hasFssai: o.hasFssai !== false,
+            fssaiNumber: o.hasFssai !== false ? (o.fssaiNumber?.trim() || null) : null,
+            fssaiExpiryDate: o.hasFssai !== false ? (o.fssaiExpiryDate || null) : null,
+            fssaiDocUrl: o.hasFssai !== false ? oFssaiDocUrl : null,
+            fssaiUndertakingDocUrl: o.hasFssai === false ? oUndertakingUrl : null
+          });
+        }
+      }
+
+      // 2. Upload Multi-Brand Contract Documents if contract-based
+      const processedContracts: any[] = [];
+      if (isContractBased && Array.isArray(contracts)) {
+        for (let i = 0; i < contracts.length; i++) {
+          const c = contracts[i];
+          let cDocUrl = c.contractUrl || null;
+          if (c.contractFile) {
+            try {
+              cDocUrl = await uploadDocument(c.contractFile);
+            } catch (cErr) {
+              console.error(`Contract #${i + 1} upload error:`, cErr);
+            }
+          }
+          processedContracts.push({
+            brandId: c.brandId || null,
+            brandName: c.brandName ? c.brandName.trim() : null,
+            contractType: c.contractType || "Annual Supply Agreement",
+            startDate: c.startDate || null,
+            expiryDate: c.expiryDate || null,
+            documentUrl: cDocUrl,
+            notes: c.notes ? c.notes.trim() : null,
+            uploadedAt: new Date()
+          });
+        }
       }
 
       // 3. Upload URC Document / Undertaking if URG selected
@@ -641,7 +743,7 @@ export default function RegisterPage() {
           scm: { name: scmName.trim(), phone: scmPhone.trim(), email: scmEmail.trim() },
           routePlanner: { name: rpName.trim(), phone: rpPhone.trim(), email: rpEmail.trim() }
         },
-        outlets: hasMultipleOutlets ? outlets.map(o => ({
+        outlets: hasMultipleOutlets ? processedOutlets.map(o => ({
           outletName: o.outletName.trim(),
           address: o.address.trim(),
           city: o.city.trim(),
@@ -652,7 +754,14 @@ export default function RegisterPage() {
           contactEmail: o.contactEmail?.trim() || null,
           assignedRoute: o.assignedRoute || null,
           routeName: o.routeName || null,
-          routeCode: o.routeCode || null
+          routeCode: o.routeCode || null,
+          lat: o.lat != null ? o.lat : null,
+          lng: o.lng != null ? o.lng : null,
+          hasFssai: o.hasFssai,
+          fssaiNumber: o.fssaiNumber,
+          fssaiExpiryDate: o.fssaiExpiryDate,
+          fssaiDocUrl: o.fssaiDocUrl,
+          fssaiUndertakingDocUrl: o.fssaiUndertakingDocUrl
         })) : [],
         locations: [
           {
@@ -667,9 +776,16 @@ export default function RegisterPage() {
             assignedRoute: assignedRoute || null,
             routeName: routeName || null,
             routeCode: routeCode || null,
-            isPrimary: true
+            lat: lat,
+            lng: lng,
+            isPrimary: true,
+            hasFssai: Boolean(hasFssai),
+            fssaiNumber: hasFssai ? fssaiNumber.trim() : null,
+            fssaiExpiryDate: hasFssai ? fssaiExpiryDate : null,
+            fssaiDocUrl: hasFssai ? fssaiDocUrl : null,
+            fssaiUndertakingDocUrl: !hasFssai ? fssaiUndertakingDocUrl : null
           },
-          ...(hasMultipleOutlets ? outlets.map(o => ({
+          ...(hasMultipleOutlets ? processedOutlets.map(o => ({
             outletName: o.outletName.trim(),
             address: o.address.trim(),
             city: o.city.trim(),
@@ -683,7 +799,12 @@ export default function RegisterPage() {
             routeCode: o.routeCode || null,
             lat: o.lat != null ? o.lat : null,
             lng: o.lng != null ? o.lng : null,
-            isPrimary: false
+            isPrimary: false,
+            hasFssai: o.hasFssai,
+            fssaiNumber: o.fssaiNumber,
+            fssaiExpiryDate: o.fssaiExpiryDate,
+            fssaiDocUrl: o.fssaiDocUrl,
+            fssaiUndertakingDocUrl: o.fssaiUndertakingDocUrl
           })) : [])
         ],
         category,
@@ -694,13 +815,8 @@ export default function RegisterPage() {
         password,
         licenseImage: licenseUrl,
         isContractBased,
-        contract: isContractBased ? {
-          contractType: contractType || null,
-          documentUrl: finalContractUrl || null,
-          startDate: contractStartDate || null,
-          expiryDate: contractExpiryDate || null,
-          notes: contractNotes.trim() || null
-        } : undefined,
+        contracts: isContractBased ? processedContracts : [],
+        contract: (isContractBased && processedContracts.length > 0) ? processedContracts[0] : null,
         advanceAmount: hasPaidAdvance ? Number(advanceAmount) : 0,
         hasPaidAdvance: hasPaidAdvance,
         advancePaymentMode: hasPaidAdvance ? advancePaymentMode : null,
@@ -1560,6 +1676,98 @@ export default function RegisterPage() {
                                   ))}
                               </select>
                             </div>
+
+                            {/* Outlet FSSAI License & Status Section */}
+                            <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200 space-y-2.5">
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className="text-xs font-bold text-amber-900 block">Outlet FSSAI License *</span>
+                                  <span className="text-[10px] text-amber-700">Is this outlet registered with FSSAI?</span>
+                                </div>
+                                <div className="flex bg-white/80 p-0.5 rounded-lg border border-amber-200">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateOutlet(index, "hasFssai", true)}
+                                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${outlet.hasFssai !== false ? 'bg-[#D97706] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'}`}
+                                  >
+                                    Yes
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateOutlet(index, "hasFssai", false)}
+                                    className={`px-2.5 py-1 text-[11px] font-bold rounded-md transition-all ${outlet.hasFssai === false ? 'bg-[#D97706] text-white shadow-xs' : 'text-gray-600 hover:text-gray-900'}`}
+                                  >
+                                    No
+                                  </button>
+                                </div>
+                              </div>
+
+                              {outlet.hasFssai ? (
+                                <div className="space-y-2 pt-1 border-t border-amber-200/60 animate-in fade-in duration-200">
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <input
+                                        type="text"
+                                        value={outlet.fssaiNumber || ""}
+                                        onChange={(e) => updateOutlet(index, "fssaiNumber", e.target.value)}
+                                        placeholder="FSSAI License No. *"
+                                        className="w-full px-2.5 py-2 border border-gray-200 rounded-lg bg-white text-xs font-medium"
+                                        required={outlet.hasFssai}
+                                      />
+                                      {errors[`outletFssaiNumber_${index}`] && <p className="text-red-500 text-[10px] mt-0.5 font-medium">{errors[`outletFssaiNumber_${index}`]}</p>}
+                                    </div>
+                                    <div>
+                                      <input
+                                        type="date"
+                                        value={outlet.fssaiExpiryDate || ""}
+                                        onChange={(e) => updateOutlet(index, "fssaiExpiryDate", e.target.value)}
+                                        className="w-full px-2 py-2 border border-gray-200 rounded-lg bg-white text-xs font-medium"
+                                        required={outlet.hasFssai}
+                                      />
+                                      {errors[`outletFssaiExpiryDate_${index}`] && <p className="text-red-500 text-[10px] mt-0.5 font-medium">{errors[`outletFssaiExpiryDate_${index}`]}</p>}
+                                    </div>
+                                  </div>
+                                  <div>
+                                    <label className="flex-1 px-3 py-2 bg-white border border-gray-200 rounded-lg text-xs font-bold text-gray-700 hover:bg-gray-50 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
+                                      <Upload size={13} className="text-gray-500" />
+                                      <span className="truncate">{outlet.fssaiDocFile ? outlet.fssaiDocFile.name : (outlet.fssaiDocUrl ? "✓ FSSAI Document Uploaded" : "Upload FSSAI License Doc *")}</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*,.pdf"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          if (e.target.files && e.target.files[0]) {
+                                            updateOutlet(index, "fssaiDocFile", e.target.files[0]);
+                                          }
+                                        }}
+                                      />
+                                    </label>
+                                    {errors[`outletFssaiDoc_${index}`] && <p className="text-red-500 text-[10px] mt-0.5 font-medium">{errors[`outletFssaiDoc_${index}`]}</p>}
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="space-y-2 pt-1 border-t border-amber-200/60 animate-in fade-in duration-200">
+                                  <p className="text-[10px] text-amber-800 font-medium">Upload FSSAI Undertaking Document for this outlet *</p>
+                                  <div className="flex items-center gap-2">
+                                    <label className="flex-1 px-3 py-2 bg-white border border-amber-300 rounded-lg text-xs font-bold text-amber-900 hover:bg-amber-100/50 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
+                                      <Upload size={13} className="text-amber-700" />
+                                      <span className="truncate">{outlet.fssaiUndertakingFile ? outlet.fssaiUndertakingFile.name : "Upload Undertaking Doc *"}</span>
+                                      <input
+                                        type="file"
+                                        accept="image/*,.pdf"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          if (e.target.files && e.target.files[0]) {
+                                            updateOutlet(index, "fssaiUndertakingFile", e.target.files[0]);
+                                          }
+                                        }}
+                                      />
+                                    </label>
+                                  </div>
+                                  {errors[`outletFssaiUndertaking_${index}`] && <p className="text-red-500 text-[10px] mt-0.5 font-medium">{errors[`outletFssaiUndertaking_${index}`]}</p>}
+                                </div>
+                              )}
+                            </div>
                           </div>
                         ))}
                         {errors.outlets && <p className="text-red-500 text-xs mt-1 font-medium">{errors.outlets}</p>}
@@ -1677,7 +1885,7 @@ export default function RegisterPage() {
                         </div>
 
                         <div className="space-y-1">
-                          <label className="text-xs font-bold text-gray-700 block ml-1">FSSAI Expiry / Validation Date *</label>
+                          <label className="text-xs font-bold text-gray-700 block ml-1">FSSAI License Expiry Date *</label>
                           <div className="relative">
                             <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
                             <input
@@ -1761,92 +1969,98 @@ export default function RegisterPage() {
                     </div>
 
                     {isContractBased && (
-                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-3 pt-3 border-t border-amber-200/60">
-                        <div>
-                          <label className="text-xs font-bold text-gray-700 block mb-1">Contract Agreement Type</label>
-                          <select
-                            value={contractType}
-                            onChange={(e) => setContractType(e.target.value)}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} className="space-y-4 pt-3 border-t border-amber-200/60">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-800 uppercase tracking-wider">Contracts ({contracts.length})</span>
+                          <button
+                            type="button"
+                            onClick={addContractRow}
+                            className="px-3 py-1 bg-[#D97706] hover:bg-[#b45309] text-white rounded-lg text-xs font-bold transition-all shadow-xs flex items-center gap-1"
                           >
-                            <option value="Annual Supply Agreement">Annual Supply Agreement</option>
-                            <option value="Fixed Rate Contract">Fixed Rate Contract</option>
-                            <option value="Service Level Agreement (SLA)">Service Level Agreement (SLA)</option>
-                            <option value="Volume Discount Agreement">Volume Discount Agreement</option>
-                            <option value="Custom Contract">Custom Contract / SLA</option>
-                          </select>
+                            + Add Contract
+                          </button>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="text-xs font-bold text-gray-700 block mb-1">Contract Start Date</label>
-                            <div className="relative">
-                              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                              <input
-                                type="date"
-                                value={contractStartDate}
-                                onChange={(e) => setContractStartDate(e.target.value)}
-                                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
+                        {contracts.map((c, cIdx) => (
+                          <div key={cIdx} className="p-3.5 bg-white border border-gray-200 rounded-xl space-y-3 shadow-xs relative">
+                            <div className="flex items-center justify-between pb-1 border-b border-gray-100">
+                              <span className="text-xs font-bold text-[#D97706]">Contract #{cIdx + 1}</span>
+                              {contracts.length > 1 && (
+                                <button
+                                  type="button"
+                                  onClick={() => removeContractRow(cIdx)}
+                                  className="text-xs text-red-500 hover:text-red-700 font-bold px-2 py-0.5 rounded hover:bg-red-50"
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Select Brand *</label>
+                              <select
+                                value={c.brandName || ""}
+                                onChange={(e) => updateContractRow(cIdx, "brandName", e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                              >
+                                <option value="">Select Brand *</option>
+                                {brandsList.map(b => (
+                                  <option key={b} value={b}>{b}</option>
+                                ))}
+                              </select>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <div>
+                                <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Start Date</label>
+                                <input
+                                  type="date"
+                                  value={c.startDate || ""}
+                                  onChange={(e) => updateContractRow(cIdx, "startDate", e.target.value)}
+                                  className="w-full px-2.5 py-2 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                                />
+                              </div>
+                              <div>
+                                <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Expiry Date</label>
+                                <input
+                                  type="date"
+                                  value={c.expiryDate || ""}
+                                  onChange={(e) => updateContractRow(cIdx, "expiryDate", e.target.value)}
+                                  className="w-full px-2.5 py-2 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Contract Document</label>
+                              <label className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-700 hover:bg-gray-100 transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs">
+                                <Upload size={13} className="text-gray-500" />
+                                <span className="truncate">{c.contractFile ? c.contractFile.name : (c.contractUrl ? "✓ Document Uploaded" : "Upload Contract Doc")}</span>
+                                <input
+                                  type="file"
+                                  accept=".pdf,.doc,.docx,image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    if (e.target.files && e.target.files[0]) {
+                                      updateContractRow(cIdx, "contractFile", e.target.files[0]);
+                                    }
+                                  }}
+                                />
+                              </label>
+                            </div>
+
+                            <div>
+                              <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Special Terms / Notes</label>
+                              <textarea
+                                value={c.notes || ""}
+                                onChange={(e) => updateContractRow(cIdx, "notes", e.target.value)}
+                                placeholder="Specify fixed rates, terms..."
+                                rows={2}
+                                className="w-full p-2.5 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium text-gray-800"
                               />
                             </div>
                           </div>
-                          <div>
-                            <label className="text-xs font-bold text-gray-700 block mb-1">Contract Expiry Date</label>
-                            <div className="relative">
-                              <Calendar className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                              <input
-                                type="date"
-                                value={contractExpiryDate}
-                                onChange={(e) => setContractExpiryDate(e.target.value)}
-                                className="w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-bold text-gray-800"
-                              />
-                            </div>
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-bold text-gray-700 block mb-1">Contract Document (PDF/JPG/PNG/DOCX)</label>
-                          <div 
-                            onClick={() => contractFileInputRef.current?.click()}
-                            className={`w-full border-2 border-dashed rounded-xl p-4 flex flex-col items-center justify-center cursor-pointer transition-all ${contractDocUrl ? 'border-green-500 bg-green-50/80' : contractFile ? 'border-amber-400 bg-amber-50' : 'border-gray-300 bg-white hover:border-[#D97706]'}`}
-                          >
-                            <input type="file" ref={contractFileInputRef} onChange={handleContractFileChange} className="hidden" accept=".pdf,.doc,.docx,image/*" />
-                            {contractUploading ? (
-                              <p className="text-xs font-bold text-amber-700 animate-pulse flex items-center gap-1.5">
-                                ☁️ Uploading document to Cloudinary...
-                              </p>
-                            ) : contractDocUrl ? (
-                              <div className="flex items-center gap-2">
-                                <CheckCircle className="text-green-600 shrink-0" size={20} />
-                                <div className="text-left">
-                                  <span className="text-xs font-extrabold text-green-800 block truncate max-w-[240px]">{contractFile?.name || "Contract Document"}</span>
-                                  <span className="text-[10px] text-green-600 font-bold">Uploaded to Cloudinary ☁️</span>
-                                </div>
-                              </div>
-                            ) : contractFile ? (
-                              <div className="flex items-center gap-2">
-                                <FileCheck className="text-amber-600 shrink-0" size={20} />
-                                <span className="text-xs font-bold text-amber-800 truncate max-w-[240px]">{contractFile.name}</span>
-                              </div>
-                            ) : (
-                              <div className="flex items-center gap-2">
-                                <Upload className="text-gray-400" size={18} />
-                                <span className="text-xs font-medium text-gray-600">Upload signed agreement document</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="text-xs font-bold text-gray-700 block mb-1">Special Terms / Notes (Optional)</label>
-                          <textarea
-                            value={contractNotes}
-                            onChange={(e) => setContractNotes(e.target.value)}
-                            placeholder="Specify fixed rates, credit period terms, volume targets..."
-                            rows={2}
-                            className="w-full p-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-[#D97706] text-xs font-medium text-gray-800"
-                          />
-                        </div>
+                        ))}
                       </motion.div>
                     )}
                   </div>
