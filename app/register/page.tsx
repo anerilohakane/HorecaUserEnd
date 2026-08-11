@@ -105,9 +105,9 @@ export default function RegisterPage() {
 
   // 📜 Contract-Based Customer State (Multi-Brand Contracts)
   const [isContractBased, setIsContractBased] = useState(false);
-  const [brandsList, setBrandsList] = useState<string[]>([]);
+  const [brandsList, setBrandsList] = useState<Array<{ _id: string | null; name: string } | string>>([]);
   const [contracts, setContracts] = useState<Array<{
-    brandId?: string;
+    brandId?: string | null;
     brandName: string;
     contractType: string;
     startDate: string;
@@ -142,29 +142,49 @@ export default function RegisterPage() {
   React.useEffect(() => {
     const fetchBrands = async () => {
       try {
+        const prodRes = await fetch(`${API_BASE}/api/products`);
+        const prodJson = await prodRes.json();
+        const mongoBrandsMap: Record<string, string> = {};
+        if (prodJson.success && Array.isArray(prodJson.data)) {
+          prodJson.data.forEach((p: any) => {
+            if (p.categoryId && p.category) {
+              mongoBrandsMap[p.category.trim().toUpperCase()] = p.categoryId;
+            }
+          });
+        }
+
         const res = await fetch(`${API_BASE}/api/tally/master-data/stock-groups`);
         const json = await res.json();
+        const parsedBrands: Array<{ _id: string | null; name: string }> = [];
         if (json.success && json.data) {
           const parser = new DOMParser();
           const xmlDoc = parser.parseFromString(json.data, "text/xml");
           const groupNodes = xmlDoc.getElementsByTagName("STOCKGROUP");
-          const parsedBrands: string[] = [];
           for (let i = 0; i < groupNodes.length; i++) {
             const nameNode = groupNodes[i].getElementsByTagName("NAME")[0];
-            const name = nameNode ? nameNode.textContent?.trim() : groupNodes[i].getAttribute("NAME");
-            if (name && !parsedBrands.includes(name)) {
-              parsedBrands.push(name);
+            const name = nameNode ? nameNode.textContent?.trim() : groupNodes[i].getAttribute("NAME")?.trim();
+            if (name && !parsedBrands.some(b => b.name === name)) {
+              const bId = mongoBrandsMap[name.toUpperCase()] || null;
+              parsedBrands.push({ _id: bId, name });
             }
           }
-          if (parsedBrands.length > 0) {
-            setBrandsList(parsedBrands);
-            return;
-          }
         }
-        setBrandsList(["Unifoods", "Nestle", "Amul", "Britannia", "Parle"]);
+        if (parsedBrands.length === 0) {
+          ["Unifoods", "Nestle", "Amul", "Britannia", "Parle"].forEach(name => {
+            const bId = mongoBrandsMap[name.toUpperCase()] || null;
+            parsedBrands.push({ _id: bId, name });
+          });
+        }
+        setBrandsList(parsedBrands);
       } catch (err) {
         console.error("Failed to load brands from Tally:", err);
-        setBrandsList(["Unifoods", "Nestle", "Amul", "Britannia", "Parle"]);
+        setBrandsList([
+          { _id: null, name: "Unifoods" },
+          { _id: null, name: "Nestle" },
+          { _id: null, name: "Amul" },
+          { _id: null, name: "Britannia" },
+          { _id: null, name: "Parle" }
+        ]);
       }
     };
     fetchBrands();
@@ -2000,13 +2020,23 @@ export default function RegisterPage() {
                               <label className="text-[10px] font-bold text-gray-700 block mb-0.5">Select Brand *</label>
                               <select
                                 value={c.brandName || ""}
-                                onChange={(e) => updateContractRow(cIdx, "brandName", e.target.value)}
+                                onChange={(e) => {
+                                  const selectedName = e.target.value;
+                                  const matchedBrand = brandsList.find(b => (typeof b === 'string' ? b : b.name) === selectedName);
+                                  const bId = matchedBrand && typeof matchedBrand !== 'string' ? matchedBrand._id : null;
+                                  setContracts(prev => {
+                                    const updated = [...prev];
+                                    updated[cIdx] = { ...updated[cIdx], brandName: selectedName, brandId: bId };
+                                    return updated;
+                                  });
+                                }}
                                 className="w-full px-3 py-2 border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:border-[#D97706] text-xs font-medium"
                               >
                                 <option value="">Select Brand *</option>
-                                {brandsList.map(b => (
-                                  <option key={b} value={b}>{b}</option>
-                                ))}
+                                {brandsList.map((b, i) => {
+                                  const nameStr = typeof b === 'string' ? b : (typeof b === 'object' && b && 'name' in b ? String(b.name) : String(b));
+                                  return <option key={i} value={nameStr}>{nameStr}</option>;
+                                })}
                               </select>
                             </div>
 
