@@ -3,7 +3,7 @@
 import React, { useState, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { User, Users, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check, Store, Briefcase, CreditCard, Folder, HelpCircle, Navigation } from "lucide-react";
+import { User, Users, Mail, Phone, Building, FileText, Lock, Upload, ArrowRight, ArrowLeft, CheckCircle, X, MapPin, Tag, FileCheck, Calendar, FileCode, Check, Store, Briefcase, CreditCard, Folder, HelpCircle, Navigation, Plus, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/context/AuthContext";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
@@ -227,26 +227,24 @@ export default function RegisterPage() {
   const [routeCode, setRouteCode] = useState("");
   const [loadingRoutes, setLoadingRoutes] = useState(false);
 
-  // 📞 Department-wise Contact details & Source
-  const [artName, setArtName] = useState("");
-  const [artPhone, setArtPhone] = useState("");
-  const [artEmail, setArtEmail] = useState("");
+  // 📞 Department Contact Details (Dynamic Array)
+  const [departmentContacts, setDepartmentContacts] = useState<Array<{ name: string; email: string; phone: string; position: string }>>([]);
 
-  const [actName, setActName] = useState("");
-  const [actPhone, setActPhone] = useState("");
-  const [actEmail, setActEmail] = useState("");
+  const addDepartmentContact = () => {
+    setDepartmentContacts(prev => [...prev, { name: "", email: "", phone: "", position: "" }]);
+  };
 
-  const [odtName, setOdtName] = useState("");
-  const [odtPhone, setOdtPhone] = useState("");
-  const [odtEmail, setOdtEmail] = useState("");
+  const removeDepartmentContact = (index: number) => {
+    setDepartmentContacts(prev => prev.filter((_, i) => i !== index));
+  };
 
-  const [scmName, setScmName] = useState("");
-  const [scmPhone, setScmPhone] = useState("");
-  const [scmEmail, setScmEmail] = useState("");
-
-  const [rpName, setRpName] = useState("");
-  const [rpPhone, setRpPhone] = useState("");
-  const [rpEmail, setRpEmail] = useState("");
+  const updateDepartmentContact = (index: number, field: string, value: string) => {
+    setDepartmentContacts(prev => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], [field as keyof typeof updated[number]]: value };
+      return updated;
+    });
+  };
 
   const [customerSource, setCustomerSource] = useState("");
   const [customSource, setCustomSource] = useState("");
@@ -756,13 +754,14 @@ export default function RegisterPage() {
         licenseExpiryDate: licenseExpiryDate || null,
         hasMultipleOutlets,
         source: customerSource === "Other" ? customSource.trim() : customerSource,
-        departmentContacts: {
-          art: { name: artName.trim(), phone: artPhone.trim(), email: artEmail.trim() },
-          act: { name: actName.trim(), phone: actPhone.trim(), email: actEmail.trim() },
-          odt: { name: odtName.trim(), phone: odtPhone.trim(), email: odtEmail.trim() },
-          scm: { name: scmName.trim(), phone: scmPhone.trim(), email: scmEmail.trim() },
-          routePlanner: { name: rpName.trim(), phone: rpPhone.trim(), email: rpEmail.trim() }
-        },
+        departmentContacts: departmentContacts
+          .filter(dc => dc.name.trim() || dc.email.trim() || dc.phone.trim() || dc.position.trim())
+          .map(dc => ({
+            name: dc.name.trim() || null,
+            email: dc.email.trim() || null,
+            phone: dc.phone.trim() || null,
+            position: dc.position.trim() || null
+          })),
         outlets: hasMultipleOutlets ? processedOutlets.map(o => ({
           outletName: o.outletName.trim(),
           address: o.address.trim(),
@@ -1233,178 +1232,55 @@ export default function RegisterPage() {
                     </div>
                   )}
 
-                  <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 space-y-3">
-                    <label className="flex items-center gap-2 text-xs font-bold text-gray-700 uppercase tracking-wider">
-                      <Users className="w-4 h-4 text-gray-500" />
-                      Department Contact Details
-                    </label>
-                    <div className="space-y-3">
-                      {/* ART */}
-                      <div className="border-b border-gray-200 pb-2">
-                        <span className="text-xs font-bold text-gray-700 block mb-1.5">1. ART (Accounts Receivable)</span>
-                        <div className="grid grid-cols-3 gap-2">
-                          <input
-                            type="text"
-                            value={artName}
-                            onChange={(e) => setArtName(e.target.value)}
-                            placeholder="Dept. Name"
-                            name="dept_art_n"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={artPhone}
-                            onChange={(e) => setArtPhone(e.target.value)}
-                            placeholder="Dept. Phone"
-                            name="dept_art_p"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={artEmail}
-                            onChange={(e) => setArtEmail(e.target.value)}
-                            placeholder="Dept. Email"
-                            name="dept_art_e"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                        </div>
-                      </div>
-                      {/* ACT */}
-                      <div className="border-b border-gray-200 pb-2">
-                        <span className="text-xs font-bold text-gray-700 block mb-1.5">2. ACT (Accounts/Customer Care)</span>
-                        <div className="grid grid-cols-3 gap-2">
-                          <input
-                            type="text"
-                            value={actName}
-                            onChange={(e) => setActName(e.target.value)}
-                            placeholder="Dept. Name"
-                            name="dept_act_n"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={actPhone}
-                            onChange={(e) => setActPhone(e.target.value)}
-                            placeholder="Dept. Phone"
-                            name="dept_act_p"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={actEmail}
-                            onChange={(e) => setActEmail(e.target.value)}
-                            placeholder="Dept. Email"
-                            name="dept_act_e"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                        </div>
-                      </div>
-                      {/* ODT */}
-                      <div className="border-b border-gray-200 pb-2">
-                        <span className="text-xs font-bold text-gray-700 block mb-1.5">3. ODT (Order Dispatch Team)</span>
-                        <div className="grid grid-cols-3 gap-2">
-                          <input
-                            type="text"
-                            value={odtName}
-                            onChange={(e) => setOdtName(e.target.value)}
-                            placeholder="Dept. Name"
-                            name="dept_odt_n"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={odtPhone}
-                            onChange={(e) => setOdtPhone(e.target.value)}
-                            placeholder="Dept. Phone"
-                            name="dept_odt_p"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={odtEmail}
-                            onChange={(e) => setOdtEmail(e.target.value)}
-                            placeholder="Dept. Email"
-                            name="dept_odt_e"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                        </div>
-                      </div>
-                      {/* SCM */}
-                      <div className="border-b border-gray-200 pb-2">
-                        <span className="text-xs font-bold text-gray-700 block mb-1.5">4. SCM (Supply Chain Management)</span>
-                        <div className="grid grid-cols-3 gap-2">
-                          <input
-                            type="text"
-                            value={scmName}
-                            onChange={(e) => setScmName(e.target.value)}
-                            placeholder="Dept. Name"
-                            name="dept_scm_n"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={scmPhone}
-                            onChange={(e) => setScmPhone(e.target.value)}
-                            placeholder="Dept. Phone"
-                            name="dept_scm_p"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={scmEmail}
-                            onChange={(e) => setScmEmail(e.target.value)}
-                            placeholder="Dept. Email"
-                            name="dept_scm_e"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                        </div>
-                      </div>
-                      {/* Route Planner */}
-                      <div>
-                        <span className="text-xs font-bold text-gray-700 block mb-1.5">5. Route Planner</span>
-                        <div className="grid grid-cols-3 gap-2">
-                          <input
-                            type="text"
-                            value={rpName}
-                            onChange={(e) => setRpName(e.target.value)}
-                            placeholder="Dept. Name"
-                            name="dept_rp_n"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={rpPhone}
-                            onChange={(e) => setRpPhone(e.target.value)}
-                            placeholder="Dept. Phone"
-                            name="dept_rp_p"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                          <input
-                            type="text"
-                            value={rpEmail}
-                            onChange={(e) => setRpEmail(e.target.value)}
-                            placeholder="Dept. Email"
-                            name="dept_rp_e"
-                            autoComplete="new-password"
-                            className="px-2 py-1.5 border border-gray-200 rounded-lg text-xs w-full"
-                          />
-                        </div>
-                      </div>
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-bold text-gray-800">Department Contact Details</label>
+                      <button
+                        type="button"
+                        onClick={addDepartmentContact}
+                        className="text-xs font-bold text-amber-600 uppercase flex items-center gap-1 hover:text-amber-700"
+                      >
+                        + ADD
+                      </button>
                     </div>
+                    {(departmentContacts || []).map((dc, i) => (
+                      <div key={i} className="p-4 bg-gray-50 border border-gray-200 rounded-xl relative space-y-4">
+                        <button
+                          type="button"
+                          onClick={() => removeDepartmentContact(i)}
+                          className="absolute top-4 right-4 text-rose-400 hover:text-rose-600"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                        <div className="grid grid-cols-2 gap-4 pr-8">
+                          <input
+                            placeholder="Name"
+                            value={dc.name}
+                            onChange={(e) => updateDepartmentContact(i, 'name', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                          />
+                          <input
+                            placeholder="Email"
+                            type="email"
+                            value={dc.email}
+                            onChange={(e) => updateDepartmentContact(i, 'email', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                          />
+                          <input
+                            placeholder="Phone"
+                            value={dc.phone}
+                            onChange={(e) => updateDepartmentContact(i, 'phone', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                          />
+                          <input
+                            placeholder="Position"
+                            value={dc.position}
+                            onChange={(e) => updateDepartmentContact(i, 'position', e.target.value)}
+                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                          />
+                        </div>
+                      </div>
+                    ))}
                   </div>
                    <div className="space-y-2">
                     <div className="relative">
