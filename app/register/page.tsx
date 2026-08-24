@@ -261,7 +261,11 @@ export default function RegisterPage() {
   const [departmentContacts, setDepartmentContacts] = useState<Array<{ name: string; email: string; phone: string; position: string }>>([]);
 
   const addDepartmentContact = () => {
-    setDepartmentContacts(prev => [...prev, { name: "", email: "", phone: "", position: "" }]);
+    setDepartmentContacts(prev => {
+      const i = prev.length;
+      const defaultPosition = i === 0 ? "Accounts" : i === 1 ? "Purchase Manager" : i === 2 ? "Store Manager" : i === 3 ? "Accounts Payable" : `POC #${i + 1}`;
+      return [...prev, { name: "", email: "", phone: "", position: defaultPosition }];
+    });
   };
 
   const removeDepartmentContact = (index: number) => {
@@ -1368,7 +1372,7 @@ export default function RegisterPage() {
                             <Trash2 size={14} /> Remove
                           </button>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                           <input
                             placeholder="Name"
                             value={dc.name}
@@ -1386,12 +1390,6 @@ export default function RegisterPage() {
                             placeholder="Phone"
                             value={dc.phone}
                             onChange={(e) => updateDepartmentContact(i, 'phone', e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
-                          />
-                          <input
-                            placeholder="Position"
-                            value={dc.position}
-                            onChange={(e) => updateDepartmentContact(i, 'position', e.target.value)}
                             className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                           />
                         </div>
