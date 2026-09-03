@@ -532,11 +532,10 @@ export default function ProductDetailClient({
         }
 
         if (product.stockQuantity !== undefined && quantity > product.stockQuantity) {
-            sileo.error({
-                title: "Insufficient Stock",
-                description: `Only ${product.stockQuantity} units are available for "${product.name}".`
+            sileo.warning({
+                title: "Out of Stock",
+                description: `Adding an out of stock product to your cart.`
             });
-            return;
         }
 
         setIsAdding(true);

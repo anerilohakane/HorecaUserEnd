@@ -285,13 +285,12 @@ export default function ProductCard({
 
     if (!effectiveProduct?.id || isAdding) return;
 
-    // INSUFFICIENT STOCK CHECK
+    // INSUFFICIENT STOCK CHECK (Non-blocking)
     if (effectiveProduct.stockQuantity !== undefined && effectiveProduct.minOrder > effectiveProduct.stockQuantity) {
-      sileo.error({
-        title: "Insufficient Stock",
-        description: `Required quantity (${effectiveProduct.minOrder}) exceeds available stock (${effectiveProduct.stockQuantity}).`
+      sileo.warning({
+        title: "Out of Stock",
+        description: `Adding an out of stock product to your cart.`
       });
-      return;
     }
 
     setIsAdding(true);
@@ -557,15 +556,6 @@ export default function ProductCard({
           })()}
         </Link>
 
-        {/* Out of Stock Overlay */}
-        {!effectiveProduct.inStock && (
-          <div className="absolute inset-0 bg-white/60 backdrop-blur-[2px] z-10 flex items-center justify-center">
-            <span className="bg-gray-900 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">
-              Out of Stock
-            </span>
-          </div>
-        )}
-
         {/* Low Stock Warning */}
         {effectiveProduct.inStock && (effectiveProduct.stockQuantity !== undefined && effectiveProduct.stockQuantity <= 10) && (
           <div className="absolute bottom-0 left-0 right-0 bg-red-50/90 backdrop-blur-sm border-t border-red-100 p-1.5 z-10 flex justify-center">
@@ -656,17 +646,15 @@ export default function ProductCard({
             </button>
           ) : (
             <button
-              onClick={effectiveProduct.inStock ? handleAddToCart : handleNotifyMe}
+              onClick={handleAddToCart}
               disabled={isAdding || !API_BASE}
               className={`px-4 py-1.5 rounded border text-xs font-bold transition-all uppercase z-20
-                ${!effectiveProduct.inStock
-                  ? 'bg-orange-50 border-orange-200 text-[#D97706] hover:bg-orange-100'
-                  : isAdding
+                ${isAdding
                     ? 'bg-orange-50 border-orange-500 text-orange-600'
                     : 'bg-white border-orange-400 text-orange-500 hover:bg-orange-50'
                 }`}
             >
-              {effectiveProduct.inStock ? (isAdding ? 'ADD...' : 'ADD +') : 'Notify Me'}
+              {isAdding ? 'ADD...' : 'ADD +'}
             </button>
           )}
         </div>
